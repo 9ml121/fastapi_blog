@@ -94,7 +94,6 @@ class UserUpdate(BaseModel):
 
     特点：
     - 所有字段都是可选的（支持部分更新）
-    - 不包含密码（密码修改应该使用单独的端点）
     - 不包含不允许修改的字段（如 id, created_at）
 
     用途：PATCH /api/v1/users/{user_id}
@@ -121,6 +120,22 @@ class UserUpdate(BaseModel):
     is_active: bool | None = Field(
         default=None,
         description="用户是否激活（管理员功能）",
+    )
+
+    # ⚠️ TODO: 临时方案 - 未来应该使用单独的密码更新端点
+    # 原因：
+    # 1. 密码修改应该验证旧密码（安全考虑）
+    # 2. 应该与普通信息更新分离（单一职责原则）
+    # 3. 可能需要二次验证（邮箱/短信）
+    # 未来改进：
+    # - 创建 PasswordUpdate schema（包含 old_password + new_password）
+    # - 创建单独的 API 端点 POST /users/{id}/password
+    # - 实现完整的密码修改流程（验证旧密码、发送通知等）
+    password: str | None = Field(
+        default=None,
+        min_length=8,
+        max_length=100,
+        description="新密码（临时方案：未来应使用单独的密码更新端点）",
     )
 
     model_config = ConfigDict(

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "learning/phase2-database/02-Alembic数据库迁移详解.md",
+                "file": "reference/web-architecture-best-practices.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "02-Alembic数据库迁移详解"
+              "title": "web-architecture-best-practices"
             }
           }
         ]
@@ -142,13 +142,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "learning/phase2-database/02-Alembic数据库迁移详解.md",
+                "file": "reference/web-architecture-best-practices.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "02-Alembic数据库迁移详解 的大纲"
+              "title": "web-architecture-best-practices 的大纲"
             }
           }
         ],
@@ -172,6 +172,13 @@
   },
   "active": "a515c35d44d5ae62",
   "lastOpenFiles": [
+    "learning/phase1-foundation/01-项目基础搭建.md",
+    "reference/web-architecture-best-practices.md",
+    "project/plan.md",
+    "learning/README.md",
+    "learning/dev-workflow/01-Git版本控制与VSCode实践.md",
+    "learning/phase2-database/02-Alembic数据库迁移详解.md",
+    "learning/dev-workflow",
     "reference/database-schema.md",
     "learning/phase3-api/03-仓储模式与CRUD设计.md",
     "learning/phase3-api/01-Pydantic数据验证与Schema设计.md",
@@ -180,7 +187,6 @@
     "standards/database-models.md",
     "learning/06-Pydantic数据验证与Schema设计.md",
     "standards/alembic-best-practices.md",
-    "learning/phase2-database/02-Alembic数据库迁移详解.md",
     "database/README.md",
     "database/initial_schema.sql",
     "database",
@@ -194,7 +200,6 @@
     "learning/phase2-database/sqlalchemy/02-SQLAlchemy语法对比分析.md",
     "learning/phase2-database/sqlalchemy/05-SQLAlchemy-ORM底层映射原理深度解析.md",
     "learning/phase2-database/sqlalchemy/03-SQLAlchemy-ORM模型定义实战详解.md",
-    "learning/phase2-database/sqlalchemy/04-SQLAlchemy-最佳实践与常见陷阱.md",
-    "project/plan.md"
+    "learning/phase2-database/sqlalchemy/04-SQLAlchemy-最佳实践与常见陷阱.md"
   ]
 }

@@ -136,7 +136,7 @@ class User(Base):
 
     def __repr__(self) -> str:
         """开发调试用的字符串表示"""
-        return f"<User(id={self.id}, username='{self.username}', role='{self.role}')>"
+        return f"<User(id={self.id}, username='{self.username}', role='{self.role}', password_hash = '{self.password_hash}')>"
 
     def __str__(self) -> str:
         """用户友好的字符串表示"""

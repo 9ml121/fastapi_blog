@@ -229,8 +229,11 @@ def authenticate_user(db: Session, *, email: str, password: str) -> User | None:
 
     # 2. 防止时序攻击：即使用户不存在，也执行假的密码验证
     if not user:
-        # 使用 dummy 哈希验证，耗时与真实验证相似
-        verify_password("dummy_password", "dummy_hash_that_will_never_match")
+        # 使用一个真实的 bcrypt 哈希作为 dummy（但永远不会匹配）
+        # 这样既能保持验证时间一致，又不会抛出 "Invalid salt" 异常
+        # 注意：这个哈希是 "dummy_password" 的哈希值，但输入不会是这个
+        dummy_hash = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIr.TjXqzi"
+        verify_password(password, dummy_hash)
         return None
 
     # 3. 验证密码
