@@ -6,12 +6,124 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "alembic>=1.16.5",
+    "bcrypt>=5.0.0",
     "fastapi>=0.117.1",
-    "passlib[bcrypt]>=1.7.4",
     "psycopg2-binary>=2.9.10",
+    "pydantic-settings>=2.11.0",
+    "pydantic[email]>=2.11.9",
     "python-dotenv>=1.1.1",
     "python-jose[cryptography]>=3.5.0",
     "python-multipart>=0.0.20",
     "sqlalchemy>=2.0.43",
     "uvicorn>=0.37.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=0.23.0", # 异步测试支持
+    "pytest-cov>=4.0.0",      # 覆盖率测试
+    "pytest-mock>=3.12.0",    # Mock支持
+    "pytest-xdist>=3.5.0",    # 并行测试
+    "httpx>=0.27.0",          # 异步HTTP客户端测试
+    "factory-boy>=3.3.0",     # 测试数据工厂
+    "faker>=24.0.0",          # 假数据生成
+    "freezegun>=1.4.0",       # 时间Mock
+]
+
+[tool.pytest.ini_options]
+# 测试路径配置
+pythonpath = ["."]
+testpaths = ["tests"]
+
+# 测试文件匹配模式
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# pytest 运行选项
+addopts = [
+    "-v",         # 详细输出
+    "-q",         # 简化头部输出信息
+    "--tb=short", # 简短的错误堆栈
+    # "-s",  # 实时输出没通过测试的print
+    # "-rP", # 显示通过测试的 print 输出
+    # "--log-cli-level=DEBUG",     # 显示 DEBUG 日志（需要时手动启用）
+    # "--cov",                 # 覆盖率：开发阶段关闭（需要时手动启用）
+    # "--cov-report=term-missing",  # 显示缺少测试的代码行号
+    # "--cov-report=xml",          # 开发阶段关闭
+]
+
+# 最小 Python 版本
+minversion = "6.0"
+
+# 测试标记定义
+markers = [
+    "unit: 单元测试 - 测试单个函数或类的功能",
+    "integration: 集成测试 - 测试多个组件之间的交互",
+    "db: 数据库测试 - 数据库相关功能测试",
+    "api: API测试 - HTTP API 端点测试",
+]
+
+# 过滤警告
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore:.*SQLAlchemy.*:UserWarning",
+]
+
+# 异步测试配置
+asyncio_mode = "auto"
+
+# ============================================
+# 覆盖率配置 (pytest-cov + coverage.py)
+# ============================================
+[tool.coverage.run]
+source = ["app"] # 只统计 app 目录
+omit = [
+    "*/tests/*",      # 排除测试文件
+    "*/migrations/*", # 排除数据库迁移
+    "*/__init__.py",  # 排除 __init__ 文件
+]
+branch = true # 启用分支覆盖率
+
+[tool.coverage.report]
+show_missing = true # 显示缺失的行号
+skip_empty = true   # 跳过空文件
+sort = "Cover"      # 按覆盖率排序
+
+
+[tool.coverage.xml]
+output = "coverage.xml" # XML 报告（供 VSCode 扩展使用）
+
+[tool.coverage.html]
+directory = "htmlcov" # HTML 报告目录
+
+[project.scripts]
+notify = "scripts.notify:main"
+
+[tool.ruff]
+line-length = 120  # 放宽到 120，适应测试文件中的长函数签名
+target-version = "py311"
+src = ["app"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes(逻辑错误)
+    "I",   # isort（import 排序）
+    "N",   # pep8-naming（命名规范）
+    "UP",  # pyupgrade（现代化语法）
+    "B",   # flake8-bugbear(常见陷阱和 bug)
+    "C4",  # flake8-comprehensions (推荐更优雅的推导式写法)
+    "SIM", # flake8-simplify (代码简化建议)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: registry.cn-qingdao.aliyuncs.com/dataease/postgres:17.6
+    container_name: postgres17
+    environment:
+      POSTGRES_DB: blogdb
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: Password123@pg
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgresql:/var/lib/postgresql/data
+    restart: unless-stopped
+

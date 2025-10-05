@@ -1,0 +1,200 @@
+{
+  "main": {
+    "id": "9bcfedfe350b23f3",
+    "type": "split",
+    "children": [
+      {
+        "id": "636c430351f71807",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "a515c35d44d5ae62",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "learning/phase2-database/02-Alembic数据库迁移详解.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "02-Alembic数据库迁移详解"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "a19ec13a04128a8c",
+    "type": "split",
+    "children": [
+      {
+        "id": "dfe7725c3dca55da",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0d24ba3cb4fac532",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "f8252948f53bbe46",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "82348f8a63f34870",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200
+  },
+  "right": {
+    "id": "d116440b89ded4f3",
+    "type": "split",
+    "children": [
+      {
+        "id": "0cb64459f5558d86",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5b2d2c9eb9c4b670",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "learning/phase2-database/sqlalchemy/01-SQLAlchemy架构与数据校验.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "01-SQLAlchemy架构与数据校验 的反向链接列表"
+            }
+          },
+          {
+            "id": "de344b29b5d98f04",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "learning/phase2-database/sqlalchemy/01-SQLAlchemy架构与数据校验.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "01-SQLAlchemy架构与数据校验 的出链列表"
+            }
+          },
+          {
+            "id": "b7e71fc965a69c3e",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "1133a3ec36f8e0c8",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "learning/phase2-database/02-Alembic数据库迁移详解.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "02-Alembic数据库迁移详解 的大纲"
+            }
+          }
+        ],
+        "currentTab": 3
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "bases:创建新数据库": false,
+      "translate:Open translation view": false
+    }
+  },
+  "active": "a515c35d44d5ae62",
+  "lastOpenFiles": [
+    "reference/database-schema.md",
+    "learning/phase3-api/03-仓储模式与CRUD设计.md",
+    "learning/phase3-api/01-Pydantic数据验证与Schema设计.md",
+    "learning/phase3-api/02-密码安全与哈希机制.md",
+    "standards/testing.md",
+    "standards/database-models.md",
+    "learning/06-Pydantic数据验证与Schema设计.md",
+    "standards/alembic-best-practices.md",
+    "learning/phase2-database/02-Alembic数据库迁移详解.md",
+    "database/README.md",
+    "database/initial_schema.sql",
+    "database",
+    "project/todo.md",
+    "PixPin_2025-10-01_23-57-20.png",
+    "standards/python.md",
+    "README.md",
+    "project/process.md",
+    "learning/testing/pytest/04-pytest最佳实践.md",
+    "learning/phase2-database/sqlalchemy/01-SQLAlchemy架构与数据校验.md",
+    "learning/phase2-database/sqlalchemy/02-SQLAlchemy语法对比分析.md",
+    "learning/phase2-database/sqlalchemy/05-SQLAlchemy-ORM底层映射原理深度解析.md",
+    "learning/phase2-database/sqlalchemy/03-SQLAlchemy-ORM模型定义实战详解.md",
+    "learning/phase2-database/sqlalchemy/04-SQLAlchemy-最佳实践与常见陷阱.md",
+    "project/plan.md"
+  ]
+}

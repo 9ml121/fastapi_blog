@@ -12,6 +12,12 @@ wheels/
 # Environment variables
 .env
 
+# Test coverage reports
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+
 # IDE and editor files
 .vscode/
 .idea/
