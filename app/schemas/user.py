@@ -94,7 +94,7 @@ class UserUpdate(BaseModel):
 
     特点：
     - 所有字段都是可选的（支持部分更新）
-    - 不包含不允许修改的字段（如 id, created_at）
+    - 不包含不允许修改的字段（如 id, created_at, role, deleted_at）
 
     用途：PATCH /api/v1/users/{user_id}
     ⚠️ 这里是直接继承 BaseModel, 不能继承 UserBase，存在部分代码重复

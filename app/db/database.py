@@ -35,7 +35,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # 创建声明式基类
 # 所有数据库模型都将继承这个基类
-# ⚠️ 20251003：可以新增 继承MappedAsDataclass， 帮助 ide 做智能提示。但是目前不是很完善
+# ⚠️ 20251003：可以新增 继承MappedAsDataclass， 帮助 ide 做智能提示。但是目前不是很完善，后续可以考虑采用 sqlmode 框架
 # 参考：https://docs.sqlalchemy.org/en/20/orm/dataclasses.html#declarative-dataclass-mapping
 class Base(DeclarativeBase):
     pass

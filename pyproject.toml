@@ -47,7 +47,7 @@ addopts = [
     "-q",         # 简化头部输出信息
     "--tb=short", # 简短的错误堆栈
     # "-s",  # 实时输出没通过测试的print
-    # "-rP", # 显示通过测试的 print 输出
+    "-rP", # 显示通过测试的 print 输出
     # "--log-cli-level=DEBUG",     # 显示 DEBUG 日志（需要时手动启用）
     # "--cov",                 # 覆盖率：开发阶段关闭（需要时手动启用）
     # "--cov-report=term-missing",  # 显示缺少测试的代码行号
@@ -118,6 +118,7 @@ select = [
     "C4",  # flake8-comprehensions (推荐更优雅的推导式写法)
     "SIM", # flake8-simplify (代码简化建议)
 ]
+ignore = ["B008"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

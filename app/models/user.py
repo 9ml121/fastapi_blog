@@ -105,7 +105,10 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), comment="创建时间")
 
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), comment="更新时间"
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        comment="更新时间",
     )
 
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None, comment="最后登录时间")
@@ -136,7 +139,11 @@ class User(Base):
 
     def __repr__(self) -> str:
         """开发调试用的字符串表示"""
-        return f"<User(id={self.id}, username='{self.username}', role='{self.role}', password_hash = '{self.password_hash}')>"
+        return (
+            f"<User(id={self.id}, username='{self.username}',"
+            f"role='{self.role}', email='{self.email}', "
+            f"last_login='{self.last_login})>"
+        )
 
     def __str__(self) -> str:
         """用户友好的字符串表示"""

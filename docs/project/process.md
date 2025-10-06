@@ -2,8 +2,8 @@
 
 ## 📊 当前状态：Phase 3 - 管理员认证系统（进行中）
 
-**当前进度**：Phase 3.3 - 数据操作层（CRUD）
-**完成度**：43%（3/7个阶段已完成）
+**当前进度**：Phase 3.5 - 认证依赖项
+**完成度**：71%（5/7个阶段已完成）
 
 ## ✅ Phase 1 & 2 完成概述
 
@@ -79,11 +79,14 @@
 
 ---
 
-### 🎯 Phase 3.3 - 数据操作层（CRUD）⏳ **当前任务**
+### 🎯 Phase 3.3 - 数据操作层（CRUD）✅ **已完成**
 
 **目标**：创建数据库操作的抽象层
 
-**进度**：2/4 子任务已完成
+**完成情况**：
+- ✅ 实现所有 User CRUD 操作（创建、查询、更新、删除、认证）
+- ✅ 完整测试套件（19 个测试用例，100% 通过）
+- ✅ 软删除机制、防时序攻击、部分更新等最佳实践
 
 #### 3.3.1 学习 Repository 模式
 - [x] 理解 CRUD 模式和职责分离
@@ -92,81 +95,93 @@
 
 #### 3.3.2 创建 User CRUD - 查询操作
 - [x] 创建 `app/crud/user.py` 文件
-- [ ] 实现 get_user_by_id()（通过 UUID 查询）
+- [x] 实现 get_user_by_id()（通过 UUID 查询）
 - [x] 实现 get_user_by_email()（通过邮箱查询）
-- [ ] 实现 get_user_by_username()（通过用户名查询）
+- [x] 实现 get_user_by_username()（通过用户名查询）
 
 #### 3.3.3 CRUD 创建和更新操作
 - [x] 实现 create_user()（创建用户，包含密码哈希）
-- [ ] 实现 update_user()（更新用户信息）
-- [ ] 实现 delete_user()（软删除，设置 deleted_at）
-- [ ] 实现 authenticate_user()（登录验证，验证密码）
+- [x] 实现 update_user()（部分更新，支持密码更新）
+- [x] 实现 delete_user()（软删除机制）
+- [x] 实现 authenticate_user()（登录认证，防时序攻击）
 
 #### 3.3.4 创建 CRUD 测试
-- [ ] 编写 `tests/test_crud_user.py`
-- [ ] 测试用户创建（含密码哈希验证）
-- [ ] 测试用户查询（各种条件：id/email/username）
-- [ ] 测试用户更新和删除（软删除验证）
-- [ ] 测试认证逻辑（正确/错误密码）
-- [ ] 代码质量检查（ruff + pytest）
+- [x] 编写 `tests/test_crud/test_user.py`
+- [x] 测试用户创建（含密码哈希验证、唯一性约束）
+- [x] 测试用户查询（id/email/username，正常+不存在）
+- [x] 测试用户更新（部分更新、密码更新、不存在用户）
+- [x] 测试用户删除（软删除、删除后查询、不存在用户）
+- [x] 测试认证逻辑（成功、错误密码、不存在用户、软删除用户）
+- [x] 代码质量检查（ruff + pytest，130 个测试全部通过）
 
 ---
 
-### 🎯 Phase 3.4 - JWT Token 机制
+### 🎯 Phase 3.4 - JWT Token 机制 ✅ **已完成**
 
 **目标**：实现 JWT 认证 token 的生成和验证
 
+**完成情况**：
+- ✅ 创建 JWT 理论学习文档（17,000+ 字完整教程）
+- ✅ JWT 配置已存在且规范（SECRET_KEY, ALGORITHM, EXPIRE_MINUTES）
+- ✅ 实现核心 JWT 函数（create_access_token, decode_access_token）
+- ✅ 完整测试套件（7 个测试用例，100% 覆盖率，137/137 测试通过）
+
 #### 3.4.1 学习 JWT 原理
-- [ ] 理解 JWT 结构（Header.Payload.Signature）
-- [ ] 学习 JWT vs Session 的区别（无状态 vs 有状态）
-- [ ] 了解 token 过期和刷新策略
-- [ ] 掌握 JWT 安全最佳实践（密钥保护、过期时间）
+- [x] 理解 JWT 结构（Header.Payload.Signature）
+- [x] 学习 JWT vs Session 的区别（无状态 vs 有状态）
+- [x] 了解 token 过期和刷新策略
+- [x] 掌握 JWT 安全最佳实践（密钥保护、过期时间）
 
 #### 3.4.2 配置 JWT 设置
-- [ ] 更新 `app/core/config.py` 添加 JWT 配置
-- [ ] 配置密钥（SECRET_KEY，环境变量）
-- [ ] 配置 token 过期时间（ACCESS_TOKEN_EXPIRE_MINUTES）
-- [ ] 配置算法（HS256）
+- [x] 更新 `app/core/config.py` 添加 JWT 配置（已存在）
+- [x] 配置密钥（SECRET_KEY，环境变量）
+- [x] 配置 token 过期时间（ACCESS_TOKEN_EXPIRE_MINUTES = 30）
+- [x] 配置算法（HS256）
 
 #### 3.4.3 创建 JWT 工具
-- [ ] 更新 `app/core/security.py` 添加 JWT 函数
-- [ ] 实现 create_access_token()（生成 JWT token）
-- [ ] 实现 decode_access_token()（解码并验证 token）
-- [ ] 实现 create_refresh_token()（可选：刷新 token）
+- [x] 更新 `app/core/security.py` 添加 JWT 函数
+- [x] 实现 create_access_token()（生成 JWT token，支持自定义过期）
+- [x] 实现 decode_access_token()（解码并验证 token，异常处理）
+- [x] 使用 Python 3.11+ datetime.UTC（现代最佳实践）
 
 #### 3.4.4 创建 JWT 测试
-- [ ] 更新 `tests/test_security.py` 添加 JWT 测试
-- [ ] 测试 token 生成（包含用户信息）
-- [ ] 测试 token 解码和验证（正常 token）
-- [ ] 测试 token 过期处理（过期 token）
-- [ ] 测试无效 token 处理（篡改、格式错误）
-- [ ] 代码质量检查（ruff + pytest）
+- [x] 更新 `tests/test_core/test_security.py` 添加 JWT 测试
+- [x] 测试 token 生成（包含用户信息、自定义过期）
+- [x] 测试 token 解码和验证（正常 token）
+- [x] 测试 token 过期处理（time.sleep 模拟过期）
+- [x] 测试无效 token 处理（篡改、格式错误、空字符串）
+- [x] 测试输入数据不可变性（data.copy() 机制）
+- [x] 代码质量检查（ruff + pytest，137 个测试全部通过）
 
 ---
 
-### 🎯 Phase 3.5 - 认证依赖项
+### 🎯 Phase 3.5 - 认证依赖项 ✅ **已完成**
 
 **目标**：创建 FastAPI 依赖注入用于认证和权限检查
 
+**完成情况**：
+- ✅ 实现 get_db, get_current_user, get_current_active_user, get_current_superuser
+- ✅ 完整测试套件（6 个测试用例，100% 通过）
+
 #### 3.5.1 学习 FastAPI 依赖注入
-- [ ] 理解依赖注入模式（DI 设计模式）
-- [ ] 学习 FastAPI Depends 机制（自动注入）
-- [ ] 了解依赖项的复用和组合（链式依赖）
+- [x] 理解依赖注入模式（DI 设计模式）
+- [x] 学习 FastAPI Depends 机制（自动注入）
+- [x] 了解依赖项的复用和组合（链式依赖）
 
 #### 3.5.2 创建认证依赖
-- [ ] 创建 `app/api/deps.py` 文件
-- [ ] 实现 get_db()（数据库会话依赖）
-- [ ] 实现 get_current_user()（从 token 获取当前用户）
-- [ ] 实现 get_current_active_user()（验证用户状态 is_active）
-- [ ] 实现 get_current_superuser()（验证管理员权限 is_superuser）
+- [x] 创建 `app/api/deps.py` 文件
+- [x] 实现 get_db()（数据库会话依赖）
+- [x] 实现 get_current_user()（从 token 获取当前用户）
+- [x] 实现 get_current_active_user()（验证用户状态 is_active）
+- [x] 实现 get_current_superuser()（验证管理员权限 is_superuser）
 
 #### 3.5.3 创建依赖项测试
-- [ ] 编写 `tests/test_deps.py`
-- [ ] 测试 token 解析（正常 token、无效 token）
-- [ ] 测试用户状态验证（活跃用户、禁用用户）
-- [ ] 测试权限检查（普通用户、管理员）
-- [ ] 测试异常处理（401、403 错误）
-- [ ] 代码质量检查（ruff + pytest）
+- [x] 编写 `tests/test_api/test_deps.py`
+- [x] 测试 token 解析（正常 token、无效 token、过期 token）
+- [x] 测试用户状态验证（活跃用户、禁用用户）
+- [x] 测试权限检查（普通用户、管理员）
+- [x] 测试异常处理（401、400、403 错误）
+- [x] 代码质量检查（ruff + pytest，143 个测试全部通过）
 
 ---
 
@@ -243,7 +258,7 @@
 |------|------|------|------|
 | Phase 1 | 项目初始化 | 100% | ✅ 已完成 |
 | Phase 2 | 数据库设计 | 100% | ✅ 已完成 |
-| **Phase 3** | **管理员认证系统** | **43%** | **⏳ 进行中** |
+| **Phase 3** | **管理员认证系统** | **71%** | **⏳ 进行中** |
 | Phase 4 | 文章管理 CRUD | 0% | 📋 待规划 |
 | Phase 5 | 公共 API 和用户系统 | 0% | 📋 待规划 |
 
@@ -253,14 +268,14 @@
 |------|------|------|
 | 3.1 | 数据验证层（Pydantic Schemas） | ✅ 已完成 |
 | 3.2 | 密码安全机制（bcrypt + hash） | ✅ 已完成 |
-| **3.3** | **数据操作层（CRUD）** | **⏳ 当前任务** |
-| 3.4 | JWT Token 机制 | 📋 待开始 |
-| 3.5 | 认证依赖项（FastAPI Depends） | 📋 待开始 |
+| 3.3 | 数据操作层（CRUD） | ✅ 已完成 |
+| 3.4 | JWT Token 机制 | ✅ 已完成 |
+| **3.5** | **认证依赖项（FastAPI Depends）** | **⏳ 当前任务** |
 | 3.6 | 认证 API 端点（注册/登录） | 📋 待开始 |
 | 3.7 | 集成测试与文档 | 📋 待开始 |
 
 ---
 
-**最后更新时间**：2025-10-04
-**当前聚焦**：Phase 3.3 - 数据操作层（CRUD）
-**下一步行动**：完成 User CRUD 剩余函数（get_by_id, get_by_username, update, delete, authenticate）及测试
+**最后更新时间**：2025-10-05
+**当前聚焦**：Phase 3.5 - 认证依赖项（FastAPI Depends）
+**下一步行动**：创建 FastAPI 依赖注入函数（get_current_user, get_current_active_user, get_current_superuser）

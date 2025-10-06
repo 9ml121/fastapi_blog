@@ -34,8 +34,11 @@ def engine() -> Generator[Engine, None, None]:
     Returns:
         Engine: SQLAlchemy 数据库引擎
     """
-    # 创建内存数据库引擎
-    engine = create_engine("sqlite:///:memory:")
+    # 创建内存数据库引擎，并允许跨线程使用
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False}
+    )
 
     # 启用 SQLite 外键约束（必须在 create_all() 之前）
     @event.listens_for(engine, "connect")
@@ -69,8 +72,9 @@ def session(engine: Engine) -> Generator[Session, None, None]:
     Returns:
         Session: SQLAlchemy 数据库会话
     """
-    session_factory = sessionmaker(bind=engine)
-    session = session_factory()
+    # 将引擎绑定到 sessionmaker
+    testing_session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    session = testing_session_local()
 
     yield session
 
