@@ -86,10 +86,7 @@ class TestUserRegister:
         # 验证状态码是 status.HTTP_422_UNPROCESSABLE_ENTITY
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         # 验证响应中包含邮箱验证错误信息
-        assert (
-            response.json()["detail"][0]["msg"]
-            == "value is not a valid email address: An email address must have an @-sign."
-        )  # noqa: E501
+        assert response.json()["detail"][0]["msg"] == "value is not a valid email address: An email address must have an @-sign."  # noqa: E501
 
     def test_register_password_too_short(self, client: TestClient, test_user_data: dict):
         """测试密码太短 - 应该返回 422"""
@@ -166,8 +163,8 @@ class TestUserLogin:
 
         # 使用错误的密码登录（例如 "WrongPassword123"）
         response = client.post(
-            url="/api/v1/auth/login",
-            data={"username": test_user_data["username"], "password": "WrongPassword123"})
+            url="/api/v1/auth/login", data={"username": test_user_data["username"], "password": "WrongPassword123"}
+        )
 
         # 验证返回 401 状态码
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -178,18 +175,14 @@ class TestUserLogin:
         # 验证响应头包含 "WWW-Authenticate"
         assert "WWW-Authenticate" in response.headers
 
-
     def test_login_nonexistent_user(self, client: TestClient):
         """测试不存在的用户登录 - 应该返回 401"""
         # 直接使用不存在的用户名登录（不创建用户）
-        response = client.post(
-            url="/api/v1/auth/login",
-            data={"username": "non_existent_user", "password": "Password123!"})
+        response = client.post(url="/api/v1/auth/login", data={"username": "non_existent_user", "password": "Password123!"})
         # 验证返回 401 状态码
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         # 验证错误信息
         assert "用户名或密码错误" in response.json()["detail"]
-
 
 
 class TestGetCurrentUser:
@@ -243,7 +236,7 @@ class TestGetCurrentUser:
         response = client.get("/api/v1/auth/me", headers={"Authorization": "Bearer invalid_fake_token_12345"})
         # 验证返回 401 状态码
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert 'Could not validate credentials' in response.json()['detail']
+        assert "Could not validate credentials" in response.json()["detail"]
 
     def test_get_me_malformed_auth_header(self, client: TestClient):
         """测试格式错误的 Authorization header - 应该返回 401"""
@@ -251,6 +244,4 @@ class TestGetCurrentUser:
         response = client.get("/api/v1/auth/me", headers={"Authorization": "some_token_without_bearer"})
         # 发送请求并验证 401
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert response.json()['detail'] == 'Not authenticated'
-
-
+        assert response.json()["detail"] == "Not authenticated"

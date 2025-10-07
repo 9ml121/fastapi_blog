@@ -2,6 +2,13 @@
 认证相关的 API 端点
 
 提供用户注册、登录、获取当前用户信息等功能
+
+知识点：
+1. Swagger UI 是 FastAPI 的杀手级功能：自动生成交互式 API 文档，点击"Try it out"就能测试API，
+   比看代码快10倍！访问 http://localhost:8000/docs 即可。
+2. Pydantic Schema 是 API 契约：Schema 定义了前后端的数据格式约定，是API文档的单一数据源（Single Source of Truth）。
+3. Depends() 表示"自动注入"：凡是看到 = Depends()，说明这个参数不需要客户端传递，FastAPI 会自动处理（数据库会话、当前用户等）。
+4. OAuth2PasswordRequestForm 的特殊性：它要求 Form Data（application/x-www-form-urlencoded），不是JSON！这是OAuth2标准规定的。
 """
 
 from typing import Any
@@ -55,6 +62,7 @@ async def register(
     return new_user
 
 
+# OAuth2PasswordRequestForm 的特殊性：它要求 Form Data（application/x-www-form-urlencoded），不是JSON！
 @router.post("/login")
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -64,7 +72,7 @@ async def login(
     用户登录
 
     登录流程:
-    1. 验证用户名和密码
+    1. 验证用户名和密码(支持邮箱或用户名登录), 注意：⚠️ 是 Form Data 不是 JSON！
     2. 生成 JWT access token
     3. 返回 token(用于后续请求认证)
     """

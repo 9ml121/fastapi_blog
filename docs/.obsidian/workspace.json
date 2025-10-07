@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "learning/phase3-api/06-fastapi-routing.md",
+                "file": "reference/database-schema.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "06-fastapi-routing"
+              "title": "database-schema"
             }
           }
         ]
@@ -142,13 +142,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "learning/phase3-api/06-fastapi-routing.md",
+                "file": "reference/database-schema.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "06-fastapi-routing 的大纲"
+              "title": "database-schema 的大纲"
             }
           }
         ],
@@ -172,14 +172,19 @@
   },
   "active": "98d4a1363c718f0c",
   "lastOpenFiles": [
+    "database/README.md",
+    "standards/database-models.md",
     "reference/database-schema.md",
+    "standards/testing.md",
+    "learning/testing/pytest/01-pytest基础概念.md",
+    "learning/testing/pytest/02-pytest-fixtures详解.md",
+    "learning/testing/pytest/04-pytest最佳实践.md",
     "learning/phase3-api/06-fastapi-routing.md",
     "learning/phase3-api/05-FastAPI依赖注入与认证依赖.md",
     "learning/README.md",
     "learning/phase3-api/04-JWT认证机制详解-Gemini版.md",
     "learning/phase3-api/04-JWT认证机制详解.md",
     "learning/phase2-database/alembic-best-practices.md",
-    "standards/database-models.md",
     "learning/phase2-database/02-Alembic数据库迁移详解.md",
     "standards/README.md",
     "README.md",
@@ -191,16 +196,11 @@
     "learning/phase3-api/03-仓储模式与CRUD设计.md",
     "learning/phase3-api/01-Pydantic数据验证与Schema设计.md",
     "learning/phase3-api/02-密码安全与哈希机制.md",
-    "standards/testing.md",
     "learning/06-Pydantic数据验证与Schema设计.md",
-    "database/README.md",
     "database/initial_schema.sql",
     "database",
     "project/todo.md",
     "PixPin_2025-10-01_23-57-20.png",
-    "standards/python.md",
-    "project/process.md",
-    "learning/testing/pytest/04-pytest最佳实践.md",
-    "learning/phase2-database/sqlalchemy/01-SQLAlchemy架构与数据校验.md"
+    "standards/python.md"
   ]
 }

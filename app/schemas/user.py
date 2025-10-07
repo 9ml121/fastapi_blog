@@ -156,16 +156,21 @@ class UserResponse(UserBase):
     返回给客户端的用户数据
 
     特点：
-    - 继承 UserBase 的所有字段
+    - 继承 UserBase 的所有字段（username, email, nickname）
     - 额外包含系统生成的字段（id, created_at, updated_at）
-    - 包含业务状态字段（is_active）
-    - 不包含敏感字段（password_hash, is_superuser, deleted_at）
+    - 包含业务状态字段（is_active, role, is_verified）
+    - 包含 UI 相关字段（avatar, last_login）
+    - ⚠️ 不包含敏感和隐私字段（password_hash-密码哈希, deleted_at-软删除时间）
 
     用途：所有返回用户信息的 API
     """
 
     id: UUID = Field(description="用户唯一标识")
     is_active: bool = Field(description="用户是否激活")
+    role: str = Field(description="用户角色（user/admin），用于前端 UI 控制")
+    avatar: str | None = Field(default=None, description="用户头像路径，前端显示头像使用")
+    is_verified: bool = Field(description="邮箱是否已验证，用于提醒用户完成邮箱验证")
+    last_login: datetime | None = Field(default=None, description="最后登录时间，用于安全提醒（异常登录检测）")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="最后更新时间")
 
@@ -180,6 +185,10 @@ class UserResponse(UserBase):
                     "email": "john@example.com",
                     "nickname": "张三",
                     "is_active": True,
+                    "role": "user",
+                    "avatar": "/avatars/johndoe.jpg",
+                    "is_verified": True,
+                    "last_login": "2024-01-15T10:30:00Z",
                     "created_at": "2024-01-01T00:00:00Z",
                     "updated_at": "2024-01-01T00:00:00Z",
                 }
@@ -195,7 +204,7 @@ class UserInDB(UserResponse):
 
     特点：
     - 继承 UserResponse 的所有字段
-    - 额外包含敏感字段（password_hash, is_superuser）
+    - 额外包含敏感字段（password_hash）
     - 包含软删除字段（deleted_at）
     - 仅在内部业务逻辑中使用，绝不返回给客户端
 
@@ -203,7 +212,6 @@ class UserInDB(UserResponse):
     """
 
     password_hash: str = Field(description="密码哈希值")
-    is_superuser: bool = Field(description="是否为超级管理员")
     deleted_at: datetime | None = Field(default=None, description="软删除时间（NULL 表示未删除）")
 
     model_config = ConfigDict(from_attributes=True)

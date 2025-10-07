@@ -490,9 +490,7 @@ class TestCommentModel:
         # 2. 验证 is_top_level 返回 True
         assert comment.is_top_level is True
         # 3. 创建回复评论（parent_id=顶级评论.id）
-        reply_comment = Comment(
-            content="Reply comment.", user_id=sample_user.id, post_id=sample_post.id, parent_id=comment.id
-        )
+        reply_comment = Comment(content="Reply comment.", user_id=sample_user.id, post_id=sample_post.id, parent_id=comment.id)
         session.add(reply_comment)
         session.commit()
         # 4. 验证回复评论的 is_top_level 返回 False
@@ -511,15 +509,9 @@ class TestCommentModel:
         # 2. 初始 reply_count 应该是 0
         assert comment.reply_count == 0
         # 3. 创建 3 条回复评论
-        comment1 = Comment(
-            content="Reply comment 1.", user_id=sample_user.id, post_id=sample_post.id, parent_id=comment.id
-        )
-        comment2 = Comment(
-            content="Reply comment 2.", user_id=sample_user.id, post_id=sample_post.id, parent_id=comment.id
-        )
-        comment3 = Comment(
-            content="Reply comment 3.", user_id=sample_user.id, post_id=sample_post.id, parent_id=comment.id
-        )
+        comment1 = Comment(content="Reply comment 1.", user_id=sample_user.id, post_id=sample_post.id, parent_id=comment.id)
+        comment2 = Comment(content="Reply comment 2.", user_id=sample_user.id, post_id=sample_post.id, parent_id=comment.id)
+        comment3 = Comment(content="Reply comment 3.", user_id=sample_user.id, post_id=sample_post.id, parent_id=comment.id)
         session.add_all([comment1, comment2, comment3])
         session.commit()
         # 4. session.refresh(顶级评论)

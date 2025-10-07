@@ -169,14 +169,10 @@ class Post(Base):
 
     summary: Mapped[str | None] = mapped_column(String(500), default=None, comment="文章摘要（用于列表页展示）")
 
-    slug: Mapped[str] = mapped_column(
-        String(200), unique=True, index=True, nullable=False, comment="URL 友好标识（SEO 优化）"
-    )
+    slug: Mapped[str] = mapped_column(String(200), unique=True, index=True, nullable=False, comment="URL 友好标识（SEO 优化）")
 
     # 3. 状态和配置字段 - 状态
-    status: Mapped[PostStatus] = mapped_column(
-        SQLEnum(PostStatus), default=PostStatus.DRAFT, index=True, comment="文章状态"
-    )
+    status: Mapped[PostStatus] = mapped_column(SQLEnum(PostStatus), default=PostStatus.DRAFT, index=True, comment="文章状态")
 
     # 配置
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False, index=True, comment="是否置顶文章")

@@ -216,6 +216,7 @@ def sample_post_data(sample_user: User) -> Callable[[], dict[str, str | uuid.UUI
 
     return _factory
 
+
 # ============================================
 # API 测试客户端 Fixture
 # ============================================

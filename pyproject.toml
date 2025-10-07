@@ -47,8 +47,8 @@ addopts = [
     "-v",         # 详细输出
     "-q",         # 简化头部输出信息
     "--tb=short", # 简短的错误堆栈
-    # "-s",  # 实时输出没通过测试的print
-    "-rP", # 显示通过测试的 print 输出
+    "-s",  # 禁止 pytest 捕获输出, 控制台可以打印出 print语句内容
+    # "-rP",   # 显示通过测试的 print 输出
 ]
 
 # 最小 Python 版本
@@ -102,7 +102,7 @@ notify = "scripts.notify:main"
 # ruff 代码风格检查和格式化配置
 # ============================================
 [tool.ruff]
-line-length = 120  # 放宽到 120，适应测试文件中的长函数签名
+line-length = 130  # 放宽到 130，适应测试文件中的长函数签名
 target-version = "py311"
 src = ["app"]
 
