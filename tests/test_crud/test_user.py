@@ -238,7 +238,7 @@ def test_authenticate_user_success(session: Session) -> None:
     crud.user.create_user(db=session, user_in=user_in)
 
     # 认证成功
-    user: User | None = crud.user.authenticate_user(db=session, email=email, password=password)
+    user: User | None = crud.user.authenticate_user(db=session, identifier=email, password=password)
 
     assert user is not None
     assert user.email == email
@@ -252,14 +252,14 @@ def test_authenticate_user_wrong_password(session: Session) -> None:
     crud.user.create_user(db=session, user_in=user_in)
 
     # 错误的密码
-    user = crud.user.authenticate_user(db=session, email=email, password="WrongPassword")
+    user = crud.user.authenticate_user(db=session, identifier=email, password="WrongPassword")
 
     assert user is None
 
 
 def test_authenticate_non_existent_user(session: Session) -> None:
     """测试：不存在的用户应该认证失败（防止时序攻击）"""
-    user = crud.user.authenticate_user(db=session, email="nonexistent@example.com", password="AnyPassword")
+    user = crud.user.authenticate_user(db=session, identifier="nonexistent@example.com", password="AnyPassword")
     assert user is None
 
 
@@ -274,5 +274,5 @@ def test_authenticate_soft_deleted_user(session: Session) -> None:
     crud.user.delete_user(db=session, user_id=user.id)
 
     # 尝试认证（应该失败）
-    result = crud.user.authenticate_user(db=session, email=email, password=password)
+    result = crud.user.authenticate_user(db=session, identifier=email, password=password)
     assert result is None

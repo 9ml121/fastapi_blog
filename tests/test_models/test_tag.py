@@ -152,8 +152,6 @@ class TestTagModel:
 
     def test_post_tags_relationship(self, session: Session, sample_user: User, sample_post: Post):
         """测试 Post -> Tag 多对多关系"""
-        # TODO(human): 实现测试 - 一篇文章关联多个标签
-        # 提示：
         # 1. 创建 3 个标签（如 Python, FastAPI, Web）
         tag1 = Tag(name="Python", slug="Python")
         tag2 = Tag(name="FastAPI", slug="FastAPI")
@@ -173,8 +171,6 @@ class TestTagModel:
 
     def test_remove_tag_from_post(self, session: Session, sample_user: User, sample_post: Post):
         """测试从文章中移除标签"""
-        # TODO(human): 实现测试 - 移除文章的标签
-        # 提示：
         # 1. 创建 2 个标签并添加到 sample_post
         tag1 = Tag(name="ToDelete", slug="to-delete")
         tag2 = Tag(name="ToKeep", slug="to-keep")
@@ -220,8 +216,6 @@ class TestTagModel:
 
     def test_delete_post_removes_associations(self, session: Session, sample_post: Post):
         """测试删除文章时自动删除关联关系"""
-        # TODO(human): 实现测试 - 删除文章时自动删除关联
-        # 提示：
         # 1. 创建一个标签和一篇文章
         tag = Tag(name="ToDelete", slug="to-delete")
         # 2. 建立关联：post.tags.append(tag)
@@ -260,8 +254,6 @@ class TestTagModel:
 
     def test_generate_slug(self):
         """测试 slug 生成"""
-        # TODO(human): 实现测试 - 测试 slug 生成功能
-        # 提示：测试以下场景
         # 1. 英文标签：Tag.generate_slug("Python Programming") == "python-programming"
         assert Tag.generate_slug("Python Programming") == "python-programming"
         # 2. 中文标签：Tag.generate_slug("Web开发") == "web开发"
@@ -277,8 +269,6 @@ class TestTagModel:
 
     def test_post_count_property(self, session: Session, sample_post_data):
         """测试 post_count 属性"""
-        # TODO(human): 实现测试 - 测试文章数量统计
-        # 提示：
         # 1. 创建一个标签
         tag = Tag(name="TestTag", slug="test-tag")
         session.add(tag)

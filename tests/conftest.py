@@ -9,13 +9,16 @@ import uuid
 from collections.abc import Callable, Generator
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import ConnectionPoolEntry
 
 from app.db.database import Base
-from app.models.post import Post
-from app.models.user import User
+
+# 导入所有模型，确保它们注册到 Base.metadata
+# 这样 create_all() 才能创建所有表
+from app.models import Comment, Post, PostView, Tag, User  # noqa: F401
 
 # ============================================
 # 数据库相关 Fixture
@@ -28,16 +31,20 @@ def engine() -> Generator[Engine, None, None]:
 
     配置：
     - 使用内存数据库，速度快，测试隔离
+    - StaticPool 确保所有连接使用同一个内存数据库
     - 自动启用 SQLite 外键约束（默认关闭）
     - 每个测试函数独立的数据库实例
 
     Returns:
         Engine: SQLAlchemy 数据库引擎
     """
-    # 创建内存数据库引擎，并允许跨线程使用
+    # 创建内存数据库引擎，使用 StaticPool 确保单一连接
+    from sqlalchemy.pool import StaticPool
+
     engine = create_engine(
         "sqlite:///:memory:",
-        connect_args={"check_same_thread": False}
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,  # 关键：使用 StaticPool 确保所有会话共享同一个连接
     )
 
     # 启用 SQLite 外键约束（必须在 create_all() 之前）
@@ -208,3 +215,29 @@ def sample_post_data(sample_user: User) -> Callable[[], dict[str, str | uuid.UUI
         }
 
     return _factory
+
+# ============================================
+# API 测试客户端 Fixture
+# ============================================
+
+
+@pytest.fixture(scope="function")
+def client(session) -> Generator[TestClient, None, None]:
+    """创建测试客户端，并覆盖 get_db 依赖
+
+    注意：
+    - 使用 engine 创建独立的 session factory
+    - 每次请求都会创建新的 session
+    - engine 已经创建了所有表
+    """
+    from app.api.deps import get_db
+    from app.main import app
+
+    # 覆盖依赖
+    app.dependency_overrides[get_db] = lambda: session
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+    # 清理覆盖
+    app.dependency_overrides.clear()

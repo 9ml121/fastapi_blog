@@ -201,31 +201,36 @@ def delete_user(db: Session, *, user_id: UUID) -> User | None:
     return user
 
 
-def authenticate_user(db: Session, *, email: str, password: str) -> User | None:
+def authenticate_user(db: Session, *, identifier: str, password: str) -> User | None:
     """
-    用户登录验证（邮箱 + 密码）
+    用户登录验证（支持邮箱或用户名 + 密码）
 
     设计要点 - 安全考量：
-    1. 防止时序攻击（Timing Attack）：
+    1. 支持邮箱或用户名登录：
+       - 先尝试邮箱查询
+       - 如果没找到，再尝试用户名查询
+    2. 防止时序攻击（Timing Attack）：
        - 即使用户不存在，也执行假的密码验证（dummy）
        - 确保成功/失败的响应时间相似
-    2. 统一错误信息：
+    3. 统一错误信息：
        - 不泄露"用户不存在"或"密码错误"的具体原因
        - API 层应返回统一的"用户名或密码错误"
-    3. 验证用户状态：
+    4. 验证用户状态：
        - 已删除用户（deleted_at != None）无法登录
        - 可选：检查 is_active（管理员禁用）
 
     Args:
         db: 数据库会话对象
-        email: 用户邮箱
+        identifier: 用户邮箱或用户名
         password: 明文密码
 
     Returns:
         验证成功返回 User 对象，失败返回 None
     """
-    # 1. 查询用户（排除软删除）
-    user = get_user_by_email(db, email=email)
+    # 1. 查询用户（先尝试邮箱，再尝试用户名）
+    user = get_user_by_email(db, email=identifier)
+    if not user:
+        user = get_user_by_username(db, username=identifier)
 
     # 2. 防止时序攻击：即使用户不存在，也执行假的密码验证
     if not user:

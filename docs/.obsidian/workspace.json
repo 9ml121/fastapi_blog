@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "reference/database-schema.md",
+                "file": "learning/phase3-api/06-fastapi-routing.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "database-schema"
+              "title": "06-fastapi-routing"
             }
           }
         ]
@@ -78,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200
+    "width": 294.5
   },
   "right": {
     "id": "d116440b89ded4f3",
@@ -142,13 +142,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "reference/database-schema.md",
+                "file": "learning/phase3-api/06-fastapi-routing.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "database-schema 的大纲"
+              "title": "06-fastapi-routing 的大纲"
             }
           }
         ],
@@ -172,6 +172,8 @@
   },
   "active": "98d4a1363c718f0c",
   "lastOpenFiles": [
+    "reference/database-schema.md",
+    "learning/phase3-api/06-fastapi-routing.md",
     "learning/phase3-api/05-FastAPI依赖注入与认证依赖.md",
     "learning/README.md",
     "learning/phase3-api/04-JWT认证机制详解-Gemini版.md",
@@ -183,7 +185,6 @@
     "README.md",
     "learning/phase1-foundation/01-项目基础搭建.md",
     "learning/phase1-foundation/web-architecture-best-practices.md",
-    "reference/database-schema.md",
     "learning/dev-workflow/01-Git版本控制与VSCode实践.md",
     "project/plan.md",
     "learning/dev-workflow",
@@ -200,7 +201,6 @@
     "standards/python.md",
     "project/process.md",
     "learning/testing/pytest/04-pytest最佳实践.md",
-    "learning/phase2-database/sqlalchemy/01-SQLAlchemy架构与数据校验.md",
-    "learning/phase2-database/sqlalchemy/02-SQLAlchemy语法对比分析.md"
+    "learning/phase2-database/sqlalchemy/01-SQLAlchemy架构与数据校验.md"
   ]
 }

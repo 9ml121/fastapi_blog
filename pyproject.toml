@@ -22,13 +22,14 @@ dependencies = [
 dev = [
     "pytest>=8.4.2",
     "pytest-asyncio>=0.23.0", # 异步测试支持
-    "pytest-cov>=4.0.0",      # 覆盖率测试
-    "pytest-mock>=3.12.0",    # Mock支持
-    "pytest-xdist>=3.5.0",    # 并行测试
-    "httpx>=0.27.0",          # 异步HTTP客户端测试
-    "factory-boy>=3.3.0",     # 测试数据工厂
-    "faker>=24.0.0",          # 假数据生成
-    "freezegun>=1.4.0",       # 时间Mock
+    "pytest-cov>=4.0.0", # 覆盖率测试
+    "pytest-mock>=3.12.0", # Mock支持
+    "pytest-xdist>=3.5.0", # 并行测试
+    "httpx>=0.27.0", # 异步HTTP客户端测试
+    "factory-boy>=3.3.0", # 测试数据工厂
+    "faker>=24.0.0", # 假数据生成
+    "freezegun>=1.4.0", # 时间Mock
+    "mypy>=1.18.2",
 ]
 
 [tool.pytest.ini_options]
@@ -48,10 +49,6 @@ addopts = [
     "--tb=short", # 简短的错误堆栈
     # "-s",  # 实时输出没通过测试的print
     "-rP", # 显示通过测试的 print 输出
-    # "--log-cli-level=DEBUG",     # 显示 DEBUG 日志（需要时手动启用）
-    # "--cov",                 # 覆盖率：开发阶段关闭（需要时手动启用）
-    # "--cov-report=term-missing",  # 显示缺少测试的代码行号
-    # "--cov-report=xml",          # 开发阶段关闭
 ]
 
 # 最小 Python 版本
@@ -101,6 +98,9 @@ directory = "htmlcov" # HTML 报告目录
 [project.scripts]
 notify = "scripts.notify:main"
 
+# ============================================
+# ruff 代码风格检查和格式化配置
+# ============================================
 [tool.ruff]
 line-length = 120  # 放宽到 120，适应测试文件中的长函数签名
 target-version = "py311"
@@ -128,3 +128,38 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+# ============================================
+# Mypy 静态类型检查配置 (渐进式)
+# ============================================
+[tool.mypy]
+python_version = "3.11"
+
+# 基础检查（非严格模式，适合渐进式迁移）
+warn_return_any = false               # 允许返回 Any（过于严格会报大量错误）
+warn_unused_configs = true            # 警告未使用的配置
+disallow_untyped_defs = false         # 允许函数缺少类型注解（渐进式）
+disallow_any_unimported = false       # 允许 Any 类型
+no_implicit_optional = true           # 要求显式 Optional（推荐）
+warn_redundant_casts = true           # 警告冗余类型转换
+warn_unused_ignores = false           # 不警告未使用的 ignore（初期会有很多）
+warn_no_return = true                 # 警告函数缺少 return
+check_untyped_defs = false            # 不检查无类型注解的函数（渐进式）
+
+# 排除目录
+exclude = [
+    "^alembic/",
+    "^migrations/",
+    "^build/",
+    "^dist/",
+]
+
+# 第三方库类型存根配置
+[[tool.mypy.overrides]]
+module = [
+    "sqlalchemy.*",
+    "alembic.*",
+    "pytest.*",
+    "jose.*",
+]
+ignore_missing_imports = true

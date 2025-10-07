@@ -1,5 +1,4 @@
 from datetime import timedelta
-import re
 
 from fastapi import Depends, FastAPI, status
 from fastapi.testclient import TestClient
@@ -88,8 +87,6 @@ def test_get_current_user_with_expired_token(session: Session, sample_user: User
     测试: 使用已过期的 token
     预期: 抛出 401 HTTPException
     """
-    # TODO: 在这里编写你的测试代码
-    # 提示:
     # 1. sample_user fixture 已经提供了一个用户
     # 2. 创建一个已过期的 token
     token = create_access_token(data={"sub": str(sample_user.id)}, expires_delta=timedelta(seconds=-1))
@@ -110,8 +107,6 @@ def test_get_current_active_user_with_inactive_user(session: Session, sample_use
     测试: 使用一个被禁用用户的 token 调用 get_current_active_user
     预期: 抛出 400 HTTPException
     """
-    # TODO: 在这里编写你的测试代码
-    # 提示:
     # 1. 创建一个 is_active=False 的用户。你可以直接修改 sample_user 的属性并提交。
     user = sample_user
     user.is_active = False
@@ -156,7 +151,6 @@ def test_get_current_superuser_with_normal_user(session: Session, sample_user: U
 
     #    6. 清理依赖覆盖。
     app.dependency_overrides = {}
-
 
 
 def test_get_current_superuser_with_admin_user(session: Session, sample_user: User) -> None:
