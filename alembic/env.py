@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.db.database import Base
 
 # 🔥 必须导入所有模型，否则 Alembic 检测不到表定义！
-from app.models import Comment, Post, PostView, Tag, User
+from app.models import Comment, Post, PostView, Tag, User  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

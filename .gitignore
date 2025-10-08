@@ -1,28 +1,78 @@
-# Python-generated files
+# =================================================================
+# Python
+# =================================================================
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[oc]
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
 build/
 dist/
 wheels/
-*.egg-info
+*.egg
+*.egg-info/
+sdist/
 
-# Virtual environments
-.venv
+# =================================================================
+# Virtual Environments
+# =================================================================
+.venv/
+venv/
+ENV/
+env/
+virtualenv/
 
-# Environment variables
+# =================================================================
+# Environment & Secrets
+# =================================================================
+# Ignore all .env files, but not .env.example
 .env
+.env.*
+!.env.example
 
-# Test coverage reports
+# =================================================================
+# Databases & Logs
+# =================================================================
+*.db
+*.sqlite3
+*.log
+*.log.*
+
+# =================================================================
+# Caches & Reports
+# =================================================================
+# Tool-specific caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Test & Coverage Reports
 .coverage
+.coverage.*
 coverage.xml
 htmlcov/
-.pytest_cache/
+nosetests.xml
+pytest-report.html
 
-# IDE and editor files
+# =================================================================
+# IDEs, Editors & OS
+# =================================================================
+# IDEs
 .vscode/
 .idea/
+
+# Editors
 *.swp
 *.swo
+COMMIT_EDITMSG
+
+# Documentation (Obsidian)
+.obsidian/
+docs/.obsidian/
 
 # OS generated files
 .DS_Store
@@ -33,5 +83,8 @@ htmlcov/
 ehthumbs.db
 Thumbs.db
 
-# Serena configuration
+# =================================================================
+# AI Assistant Tooling
+# =================================================================
 .serena/
+.claude/

@@ -75,7 +75,7 @@ class UserTraditional(Base):
     avatar = Column(String(255), nullable=True, comment="头像文件路径")
 
     # 权限和状态
-    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.USER, comment="用户角色")
+    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.USER, comment="用户角色") # type: ignore
 
     is_active = Column(Boolean, nullable=False, default=True, comment="账户是否激活（软删除标记）")
 
@@ -101,12 +101,15 @@ class UserTraditional(Base):
     @property
     def is_admin(self) -> bool:
         """检查是否为管理员"""
-        return self.role == UserRole.ADMIN
+        # 显式转换为 bool 以满足 mypy 的静态类型检查。
+        # SQLAlchemy 的比较运算在某些上下文中返回 ColumnElement，而非纯 bool。
+        return bool(self.role == UserRole.ADMIN)
 
     @property
     def is_regular_user(self) -> bool:
         """检查是否为普通用户"""
-        return self.role == UserRole.USER
+        # 显式转换为 bool 以满足 mypy 的静态类型检查。
+        return bool(self.role == UserRole.USER)
 
     def activate(self):
         """激活用户账户"""

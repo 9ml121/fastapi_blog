@@ -1,5 +1,5 @@
 """
-User Schemas - 用户数据验证和序列化
+User Pydantic Schemas - 用户数据验证和序列化
 
 设计思路：
 1. UserBase: 提取公共字段，供其他 Schema 继承
@@ -73,6 +73,7 @@ class UserCreate(UserBase):
             raise ValueError("密码必须包含至少一个字母")
         return v
 
+    # 为自动生成 API 的数据模型文档设置示例值
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
@@ -88,6 +89,7 @@ class UserCreate(UserBase):
 
 
 # ============ 更新 Schema ============
+# ⚠️ Update模型一般是直接继承 BaseModel, 不能继承 UserBase!
 class UserUpdate(BaseModel):
     """
     用户更新时的输入数据
@@ -97,7 +99,6 @@ class UserUpdate(BaseModel):
     - 不包含不允许修改的字段（如 id, created_at, role, deleted_at）
 
     用途：PATCH /api/v1/users/{user_id}
-    ⚠️ 这里是直接继承 BaseModel, 不能继承 UserBase，存在部分代码重复
     """
 
     username: str | None = Field(

@@ -277,33 +277,6 @@ class TestPostModel:
         deleted_post = session.query(Post).filter(Post.id == post_id).first()
         assert deleted_post is None
 
-    def test_slug_generation(self, session: Session, sample_user: User):
-        """测试 slug 生成方法 - 实例方法"""
-        post = Post(author_id=sample_user.id, title="我的文章标题", content="测试内容", slug="temp")
-
-        # 1. 不传参数，使用 self.title
-        generated_slug = post.generate_slug()
-        assert generated_slug == "我的文章标题"
-
-        # 2. 传入指定标题
-        generated_slug = post.generate_slug("Hello World! Test 123")
-        assert generated_slug == "Hello-World-Test-123"
-
-        # 3. 传入 None，应该使用 self.title
-        generated_slug = post.generate_slug(None)
-        assert generated_slug == "我的文章标题"
-
-        # 4. 传入空字符串，应该 fallback 到 self.title（因为 "" 是 falsy）
-        generated_slug = post.generate_slug("")
-        assert generated_slug == "我的文章标题"
-
-        # 5. 传入中文标题
-        generated_slug = post.generate_slug("Python Web开发实战")
-        assert generated_slug == "Python-Web开发实战"
-
-        # 6. 传入带特殊字符的标题
-        generated_slug = post.generate_slug("文章#标题@特殊字符!")
-        assert generated_slug == "文章标题特殊字符"
 
     def test_slug_static_method(self):
         """测试 slug 生成的静态方法 - 核心逻辑"""

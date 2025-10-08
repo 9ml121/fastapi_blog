@@ -8,7 +8,6 @@
     uv run python scripts/test_models.py
 """
 
-from datetime import UTC, datetime
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -102,7 +101,7 @@ def test_post_crud(user: User) -> Post:
         post.publish()
         session.commit()
         session.refresh(post)
-        print(f"\n✅ 发布文章:")
+        print("\n✅ 发布文章:")
         print(f"   - Status: {post.status.value}")
         print(f"   - Published at: {post.published_at}")
         print(f"   - Display title: {post.display_title}")
@@ -188,7 +187,7 @@ def test_comment_relationship(user: User, post: Post) -> list[Comment]:
 
         # 刷新获取回复
         session.refresh(comment1)
-        print(f"\n✅ 评论回复关系:")
+        print("\n✅ 评论回复关系:")
         print(f"   - 顶级评论: {comment1.content}")
         print(f"   - 回复数量: {comment1.reply_count}")
         for reply in comment1.replies:
@@ -257,7 +256,7 @@ def test_cascade_delete(user: User, post: Post) -> None:
         tag_count = len(post.tags)
         view_count = len(post.post_views)
 
-        print(f"删除前统计:")
+        print("删除前统计:")
         print(f"   - 文章: {post_title}")
         print(f"   - 评论数: {comment_count}")
         print(f"   - 标签数: {tag_count}")
@@ -297,7 +296,7 @@ def cleanup_test_data(user: User) -> None:
             session.commit()
 
             print(f"✅ 删除用户: {username} (ID: {user_id})")
-            print(f"✅ 所有关联数据已级联删除")
+            print("✅ 所有关联数据已级联删除")
 
         # 删除标签
         deleted_tags = session.query(Tag).delete()
@@ -319,10 +318,10 @@ def main() -> None:
         post = test_post_crud(user)
 
         # 3. 测试 Post-Tag 多对多关系
-        tags = test_tag_relationship(post)
+        test_tag_relationship(post)
 
         # 4. 测试 Comment 自引用关系
-        comments = test_comment_relationship(user, post)
+        test_comment_relationship(user, post)
 
         # 5. 测试 PostView 防刷功能
         test_post_view(user, post)

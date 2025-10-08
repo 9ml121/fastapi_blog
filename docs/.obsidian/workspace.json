@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "reference/database-schema.md",
+                "file": "learning/phase3-api/07-CRUDBase设计与适用性分析.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "database-schema"
+              "title": "07-CRUDBase设计与适用性分析"
             }
           }
         ]
@@ -142,13 +142,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "reference/database-schema.md",
+                "file": "learning/phase3-api/07-CRUDBase设计与适用性分析.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "database-schema 的大纲"
+              "title": "07-CRUDBase设计与适用性分析 的大纲"
             }
           }
         ],
@@ -172,9 +172,10 @@
   },
   "active": "98d4a1363c718f0c",
   "lastOpenFiles": [
+    "reference/database-schema.md",
+    "learning/phase3-api/07-CRUDBase设计与适用性分析.md",
     "database/README.md",
     "standards/database-models.md",
-    "reference/database-schema.md",
     "standards/testing.md",
     "learning/testing/pytest/01-pytest基础概念.md",
     "learning/testing/pytest/02-pytest-fixtures详解.md",
@@ -200,7 +201,6 @@
     "database/initial_schema.sql",
     "database",
     "project/todo.md",
-    "PixPin_2025-10-01_23-57-20.png",
-    "standards/python.md"
+    "PixPin_2025-10-01_23-57-20.png"
   ]
 }

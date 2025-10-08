@@ -85,26 +85,10 @@ class Post(Base):
 
     __tablename__ = "posts"
 
-    def __init__(self, **kwargs):
-        """
-        初始化文章实例，只处理复杂的业务逻辑默认值
-
-        简单的固定默认值通过 mapped_column(default=...) 设置
-        这里只处理需要计算或有复杂逻辑的默认值
-        """
-        # 复杂逻辑：如果提供了标题但没有提供 slug，自动生成 slug
-        if "title" in kwargs and "slug" not in kwargs:
-            kwargs["slug"] = self._generate_slug_from_title(kwargs["title"])
-
-        super().__init__(**kwargs)
-
     @staticmethod
     def _generate_slug_from_title(title: str) -> str:
         """
         静态方法：从标题生成 URL 友好的 slug
-
-        这是 slug 生成的核心逻辑，被 __init__ 和 generate_slug 共用
-        遵循 DRY 原则，避免代码重复
 
         生成逻辑：
         1. 如果标题为空或 None，返回时间戳格式：文章-YYYYMMDD-HHMMSS
@@ -303,30 +287,6 @@ class Post(Base):
     def increment_view_count(self) -> None:
         """增加浏览次数"""
         self.view_count += 1
-
-    def generate_slug(self, title: str | None = None) -> str:
-        """
-        生成中文友好的 URL slug（实例方法包装器）
-
-        调用底层的静态方法 _generate_slug_from_title 来生成 slug
-        这样可以方便地使用实例的 title 属性作为默认值
-
-        Args:
-            title: 要生成 slug 的标题，默认使用当前文章标题
-
-        Returns:
-            生成的 slug 字符串
-
-        Examples:
-            >>> post = Post(title="如何学习FastAPI框架")
-            >>> post.generate_slug()
-            "如何学习FastAPI框架"
-
-            >>> post.generate_slug("Python Web开发实战")
-            "Python-Web开发实战"
-        """
-        source_title = title or self.title
-        return self._generate_slug_from_title(source_title)
 
     def set_summary_from_content(self, max_length: int = 100) -> None:
         """
