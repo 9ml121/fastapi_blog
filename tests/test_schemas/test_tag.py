@@ -25,7 +25,7 @@ class TestTagCreateSchema:
     def test_create_tag_missing_name_fails(self):
         """测试：缺少必填的 name 字段会失败"""
         with pytest.raises(ValidationError):
-            TagCreate(description="A description without a name") # type: ignore
+            TagCreate(description="A description without a name")  # type: ignore
 
 
 class TestTagUpdateSchema:
@@ -43,15 +43,19 @@ class TestTagResponseSchema:
 
     def test_create_from_orm_model_success(self):
         """测试：能从一个模拟的 ORM 对象成功创建 Response Schema"""
-        mock_tag_orm = type('MockTag', (), {
-            "id": uuid4(),
-            "name": "FastAPI",
-            "slug": "fastapi",
-            "description": "A great web framework",
-            "created_at": datetime.now(),
-            "updated_at": datetime.now(),
-            "post_count": 10, # 模拟有10篇文章
-        })()
+        mock_tag_orm = type(
+            "MockTag",
+            (),
+            {
+                "id": uuid4(),
+                "name": "FastAPI",
+                "slug": "fastapi",
+                "description": "A great web framework",
+                "created_at": datetime.now(),
+                "updated_at": datetime.now(),
+                "post_count": 10,  # 模拟有10篇文章
+            },
+        )()
 
         tag_response = TagResponse.model_validate(mock_tag_orm)
 

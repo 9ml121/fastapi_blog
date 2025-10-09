@@ -13,7 +13,16 @@ from app.schemas.tag import TagCreate, TagUpdate
 
 class CRUDTag(CRUDBase[Tag, TagCreate, TagUpdate]):
     def get_by_name(self, db: Session, *, name: str) -> Tag | None:
-        """通过名称查询标签"""
+        """通过标签名称查询标签。
+
+          Args:
+              db: 数据库会话。
+              name: 要查询的标签名称。
+
+          Returns:
+              找到的标签对象，如果不存在则返回 None。
+          """
+
         return db.query(Tag).filter(Tag.name == name).first()
 
     def get_or_create(self, db: Session, *, name: str) -> Tag:

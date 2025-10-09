@@ -151,9 +151,9 @@ class Post(Base):
 
     content: Mapped[str] = mapped_column(Text, nullable=False, comment="文章正文内容（Markdown 格式）")
 
-    summary: Mapped[str | None] = mapped_column(String(500), default=None, comment="文章摘要（用于列表页展示）")
-
     slug: Mapped[str] = mapped_column(String(200), unique=True, index=True, nullable=False, comment="URL 友好标识（SEO 优化）")
+
+    summary: Mapped[str | None] = mapped_column(String(500), default=None, comment="文章摘要（用于列表页展示）")
 
     # 3. 状态和配置字段 - 状态
     status: Mapped[PostStatus] = mapped_column(SQLEnum(PostStatus), default=PostStatus.DRAFT, index=True, comment="文章状态")

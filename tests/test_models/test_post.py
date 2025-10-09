@@ -277,7 +277,6 @@ class TestPostModel:
         deleted_post = session.query(Post).filter(Post.id == post_id).first()
         assert deleted_post is None
 
-
     def test_slug_static_method(self):
         """测试 slug 生成的静态方法 - 核心逻辑"""
         # 1. 正常英文标题

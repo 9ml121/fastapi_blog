@@ -18,45 +18,65 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
 class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
-    def __init__(self, model: type[ModelType]):
-        """
-        通用 CRUD 操作基类
+    """通用 CRUD 操作基类，支持泛型。
 
-        :param model: 一个 SQLAlchemy model 类
+    这个基类为数据库模型提供了标准的 CRUD 操作（创建、读取、更新、删除），
+    通过泛型支持任意 SQLAlchemy 模型和 Pydantic schema。
+
+    Type Parameters:
+        ModelType: SQLAlchemy 模型类型（继承自 Base）
+        CreateSchemaType: 用于创建操作的 Pydantic schema 类型
+        UpdateSchemaType: 用于更新操作的 Pydantic schema 类型
+
+    Example:
+        >>> class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
+        ...     pass
+        >>> user_crud = CRUDUser(User)
+    """
+
+    def __init__(self, model: type[ModelType]):
+        """初始化 CRUD 操作基类。
+
+        Args:
+            model: 一个 SQLAlchemy model 类。
         """
         self.model = model
 
     def get(self, db: Session, id: Any) -> ModelType | None:
-        """
-        通过 ID 获取单个记录
+        """通过 ID 获取单个记录。
 
-        :param db: 数据库会话
-        :param id: 记录的 ID
-        :return: 数据库对象或 None
+        Args:
+            db: 数据库会话。
+            id: 记录的 ID。
+
+        Returns:
+            找到的数据库对象，如果不存在则返回 None。
         """
         return db.get(self.model, id)
 
-    def get_multi(
-        self, db: Session, *, skip: int = 0, limit: int = 100
-    ) -> list[ModelType]:
-        """
-        获取记录列表（支持分页）
+    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> list[ModelType]:
+        """获取记录列表（支持分页）。
 
-        :param db: 数据库会话
-        :param skip: 跳过的记录数
-        :param limit: 返回的最大记录数
-        :return: 数据库对象列表
+        Args:
+            db: 数据库会话。
+            skip: 跳过的记录数。
+            limit: 返回的最大记录数。
+
+        Returns:
+            数据库对象列表。
         """
         return db.query(self.model).offset(skip).limit(limit).all()
 
     def create(self, db: Session, *, obj_in: CreateSchemaType, **kwargs: Any) -> ModelType:
-        """
-        创建新记录
+        """创建新记录。
 
-        :param db: 数据库会话
-        :param obj_in: Pydantic schema，包含创建所需的数据
-        :param kwargs: 覆盖或添加到创建数据中的额外关键字参数
-        :return: 新创建的数据库对象
+        Args:
+            db: 数据库会话。
+            obj_in: 包含创建所需数据的 Pydantic schema。
+            **kwargs: 覆盖或添加到创建数据中的额外关键字参数。
+
+        Returns:
+            新创建的数据库对象。
         """
         # 使用 Pydantic v2 的推荐方法
         obj_in_data = obj_in.model_dump()
@@ -68,16 +88,16 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db.refresh(db_obj)
         return db_obj
 
-    def update(
-        self, db: Session, *, db_obj: ModelType, obj_in: UpdateSchemaType | dict[str, Any]
-    ) -> ModelType:
-        """
-        更新现有记录
+    def update(self, db: Session, *, db_obj: ModelType, obj_in: UpdateSchemaType | dict[str, Any]) -> ModelType:
+        """更新现有记录。
 
-        :param db: 数据库会话
-        :param db_obj: 要更新的数据库对象
-        :param obj_in: Pydantic schema 或字典，包含要更新的数据
-        :return: 更新后的数据库对象
+        Args:
+            db: 数据库会话。
+            db_obj: 要更新的数据库对象。
+            obj_in: 包含要更新数据的 Pydantic schema 或字典。
+
+        Returns:
+            更新后的数据库对象。
         """
         # 使用 Pydantic v2 的推荐方法
         update_data = obj_in if isinstance(obj_in, dict) else obj_in.model_dump(exclude_unset=True)
@@ -89,12 +109,14 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return db_obj
 
     def remove(self, db: Session, *, id: Any) -> ModelType | None:
-        """
-        通过 ID 删除记录
+        """通过 ID 删除记录。
 
-        :param db: 数据库会话
-        :param id: 要删除的记录的 ID
-        :return: 被删除的数据库对象，如果未找到则返回 None
+        Args:
+            db: 数据库会话。
+            id: 要删除的记录的 ID。
+
+        Returns:
+            被删除的数据库对象，如果未找到则返回 None。
         """
         obj = db.get(self.model, id)
         if obj:

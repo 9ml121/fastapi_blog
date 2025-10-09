@@ -152,6 +152,7 @@ exclude = [
     "^migrations/",
     "^build/",
     "^dist/",
+    "^scripts/",
 ]
 
 # 第三方库类型存根配置

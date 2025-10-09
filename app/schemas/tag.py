@@ -51,7 +51,7 @@ class TagResponse(TagBase):
     post_count: int
 
     model_config = ConfigDict(
-        from_attributes=True, # 允许从 ORM 对象创建
+        from_attributes=True,  # 允许从 ORM 对象创建
         json_schema_extra={
             "example": {
                 "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
@@ -62,5 +62,5 @@ class TagResponse(TagBase):
                 "updated_at": "2024-10-01T10:00:00Z",
                 "post_count": 42,
             }
-        }
+        },
     )

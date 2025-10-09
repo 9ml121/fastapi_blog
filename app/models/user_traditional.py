@@ -75,7 +75,7 @@ class UserTraditional(Base):
     avatar = Column(String(255), nullable=True, comment="头像文件路径")
 
     # 权限和状态
-    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.USER, comment="用户角色") # type: ignore
+    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.USER, comment="用户角色")  # type: ignore
 
     is_active = Column(Boolean, nullable=False, default=True, comment="账户是否激活（软删除标记）")
 

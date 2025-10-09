@@ -38,7 +38,7 @@ class TestPostCreateSchema:
     def test_create_post_missing_content_raises_error(self):
         """测试：缺少必填的 content 字段会失败"""
         with pytest.raises(ValidationError, match="Field required"):
-            PostCreate(title="A valid title") # type: ignore
+            PostCreate(title="A valid title")  # type: ignore
 
 
 class TestPostUpdateSchema:
@@ -98,20 +98,24 @@ class TestPostResponseSchema:
 
         # 2. 创建一个模拟的 ORM Post 对象 (或字典)
         # 注意：它包含一个嵌套的 author 对象
-        mock_post_orm = type('MockPost', (), {
-            "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-            "title": "ORM Post Title",
-            "content": "Content from ORM",
-            "summary": "A summary",
-            "slug": "orm-post-title", # 为 mock 对象提供 slug
-            "tags": [], # 简单起见，tags 为空
-            "author": type('MockUser', (), mock_author)(),
-            "created_at": "2024-01-02T14:00:00",
-            "updated_at": "2024-01-02T14:00:00",
-            "published_at": None,
-            "view_count": 100,
-            "is_featured": False,
-        })()
+        mock_post_orm = type(
+            "MockPost",
+            (),
+            {
+                "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                "title": "ORM Post Title",
+                "content": "Content from ORM",
+                "summary": "A summary",
+                "slug": "orm-post-title",  # 为 mock 对象提供 slug
+                "tags": [],  # 简单起见，tags 为空
+                "author": type("MockUser", (), mock_author)(),
+                "created_at": "2024-01-02T14:00:00",
+                "updated_at": "2024-01-02T14:00:00",
+                "published_at": None,
+                "view_count": 100,
+                "is_featured": False,
+            },
+        )()
 
         # 3. 使用 from_attributes=True 的特性来创建 PostResponse 实例
         post_response = PostResponse.model_validate(mock_post_orm)
@@ -119,6 +123,6 @@ class TestPostResponseSchema:
         # 4. 断言
         assert post_response.id == UUID("f47ac10b-58cc-4372-a567-0e02b2c3d479")
         assert post_response.title == "ORM Post Title"
-        assert isinstance(post_response.author, UserResponse) # 验证 author 字段被正确转换成了 UserResponse 类型
+        assert isinstance(post_response.author, UserResponse)  # 验证 author 字段被正确转换成了 UserResponse 类型
         assert post_response.author.username == "testuser"
         assert post_response.slug == "orm-post-title"

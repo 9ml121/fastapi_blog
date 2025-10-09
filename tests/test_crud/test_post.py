@@ -4,9 +4,11 @@ tests/test_crud/test_post.py
 测试 Post CRUD 操作
 """
 
+from random import sample
 from sqlalchemy.orm import Session
 
 from app.crud.post import post as post_crud
+from app.models.post import Post
 from app.models.tag import Tag
 from app.models.user import User
 from app.schemas.post import PostCreate, PostUpdate
@@ -21,10 +23,7 @@ class TestPostCRUD:
         from sqlalchemy.exc import IntegrityError
 
         post_in = PostCreate(
-            title="Test Base Create Fail",
-            content="Content for base create fail",
-            slug="test-base-create-fail",
-            tags=[]
+            title="Test Base Create Fail", content="Content for base create fail", slug="test-base-create-fail", tags=[]
         )
 
         # 断言：直接调用通用的 create 创建 Post 时，
@@ -52,10 +51,8 @@ class TestPostCRUD:
         )
 
         # 3. 调用被测试的函数
-        # 注意：这个测试能否通过，完全取决于你在 crud/post.py 中的 TODO 实现
-        created_post = post_crud.create_with_author(
-            db=session, obj_in=post_in, author_id=sample_user.id
-        )
+        # 注意：这个测试能否通过，完全取决于你在 crud/post.py 中的实现
+        created_post = post_crud.create_with_author(db=session, obj_in=post_in, author_id=sample_user.id)
 
         # 4. 断言
         assert created_post.title == "Test Post with Tags"
@@ -69,7 +66,7 @@ class TestPostCRUD:
         # 验证新的标签确实被创建到了数据库中
         new_tag_from_db = session.query(Tag).filter(Tag.name == "New_tag").first()
         assert new_tag_from_db is not None
-        assert new_tag_from_db.slug is not None # 验证 slug 是否也已生成
+        assert new_tag_from_db.slug is not None  # 验证 slug 是否也已生成
 
     def test_get_post_by_id(self, session: Session, sample_post):
         """测试继承自 CRUDBase 的 get 方法"""
@@ -100,7 +97,7 @@ class TestPostCRUD:
         assert len(paginated_posts) == 2
         assert paginated_posts[0].title == "Post 2"
 
-    def test_update_post(self, session: Session, sample_post):
+    def test_update_post(self, session: Session, sample_post: Post):
         """测试继承自 CRUDBase 的 update 方法"""
         update_data = PostUpdate(title="Updated Title", summary="Updated summary")
         updated_post = post_crud.update(db=session, db_obj=sample_post, obj_in=update_data)
@@ -109,6 +106,26 @@ class TestPostCRUD:
         assert updated_post.summary == "Updated summary"
         # 确保未提供更新的字段保持原样
         assert updated_post.content == sample_post.content
+
+    def test_update_post_with_tags(self, session: Session, sample_user: User):
+        """测试修改了标签的 update 方法"""
+        # 1. 创建一个包含初始标签（例如 ["tag1", "tag2"]）的文章。
+        post_in = PostCreate(
+            title="Test Post with Tags",
+            content="Content here...",
+            tags=["tag1", "tag2"],
+        )
+        sample_post = post_crud.create_with_author(session, obj_in=post_in, author_id=sample_user.id)
+
+        # 2. 调用 crud.post.update 方法，传入新的标签数据（例如 ["tag2", "tag3"]）。
+        update_data = PostUpdate(tags=["tag2", "tag3"])
+
+        # 3. 调用 post 重写的 update 方法
+        updated_post = post_crud.update(db=session, db_obj=sample_post, obj_in=update_data)
+
+        # 4. 断言更新后的文章，其关联的标签名只包含 ["tag2", "tag3"]。
+        updated_tags_set = {tag.name for tag in updated_post.tags}
+        assert updated_tags_set == {"Tag2", "Tag3"}
 
     def test_remove_post(self, session: Session, sample_post):
         """测试继承自 CRUDBase 的 remove 方法"""

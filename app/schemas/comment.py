@@ -25,7 +25,7 @@ class CommentCreate(CommentBase):
         json_schema_extra={
             "example": {
                 "content": "这篇文章写得太好了，赞！",
-                "parent_id": None, # 顶级评论
+                "parent_id": None,  # 顶级评论
             }
         }
     )
@@ -44,7 +44,6 @@ class CommentUpdate(BaseModel):
     )
 
 
-
 # 响应模型 (输出)
 class CommentResponse(CommentBase):
     """
@@ -53,10 +52,11 @@ class CommentResponse(CommentBase):
     这个 Schema 需要展示一个层级结构，即一条评论可以包含一个回复列表，
     列表中的每个元素其自身也是一条评论。
     """
+
     id: UUID
-    author: UserResponse # 嵌套作者信息
+    author: UserResponse  # 嵌套作者信息
     created_at: datetime
-    replies: list["CommentResponse"] = [] # 递归模型：一个评论可以包含一组评论作为回复
+    replies: list["CommentResponse"] = []  # 递归模型：一个评论可以包含一组评论作为回复
 
     model_config = ConfigDict(
         from_attributes=True,  # 允许从 ORM 对象创建

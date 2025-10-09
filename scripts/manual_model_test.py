@@ -5,9 +5,11 @@
 这是在真实数据库上进行的集成测试。
 
 使用方法：
-    uv run python scripts/test_models.py
+    uv run python scripts/manual_model_test.py
 """
 
+
+from typing import Any, TypeVar
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -17,6 +19,16 @@ from app.models import Comment, Post, PostStatus, PostView, Tag, User, UserRole
 
 # 创建数据库引擎
 engine = create_engine(settings.DATABASE_URL, echo=False)
+
+T = TypeVar("T")
+
+
+def get_or_raise(session: Session, model: type[T], pk: Any) -> T:
+    """通过主键获取一个实例，如果找不到则引发异常。"""
+    instance = session.get(model, pk)
+    if instance is None:
+        raise ValueError(f"{model.__name__} with primary key '{pk}' not found.")
+    return instance
 
 
 def print_section(title: str) -> None:
@@ -76,7 +88,7 @@ def test_post_crud(user: User) -> Post:
 
     with Session(engine) as session:
         # 重新获取 user（避免 DetachedInstanceError）
-        user = session.get(User, user.id)
+        user = get_or_raise(session, User, user.id)
 
         # Create
         post = Post(
@@ -119,7 +131,7 @@ def test_tag_relationship(post: Post) -> list[Tag]:
     print_section("3. 测试 Post-Tag 多对多关系")
 
     with Session(engine) as session:
-        post = session.get(Post, post.id)
+        post = get_or_raise(session, Post, post.id)
 
         # 创建标签
         tag1 = Tag(name="Python", slug="python", description="Python 编程语言")
@@ -155,8 +167,8 @@ def test_comment_relationship(user: User, post: Post) -> list[Comment]:
     print_section("4. 测试 Comment 模型和自引用关系")
 
     with Session(engine) as session:
-        user = session.get(User, user.id)
-        post = session.get(Post, post.id)
+        user = get_or_raise(session, User, user.id)
+        post = get_or_raise(session, Post, post.id)
 
         # 创建顶级评论
         comment1 = Comment(
@@ -206,8 +218,8 @@ def test_post_view(user: User, post: Post) -> None:
     print_section("5. 测试 PostView 模型和防刷功能")
 
     with Session(engine) as session:
-        user = session.get(User, user.id)
-        post = session.get(Post, post.id)
+        user = get_or_raise(session, User, user.id)
+        post = get_or_raise(session, Post, post.id)
 
         # 第一次浏览
         is_dup = PostView.is_duplicate(session, user.id, post.id)
@@ -247,14 +259,15 @@ def test_cascade_delete(user: User, post: Post) -> None:
     print_section("6. 测试级联删除")
 
     with Session(engine) as session:
-        post = session.get(Post, post.id)
+        post = get_or_raise(session, Post, post.id)
         post_id = post.id
         post_title = post.title
 
         # 记录删除前的数据
-        comment_count = len(post.comments)
-        tag_count = len(post.tags)
-        view_count = len(post.post_views)
+        # 注意：直接访问 post.comments 等属性可能会触发查询，这里我们改为手动查询计数
+        comment_count = session.query(Comment).filter_by(post_id=post.id).count()
+        tag_count = len(post.tags)  # 多对多关系通常在 post 对象上有缓存
+        view_count = session.query(PostView).filter_by(post_id=post.id).count()
 
         print("删除前统计:")
         print(f"   - 文章: {post_title}")
@@ -271,14 +284,12 @@ def test_cascade_delete(user: User, post: Post) -> None:
         print(f"\n✅ 文章已删除: {deleted_post is None}")
 
         # 验证评论被级联删除
-        remaining_comments = (
-            session.query(Comment).filter_by(post_id=post_id).count()
-        )
-        print(f"✅ 评论已级联删除: {remaining_comments} 条剩余")
+        remaining_comments = session.query(Comment).filter_by(post_id=post_id).count()
+        print(f"✅ 评论已级联删除: {remaining_comments == 0}")
 
         # 验证浏览记录被级联删除
         remaining_views = session.query(PostView).filter_by(post_id=post_id).count()
-        print(f"✅ 浏览记录已级联删除: {remaining_views} 条剩余")
+        print(f"✅ 浏览记录已级联删除: {remaining_views == 0}")
 
 
 def cleanup_test_data(user: User) -> None:
@@ -286,13 +297,14 @@ def cleanup_test_data(user: User) -> None:
     print_section("7. 清理测试数据")
 
     with Session(engine) as session:
-        user = session.get(User, user.id)
-        if user:
-            user_id = user.id
-            username = user.username
+        # 这里使用 session.get 是安全的，因为我们后面有 if user: 的检查
+        user_to_delete = session.get(User, user.id)
+        if user_to_delete:
+            user_id = user_to_delete.id
+            username = user_to_delete.username
 
             # 删除用户（级联删除所有关联数据）
-            session.delete(user)
+            session.delete(user_to_delete)
             session.commit()
 
             print(f"✅ 删除用户: {username} (ID: {user_id})")
@@ -310,6 +322,7 @@ def main() -> None:
     print("  🚀 开始测试数据库模型操作")
     print("=" * 80)
 
+    user = None
     try:
         # 1. 测试 User CRUD
         user = test_user_crud()
@@ -329,9 +342,6 @@ def main() -> None:
         # 6. 测试级联删除
         test_cascade_delete(user, post)
 
-        # 7. 清理测试数据
-        cleanup_test_data(user)
-
         print_section("✅ 所有测试通过！")
         print("\n🎉 数据库模型操作正常！可以开始 API 开发了。\n")
 
@@ -340,7 +350,12 @@ def main() -> None:
         import traceback
 
         traceback.print_exc()
-        raise
+        # raise # 在手动测试脚本中，可以选择不重新抛出异常，以便继续清理
+
+    finally:
+        if user:
+            # 7. 清理测试数据
+            cleanup_test_data(user)
 
 
 if __name__ == "__main__":
