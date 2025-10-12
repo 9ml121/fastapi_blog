@@ -32,7 +32,9 @@ class TestPostCreateSchema:
 
     def test_create_post_with_empty_title_raises_error(self):
         """测试：使用空标题创建会因 min_length=1 而失败"""
-        with pytest.raises(ValidationError, match="String should have at least 1 character"):
+        with pytest.raises(
+            ValidationError, match="String should have at least 1 character"
+        ):
             PostCreate(title="", content="Some content")
 
     def test_create_post_missing_content_raises_error(self):
@@ -123,6 +125,8 @@ class TestPostResponseSchema:
         # 4. 断言
         assert post_response.id == UUID("f47ac10b-58cc-4372-a567-0e02b2c3d479")
         assert post_response.title == "ORM Post Title"
-        assert isinstance(post_response.author, UserResponse)  # 验证 author 字段被正确转换成了 UserResponse 类型
+        assert isinstance(
+            post_response.author, UserResponse
+        )  # 验证 author 字段被正确转换成了 UserResponse 类型
         assert post_response.author.username == "testuser"
         assert post_response.slug == "orm-post-title"

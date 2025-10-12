@@ -4,7 +4,14 @@
 导出主要的数据库组件，便于其他模块使用
 """
 
-from .database import Base, SessionLocal, create_all_tables, drop_all_tables, engine, get_db
+from .database import (
+    Base,
+    SessionLocal,
+    create_all_tables,
+    drop_all_tables,
+    engine,
+    get_db,
+)
 
 __all__ = [
     "Base",

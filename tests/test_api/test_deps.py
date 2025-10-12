@@ -46,7 +46,9 @@ def test_get_current_user_with_valid_token(session: Session, sample_user: User) 
     app.dependency_overrides[deps.get_db] = lambda: session
 
     # 4. 发送请求
-    response = client.get("/test-current-user", headers={"Authorization": f"Bearer {token}"})
+    response = client.get(
+        "/test-current-user", headers={"Authorization": f"Bearer {token}"}
+    )
 
     # 5. 断言
     assert response.status_code == 200
@@ -67,7 +69,9 @@ def test_get_current_user_with_invalid_token(session: Session) -> None:
     app.dependency_overrides[deps.get_db] = lambda: session
 
     # 2. 发送请求
-    response = client.get("/test-current-user", headers={"Authorization": "Bearer invalidtoken"})
+    response = client.get(
+        "/test-current-user", headers={"Authorization": "Bearer invalidtoken"}
+    )
 
     # 3. 断言
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -82,18 +86,24 @@ def test_get_current_user_with_invalid_token(session: Session) -> None:
 # ==================================
 
 
-def test_get_current_user_with_expired_token(session: Session, sample_user: User) -> None:
+def test_get_current_user_with_expired_token(
+    session: Session, sample_user: User
+) -> None:
     """
     测试: 使用已过期的 token
     预期: 抛出 401 HTTPException
     """
     # 1. sample_user fixture 已经提供了一个用户
     # 2. 创建一个已过期的 token
-    token = create_access_token(data={"sub": str(sample_user.id)}, expires_delta=timedelta(seconds=-1))
+    token = create_access_token(
+        data={"sub": str(sample_user.id)}, expires_delta=timedelta(seconds=-1)
+    )
     # 3. 覆盖 get_db 依赖
     app.dependency_overrides[deps.get_db] = lambda: session
     # 4. 发送请求到 /test-current-user
-    response = client.get("/test-current-user", headers={"Authorization": f"Bearer {token}"})
+    response = client.get(
+        "/test-current-user", headers={"Authorization": f"Bearer {token}"}
+    )
 
     # 5. 断言 status_code 是否为 401
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -102,7 +112,9 @@ def test_get_current_user_with_expired_token(session: Session, sample_user: User
     app.dependency_overrides = {}
 
 
-def test_get_current_active_user_with_inactive_user(session: Session, sample_user: User) -> None:
+def test_get_current_active_user_with_inactive_user(
+    session: Session, sample_user: User
+) -> None:
     """
     测试: 使用一个被禁用用户的 token 调用 get_current_active_user
     预期: 抛出 400 HTTPException
@@ -119,7 +131,9 @@ def test_get_current_active_user_with_inactive_user(session: Session, sample_use
     # 3. 覆盖 get_db 依赖
     app.dependency_overrides[deps.get_db] = lambda: session
     # 4. 发送请求到 /test-active-user
-    response = client.get("/test-active-user", headers={"Authorization": f"Bearer {token}"})
+    response = client.get(
+        "/test-active-user", headers={"Authorization": f"Bearer {token}"}
+    )
 
     # 5. 断言 status_code 是否为 400，并且 detail 信息为 "Inactive user"
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -128,7 +142,9 @@ def test_get_current_active_user_with_inactive_user(session: Session, sample_use
     app.dependency_overrides = {}
 
 
-def test_get_current_superuser_with_normal_user(session: Session, sample_user: User) -> None:
+def test_get_current_superuser_with_normal_user(
+    session: Session, sample_user: User
+) -> None:
     """
     测试: 验证一个普通用户（非管理员）在访问需要超级用户权限的端点时，会被正确地拒绝
     预期: 抛出 403 HTTPException
@@ -141,7 +157,9 @@ def test_get_current_superuser_with_normal_user(session: Session, sample_user: U
     app.dependency_overrides[deps.get_db] = lambda: session
 
     # 4. 向 /test-superuser 端点发送请求。
-    response = client.get("/test-superuser", headers={"Authorization": f"Bearer {token}"})
+    response = client.get(
+        "/test-superuser", headers={"Authorization": f"Bearer {token}"}
+    )
 
     # 5. 断言：
     #  * response.status_code 应该是 403 (Forbidden)。
@@ -153,12 +171,15 @@ def test_get_current_superuser_with_normal_user(session: Session, sample_user: U
     app.dependency_overrides = {}
 
 
-def test_get_current_superuser_with_admin_user(session: Session, sample_user: User) -> None:
+def test_get_current_superuser_with_admin_user(
+    session: Session, sample_user: User
+) -> None:
     """
     测试: 验证一个管理员用户可以成功访问需要超级用户权限的端点
     预期: 成功返回对应的用户
     """
-    # 1. 需要一个管理员用户。你可以直接修改 sample_user 的 role 属性，或者创建一个新的管理员用户。
+    # 1. 需要一个管理员用户。你可以直接修改 sample_user 的 role 属性，
+    # 或者创建一个新的管理员用户。
     user = sample_user
     user.promote_to_admin()
     session.add(user)
@@ -173,7 +194,9 @@ def test_get_current_superuser_with_admin_user(session: Session, sample_user: Us
     app.dependency_overrides[deps.get_db] = lambda: session
 
     # 4. 向 /test-superuser 端点发送请求。
-    response = client.get(url="/test-superuser", headers={"Authorization": f"Bearer {token}"})
+    response = client.get(
+        url="/test-superuser", headers={"Authorization": f"Bearer {token}"}
+    )
     # 5. 断言：
     #     * response.status_code 应该是 200 (OK)。
     #     * 返回的 JSON 数据中的 "role" 字段应该是 "admin"。

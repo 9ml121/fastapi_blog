@@ -78,31 +78,47 @@ class User(Base):
         super().__init__(**kwargs)
 
     # 1. 主键
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4, comment="用户唯一标识")
+    id: Mapped[UUID] = mapped_column(
+        primary_key=True, default=uuid.uuid4, comment="用户唯一标识"
+    )
 
     # 2. 核心业务字段 - 登录凭证
-    username: Mapped[str] = mapped_column(String(50), unique=True, index=True, comment="用户名（唯一）")
+    username: Mapped[str] = mapped_column(
+        String(50), unique=True, index=True, comment="用户名（唯一）"
+    )
 
-    email: Mapped[str] = mapped_column(String(100), unique=True, index=True, comment="邮箱地址（唯一）")
+    email: Mapped[str] = mapped_column(
+        String(100), unique=True, index=True, comment="邮箱地址（唯一）"
+    )
 
     password_hash: Mapped[str] = mapped_column(String(255), comment="密码哈希值")
 
     # 基本信息
     nickname: Mapped[str] = mapped_column(String(50), comment="显示昵称")
 
-    avatar: Mapped[str | None] = mapped_column(String(255), default=None, comment="头像文件路径")
+    avatar: Mapped[str | None] = mapped_column(
+        String(255), default=None, comment="头像文件路径"
+    )
 
     # 3. 状态和配置字段 - 配置
-    role: Mapped[UserRole] = mapped_column(SQLEnum(UserRole), default=UserRole.USER, comment="用户角色")
+    role: Mapped[UserRole] = mapped_column(
+        SQLEnum(UserRole), default=UserRole.USER, comment="用户角色"
+    )
 
     # 状态
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, comment="账户是否激活（管理员可禁用）")
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, default=True, comment="账户是否激活（管理员可禁用）"
+    )
 
     # 状态
-    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, comment="邮箱是否已验证")
+    is_verified: Mapped[bool] = mapped_column(
+        Boolean, default=False, comment="邮箱是否已验证"
+    )
 
     # 4. 时间戳字段
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), comment="创建时间")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), comment="创建时间"
+    )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -111,7 +127,9 @@ class User(Base):
         comment="更新时间",
     )
 
-    last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None, comment="最后登录时间")
+    last_login: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None, comment="最后登录时间"
+    )
 
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=None, comment="软删除时间（用户主动删除账号）"
@@ -119,8 +137,11 @@ class User(Base):
 
     # 5. 关系定义
     # User → Post： 一对多
-    # !TIPS: lazy="select" 是默认值，先不指定，以后按照按需加载文章列表（一对多用 selectin）
-    posts: Mapped[list["Post"]] = relationship(back_populates="author", cascade="all, delete-orphan")
+    # !TIPS: lazy="select" 是默认值，先不指定，
+    # 以后按照按需加载文章列表（一对多用 selectin）
+    posts: Mapped[list["Post"]] = relationship(
+        back_populates="author", cascade="all, delete-orphan"
+    )
 
     # User → Comment: 一对多
     comments: Mapped[list["Comment"]] = relationship(

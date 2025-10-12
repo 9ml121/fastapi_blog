@@ -258,7 +258,12 @@ if __name__ == "__main__":
         print("✅ 枚举类型测试通过")
 
         # 测试模型创建（不涉及数据库）
-        user = User(username="test", email="test@example.com", password_hash="hash", nickname="测试")
+        user = User(
+            username="test",
+            email="test@example.com",
+            password_hash="hash",
+            nickname="测试",
+        )
 
         assert user.username == "test"
         assert user.role == UserRole.USER

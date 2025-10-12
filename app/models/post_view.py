@@ -165,7 +165,9 @@ class PostView(Base):
 
         cutoff_time = datetime.now(UTC) - timedelta(seconds=within_seconds)
 
-        query = session.query(PostView).filter(PostView.post_id == post_id, PostView.viewed_at >= cutoff_time)
+        query = session.query(PostView).filter(
+            PostView.post_id == post_id, PostView.viewed_at >= cutoff_time
+        )
 
         if user_id:
             # 已登录用户：检查 user_id
@@ -181,4 +183,7 @@ class PostView(Base):
     def __repr__(self) -> str:
         """字符串表示"""
         user_info = f"user_id={self.user_id}" if self.user_id else "anonymous"
-        return f"<PostView(id={self.id}, {user_info}, post_id={self.post_id}, viewed_at={self.viewed_at})>"
+        return (
+            f"<PostView(id={self.id}, {user_info}, post_id={self.post_id}, "
+            f"viewed_at={self.viewed_at})>"
+        )

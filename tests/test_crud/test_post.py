@@ -4,7 +4,6 @@ tests/test_crud/test_post.py
 测试 Post CRUD 操作
 """
 
-from random import sample
 from sqlalchemy.orm import Session
 
 from app.crud.post import post as post_crud
@@ -23,7 +22,10 @@ class TestPostCRUD:
         from sqlalchemy.exc import IntegrityError
 
         post_in = PostCreate(
-            title="Test Base Create Fail", content="Content for base create fail", slug="test-base-create-fail", tags=[]
+            title="Test Base Create Fail",
+            content="Content for base create fail",
+            slug="test-base-create-fail",
+            tags=[],
         )
 
         # 断言：直接调用通用的 create 创建 Post 时，
@@ -52,7 +54,9 @@ class TestPostCRUD:
 
         # 3. 调用被测试的函数
         # 注意：这个测试能否通过，完全取决于你在 crud/post.py 中的实现
-        created_post = post_crud.create_with_author(db=session, obj_in=post_in, author_id=sample_user.id)
+        created_post = post_crud.create_with_author(
+            db=session, obj_in=post_in, author_id=sample_user.id
+        )
 
         # 4. 断言
         assert created_post.title == "Test Post with Tags"
@@ -87,7 +91,9 @@ class TestPostCRUD:
         # 创建多篇文章
         for i in range(5):
             post_in = PostCreate(title=f"Post {i}", content=f"Content {i}")
-            post_crud.create_with_author(db=session, obj_in=post_in, author_id=sample_user.id)
+            post_crud.create_with_author(
+                db=session, obj_in=post_in, author_id=sample_user.id
+            )
 
         posts = post_crud.get_multi(db=session)
         assert len(posts) == 5
@@ -100,7 +106,9 @@ class TestPostCRUD:
     def test_update_post(self, session: Session, sample_post: Post):
         """测试继承自 CRUDBase 的 update 方法"""
         update_data = PostUpdate(title="Updated Title", summary="Updated summary")
-        updated_post = post_crud.update(db=session, db_obj=sample_post, obj_in=update_data)
+        updated_post = post_crud.update(
+            db=session, db_obj=sample_post, obj_in=update_data
+        )
 
         assert updated_post.title == "Updated Title"
         assert updated_post.summary == "Updated summary"
@@ -115,13 +123,17 @@ class TestPostCRUD:
             content="Content here...",
             tags=["tag1", "tag2"],
         )
-        sample_post = post_crud.create_with_author(session, obj_in=post_in, author_id=sample_user.id)
+        sample_post = post_crud.create_with_author(
+            session, obj_in=post_in, author_id=sample_user.id
+        )
 
         # 2. 调用 crud.post.update 方法，传入新的标签数据（例如 ["tag2", "tag3"]）。
         update_data = PostUpdate(tags=["tag2", "tag3"])
 
         # 3. 调用 post 重写的 update 方法
-        updated_post = post_crud.update(db=session, db_obj=sample_post, obj_in=update_data)
+        updated_post = post_crud.update(
+            db=session, db_obj=sample_post, obj_in=update_data
+        )
 
         # 4. 断言更新后的文章，其关联的标签名只包含 ["tag2", "tag3"]。
         updated_tags_set = {tag.name for tag in updated_post.tags}

@@ -84,10 +84,14 @@ def test_create_user_with_duplicate_email(session: Session) -> None:
 def test_create_user_with_duplicate_username(session: Session) -> None:
     """测试：使用重复的用户名创建用户应该失败"""
     username = "duplicateuser"
-    user_in_1 = UserCreate(email="user1@example.com", password="TestPassword123", username=username)
+    user_in_1 = UserCreate(
+        email="user1@example.com", password="TestPassword123", username=username
+    )
     crud.user.create_user(db=session, user_in=user_in_1)
 
-    user_in_2 = UserCreate(email="user2@example.com", password="TestPassword123", username=username)
+    user_in_2 = UserCreate(
+        email="user2@example.com", password="TestPassword123", username=username
+    )
 
     with pytest.raises(IntegrityError):
         crud.user.create_user(db=session, user_in=user_in_2)
@@ -98,7 +102,9 @@ def test_create_user_with_duplicate_username(session: Session) -> None:
 
 def test_get_user_by_id(session: Session) -> None:
     """测试：通过用户 ID 查询用户"""
-    user_in = UserCreate(email="test@example.com", password="TestPassword123", username="testuser")
+    user_in = UserCreate(
+        email="test@example.com", password="TestPassword123", username="testuser"
+    )
     created_user = crud.user.create_user(db=session, user_in=user_in)
 
     # 通过 ID 查询
@@ -121,7 +127,9 @@ def test_get_user_by_non_existent_id(session: Session) -> None:
 def test_get_user_by_username(session: Session) -> None:
     """测试：通过用户名查询用户"""
     username = "testuser"
-    user_in = UserCreate(email="test@example.com", password="TestPassword123", username=username)
+    user_in = UserCreate(
+        email="test@example.com", password="TestPassword123", username=username
+    )
     crud.user.create_user(db=session, user_in=user_in)
 
     user = crud.user.get_user_by_username(db=session, username=username)
@@ -142,14 +150,18 @@ def test_get_user_by_non_existent_username(session: Session) -> None:
 def test_update_user_partial(session: Session) -> None:
     """测试：部分更新用户信息（只更新提供的字段）"""
     # 创建用户
-    user_in = UserCreate(email="test@example.com", password="TestPassword123", username="testuser")
+    user_in = UserCreate(
+        email="test@example.com", password="TestPassword123", username="testuser"
+    )
     user = crud.user.create_user(db=session, user_in=user_in)
     original_email = user.email
     original_password_hash = user.password_hash
 
     # 只更新 nickname
     user_update = UserUpdate(nickname="新昵称")
-    updated_user = crud.user.update_user(db=session, user_id=user.id, user_in=user_update)
+    updated_user = crud.user.update_user(
+        db=session, user_id=user.id, user_in=user_update
+    )
 
     assert updated_user is not None
     assert updated_user.nickname == "新昵称"
@@ -160,30 +172,35 @@ def test_update_user_partial(session: Session) -> None:
 def test_update_user_password(session: Session) -> None:
     """测试：更新用户密码（需要哈希处理）"""
     # 创建用户
-    original_password = "OldPassword123"
-    user_in = UserCreate(email="test@example.com", password=original_password, username="testuser")
+    old_password = "OldPassword123"
+    user_in = UserCreate(
+        email="test@example.com", password=old_password, username="testuser"
+    )
     user: User = crud.user.create_user(db=session, user_in=user_in)
-    original_password_hash = user.password_hash
+    old_password_hash = user.password_hash
     print(repr(user))
 
     # 更新密码
     new_password = "NewPassword456"
-    user_update = UserUpdate(password=new_password)
-    updated_user = crud.user.update_user(db=session, user_id=user.id, user_in=user_update)
+    updated_user = crud.user.update_password(
+        db=session, user=user, old_password=old_password, new_password=new_password
+    )
 
     assert updated_user is not None
     # 密码哈希已改变
-    assert updated_user.password_hash != original_password_hash
+    assert updated_user.password_hash != old_password_hash
     # 新密码验证通过
     assert verify_password(new_password, updated_user.password_hash)
     # 旧密码验证失败
-    assert not verify_password(original_password, updated_user.password_hash)
+    assert not verify_password(old_password, updated_user.password_hash)
 
 
 def test_update_non_existent_user(session: Session) -> None:
     """测试：更新不存在的用户应该返回 None"""
     user_update = UserUpdate(nickname="新昵称")
-    result: User | None = crud.user.update_user(db=session, user_id=uuid4(), user_in=user_update)
+    result: User | None = crud.user.update_user(
+        db=session, user_id=uuid4(), user_in=user_update
+    )
     assert result is None
 
 
@@ -193,7 +210,9 @@ def test_update_non_existent_user(session: Session) -> None:
 def test_delete_user(session: Session) -> None:
     """测试：软删除用户（设置 deleted_at）"""
     # 创建用户
-    user_in = UserCreate(email="test@example.com", password="TestPassword123", username="testuser")
+    user_in = UserCreate(
+        email="test@example.com", password="TestPassword123", username="testuser"
+    )
     user: User = crud.user.create_user(db=session, user_in=user_in)
     user_id = user.id
 
@@ -213,7 +232,9 @@ def test_delete_non_existent_user(session: Session) -> None:
 def test_soft_deleted_user_not_queryable(session: Session) -> None:
     """测试：软删除的用户无法通过查询函数获取"""
     # 创建并删除用户
-    user_in = UserCreate(email="test@example.com", password="TestPassword123", username="testuser")
+    user_in = UserCreate(
+        email="test@example.com", password="TestPassword123", username="testuser"
+    )
     user = crud.user.create_user(db=session, user_in=user_in)
     user_id = user.id
     email = user.email
@@ -238,7 +259,9 @@ def test_authenticate_user_success(session: Session) -> None:
     crud.user.create_user(db=session, user_in=user_in)
 
     # 认证成功
-    user: User | None = crud.user.authenticate_user(db=session, identifier=email, password=password)
+    user: User | None = crud.user.authenticate_user(
+        db=session, identifier=email, password=password
+    )
 
     assert user is not None
     assert user.email == email
@@ -252,14 +275,18 @@ def test_authenticate_user_wrong_password(session: Session) -> None:
     crud.user.create_user(db=session, user_in=user_in)
 
     # 错误的密码
-    user = crud.user.authenticate_user(db=session, identifier=email, password="WrongPassword")
+    user = crud.user.authenticate_user(
+        db=session, identifier=email, password="WrongPassword"
+    )
 
     assert user is None
 
 
 def test_authenticate_non_existent_user(session: Session) -> None:
     """测试：不存在的用户应该认证失败（防止时序攻击）"""
-    user = crud.user.authenticate_user(db=session, identifier="nonexistent@example.com", password="AnyPassword")
+    user = crud.user.authenticate_user(
+        db=session, identifier="nonexistent@example.com", password="AnyPassword"
+    )
     assert user is None
 
 
@@ -274,5 +301,7 @@ def test_authenticate_soft_deleted_user(session: Session) -> None:
     crud.user.delete_user(db=session, user_id=user.id)
 
     # 尝试认证（应该失败）
-    result = crud.user.authenticate_user(db=session, identifier=email, password=password)
+    result = crud.user.authenticate_user(
+        db=session, identifier=email, password=password
+    )
     assert result is None

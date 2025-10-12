@@ -22,13 +22,20 @@ from app.schemas.user import UserCreate
 @pytest.fixture
 def test_user_data() -> dict[str, str]:
     """API 测试用户数据（包含明文密码）"""
-    return {"username": "newuser", "email": "newuser@example.com", "password": "SecurePass123!", "nickname": "New User"}
+    return {
+        "username": "newuser",
+        "email": "newuser@example.com",
+        "password": "SecurePass123!",
+        "nickname": "New User",
+    }
 
 
 class TestAuthenticationFlow:
     """测试完整的认证流程"""
 
-    def test_new_user_complete_journey(self, client: TestClient, test_user_data: dict[str, str]):
+    def test_new_user_complete_journey(
+        self, client: TestClient, test_user_data: dict[str, str]
+    ):
         """
         测试新用户从注册到使用的完整旅程
 
@@ -67,7 +74,7 @@ class TestAuthenticationFlow:
 
         # Step 3: 使用 token 访问受保护端点
         me_response = client.get(
-            "/api/v1/auth/me",
+            "/api/v1/users/me",
             headers={"Authorization": f"Bearer {access_token}"},
         )
 
@@ -81,7 +88,9 @@ class TestAuthenticationFlow:
         assert me_data["nickname"] == test_user_data["nickname"]
         assert me_data["id"] == user_data["id"]  # ID 应该与注册时返回的一致
 
-    def test_login_with_email_then_access_protected_endpoint(self, client: TestClient, test_user_data: dict[str, str]):
+    def test_login_with_email_then_access_protected_endpoint(
+        self, client: TestClient, test_user_data: dict[str, str]
+    ):
         """
         测试使用邮箱登录后访问受保护端点
 
@@ -109,7 +118,7 @@ class TestAuthenticationFlow:
 
         # 4. 用 token 访问 /me，验证返回正确的用户信息
         me_response = client.get(
-            "/api/v1/auth/me",
+            "/api/v1/users/me",
             headers={"Authorization": f"Bearer {access_token}"},
         )
         assert me_response.status_code == status.HTTP_200_OK
@@ -160,7 +169,9 @@ class TestPermissionControl:
         # 5. 返回 token 字符串
         return token
 
-    def test_normal_user_cannot_access_admin_endpoint(self, client: TestClient, normal_user_token: str):
+    def test_normal_user_cannot_access_admin_endpoint(
+        self, client: TestClient, normal_user_token: str
+    ):
         """
         测试普通用户无法访问管理员端点
 
@@ -170,11 +181,15 @@ class TestPermissionControl:
         这个测试暂时验证普通用户可以访问 /me 并且角色是 user
         """
         # 临时测试：验证普通用户可以访问自己的信息
-        response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {normal_user_token}"})
+        response = client.get(
+            "/api/v1/users/me", headers={"Authorization": f"Bearer {normal_user_token}"}
+        )
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["role"] == "user"  # 验证角色是普通用户
 
-    def test_admin_user_can_access_admin_endpoint(self, client: TestClient, admin_user_token: str):
+    def test_admin_user_can_access_admin_endpoint(
+        self, client: TestClient, admin_user_token: str
+    ):
         """
         测试管理员可以访问管理员端点
 
@@ -184,7 +199,9 @@ class TestPermissionControl:
         这个测试暂时验证管理员可以访问 /me 并且角色是 admin
         """
         # 临时测试：验证管理员可以访问自己的信息，并且角色是 admin
-        response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {admin_user_token}"})
+        response = client.get(
+            "/api/v1/users/me", headers={"Authorization": f"Bearer {admin_user_token}"}
+        )
 
         # 验证返回 200 状态码
         assert response.status_code == status.HTTP_200_OK
@@ -196,7 +213,9 @@ class TestPermissionControl:
 class TestTokenLifecycle:
     """测试 Token 生命周期"""
 
-    def test_expired_token_rejected(self, client: TestClient, session: Session, sample_user):
+    def test_expired_token_rejected(
+        self, client: TestClient, session: Session, sample_user
+    ):
         """
         测试过期的 token 被拒绝
 
@@ -212,13 +231,17 @@ class TestTokenLifecycle:
         )
 
         # 2. 使用过期 token 访问受保护端点
-        response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {expired_token}"})
+        response = client.get(
+            "/api/v1/users/me", headers={"Authorization": f"Bearer {expired_token}"}
+        )
 
         # 3. 验证返回 401 Unauthorized
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.json()["detail"] == "Could not validate credentials"
 
-    def test_valid_token_with_custom_expiration(self, client: TestClient, session: Session, sample_user):
+    def test_valid_token_with_custom_expiration(
+        self, client: TestClient, session: Session, sample_user
+    ):
         """
         测试自定义过期时间的有效 token
 
@@ -235,9 +258,12 @@ class TestTokenLifecycle:
         )
 
         # 立即使用，应该成功
-        response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {short_lived_token}"})
+        response = client.get(
+            "/api/v1/users/me", headers={"Authorization": f"Bearer {short_lived_token}"}
+        )
         assert response.status_code == status.HTTP_200_OK
 
         # 注意：这个测试需要等待 11 秒，在实际开发中可能太慢
         # 在 CI/CD 中可以跳过这个测试（使用 @pytest.mark.slow）
-        # 这里我们只验证立即使用是成功的，过期测试在上面的 test_expired_token_rejected 中完成
+        # 这里我们只验证立即使用是成功的，
+        # 过期测试在上面的 test_expired_token_rejected 中完成

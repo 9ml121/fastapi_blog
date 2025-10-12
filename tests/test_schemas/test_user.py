@@ -33,8 +33,12 @@ def test_user_create_valid_data():
 @pytest.mark.parametrize(
     ("invalid_password", "expected_error_msg"),
     [
-        pytest.param("short", "String should have at least 8 characters", id="password_too_short"),
-        pytest.param("onlyletters", "密码必须包含至少一个数字", id="password_no_digits"),
+        pytest.param(
+            "short", "String should have at least 8 characters", id="password_too_short"
+        ),
+        pytest.param(
+            "onlyletters", "密码必须包含至少一个数字", id="password_no_digits"
+        ),
         pytest.param("12345678", "密码必须包含至少一个字母", id="password_no_letters"),
     ],
 )
@@ -52,9 +56,15 @@ def test_user_create_invalid_password(invalid_password: str, expected_error_msg:
 @pytest.mark.parametrize(
     ("invalid_username", "expected_error_msg"),
     [
-        pytest.param("a", "String should have at least 3 characters", id="username_too_short"),
-        pytest.param("a" * 51, "String should have at most 50 characters", id="username_too_long"),
-        pytest.param("user@!", "String should match pattern", id="username_invalid_chars"),
+        pytest.param(
+            "a", "String should have at least 3 characters", id="username_too_short"
+        ),
+        pytest.param(
+            "a" * 51, "String should have at most 50 characters", id="username_too_long"
+        ),
+        pytest.param(
+            "user@!", "String should match pattern", id="username_invalid_chars"
+        ),
     ],
 )
 def test_user_create_invalid_username(invalid_username: str, expected_error_msg: str):

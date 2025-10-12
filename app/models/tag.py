@@ -156,4 +156,7 @@ class Tag(Base):
 
     def __repr__(self) -> str:
         """字符串表示"""
-        return f"<Tag(id={self.id}, name='{self.name}', slug='{self.slug}', post_count={self.post_count})>"
+        return (
+            f"<Tag(id={self.id}, name='{self.name}', slug='{self.slug}', "
+            f"post_count={self.post_count})>"
+        )

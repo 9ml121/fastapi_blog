@@ -2,7 +2,11 @@ from fastapi import FastAPI
 
 from app.api.v1.api import api_router
 
-app = FastAPI(title="个人博客系统 API", description="基于 FastAPI 构建的博客系统后端", version="1.0.0")
+app = FastAPI(
+    title="个人博客系统 API",
+    description="基于 FastAPI 构建的博客系统后端",
+    version="1.0.0",
+)
 
 # 注册 API v1 路由
 app.include_router(api_router, prefix="/api/v1")

@@ -38,7 +38,9 @@ class TestPostModel:
         from sqlalchemy.pool import ConnectionPoolEntry
 
         @event.listens_for(engine, "connect")
-        def set_sqlite_pragma(dbapi_conn: sqlite3.Connection, _connection_record: ConnectionPoolEntry) -> None:
+        def set_sqlite_pragma(
+            dbapi_conn: sqlite3.Connection, _connection_record: ConnectionPoolEntry
+        ) -> None:
             """每次建立连接时自动启用外键约束
 
             Args:
@@ -88,12 +90,17 @@ class TestPostModel:
         unique_id = str(uuid.uuid4())[:8]
         return {
             "title": f"测试文章标题_{unique_id}",
-            "content": f"这是一篇测试文章的内容，用于验证 Post 模型的功能。唯一标识：{unique_id}",
+            "content": (
+                f"这是一篇测试文章的内容，用于验证 Post 模型的功能。"
+                f"唯一标识：{unique_id}"
+            ),
             "summary": f"这是文章摘要_{unique_id}",
             "slug": f"test-post-{unique_id}",
         }
 
-    def test_post_creation(self, session: Session, sample_user: User, sample_post_data: dict[str, str]):
+    def test_post_creation(
+        self, session: Session, sample_user: User, sample_post_data: dict[str, str]
+    ):
         post = Post(author_id=sample_user.id, **sample_post_data)
 
         session.add(post)
@@ -121,7 +128,9 @@ class TestPostModel:
         assert isinstance(post.created_at, datetime)
         assert isinstance(post.updated_at, datetime)
 
-    def test_post_status_enum(self, session: Session, sample_user: User, sample_post_data: dict[str, str]):
+    def test_post_status_enum(
+        self, session: Session, sample_user: User, sample_post_data: dict[str, str]
+    ):
         """测试文章状态枚举"""
         post = Post(author_id=sample_user.id, **sample_post_data)
 
@@ -146,7 +155,9 @@ class TestPostModel:
         assert post.is_published is False
         assert post.is_archived is True
 
-    def test_slug_unique_constraint(self, session: Session, sample_user: User, sample_post_data: dict[str, str]):
+    def test_slug_unique_constraint(
+        self, session: Session, sample_user: User, sample_post_data: dict[str, str]
+    ):
         """测试 slug 唯一性约束"""
         # 创建第一篇文章
         post1 = Post(author_id=sample_user.id, **sample_post_data)
@@ -166,7 +177,9 @@ class TestPostModel:
         with pytest.raises(IntegrityError):
             session.commit()
 
-    def test_author_relationship(self, session: Session, sample_user: User, sample_post_data: dict[str, str]):
+    def test_author_relationship(
+        self, session: Session, sample_user: User, sample_post_data: dict[str, str]
+    ):
         """测试与用户的关联关系"""
         post = Post(author_id=sample_user.id, **sample_post_data)
         session.add(post)
@@ -182,7 +195,9 @@ class TestPostModel:
         assert len(sample_user.posts) >= 1
         assert post in sample_user.posts
 
-    def test_post_business_methods(self, session: Session, sample_user: User, sample_post_data: dict[str, str]):
+    def test_post_business_methods(
+        self, session: Session, sample_user: User, sample_post_data: dict[str, str]
+    ):
         """测试文章业务方法"""
         post = Post(author_id=sample_user.id, **sample_post_data)
         session.add(post)
@@ -218,7 +233,9 @@ class TestPostModel:
         post.increment_view_count()
         assert post.view_count == initial_count + 1
 
-    def test_post_properties(self, session: Session, sample_user: User, sample_post_data: dict[str, str]):
+    def test_post_properties(
+        self, session: Session, sample_user: User, sample_post_data: dict[str, str]
+    ):
         """测试文章计算属性"""
         post = Post(author_id=sample_user.id, **sample_post_data)
 
@@ -245,7 +262,9 @@ class TestPostModel:
         assert isinstance(reading_time, int)
         assert reading_time >= 1
 
-    def test_post_string_representations(self, session: Session, sample_user: User, sample_post_data: dict[str, str]):
+    def test_post_string_representations(
+        self, session: Session, sample_user: User, sample_post_data: dict[str, str]
+    ):
         """测试文章字符串表示"""
         post = Post(author_id=sample_user.id, **sample_post_data)
         session.add(post)
@@ -262,7 +281,9 @@ class TestPostModel:
         assert sample_post_data["title"][:30] in repr_str
         assert "draft" in repr_str.lower()
 
-    def test_post_cascade_delete(self, session: Session, sample_user: User, sample_post_data: dict[str, str]):
+    def test_post_cascade_delete(
+        self, session: Session, sample_user: User, sample_post_data: dict[str, str]
+    ):
         """测试级联删除"""
         post = Post(author_id=sample_user.id, **sample_post_data)
         session.add(post)
@@ -310,7 +331,10 @@ class TestPostModel:
         assert slug == "Hello-World-Test"
 
         # 8a. 超长标题（带连字符）- 应该在连字符处智能截断
-        long_title_with_dash = "这是第一部分-这是第二部分-这是第三部分-这是第四部分-这是第五部分-这是第六部分"
+        long_title_with_dash = (
+            "这是第一部分-这是第二部分-这是第三部分-"
+            "这是第四部分-这是第五部分-这是第六部分"
+        )
         slug = Post._generate_slug_from_title(long_title_with_dash)
         logger.debug(f"超长标题（带连字符）生成的 slug: {slug}")
         assert len(slug) <= 20
@@ -319,7 +343,9 @@ class TestPostModel:
         assert slug.endswith("部分")  # 应该在完整的词组处结束
 
         # 8b. 超长标题（无连字符）- 应该直接截断并加省略号
-        long_title_no_dash = "这是一个非常非常非常非常非常非常非常非常非常非常长的标题没有连字符"
+        long_title_no_dash = (
+            "这是一个非常非常非常非常非常非常非常非常非常非常长的标题没有连字符"
+        )
         slug = Post._generate_slug_from_title(long_title_no_dash)
         logger.debug(f"超长标题（无连字符）生成的 slug: {slug}")
         assert len(slug) <= 20
@@ -332,7 +358,12 @@ class TestPostModel:
     def test_summary_auto_generation(self, session: Session, sample_user: User):
         """测试摘要自动生成"""
         long_content = "这是一篇很长的文章内容。" * 50  # 创建长内容
-        post = Post(author_id=sample_user.id, title="测试文章", content=long_content, slug="test-summary")
+        post = Post(
+            author_id=sample_user.id,
+            title="测试文章",
+            content=long_content,
+            slug="test-summary",
+        )
 
         # 测试自动生成摘要
         post.set_summary_from_content(max_length=100)
@@ -360,7 +391,9 @@ class TestPostModel:
             session.add(post)
             session.commit()
 
-    def test_post_optional_fields(self, session: Session, sample_user: User, sample_post_data: dict[str, str]):
+    def test_post_optional_fields(
+        self, session: Session, sample_user: User, sample_post_data: dict[str, str]
+    ):
         """测试可选字段"""
         # 不提供可选字段
         post_data = sample_post_data.copy()
@@ -375,7 +408,9 @@ class TestPostModel:
         assert post.summary is None
         assert post.published_at is None
 
-    def test_foreign_key_constraint(self, session: Session, sample_post_data: dict[str, str]):
+    def test_foreign_key_constraint(
+        self, session: Session, sample_post_data: dict[str, str]
+    ):
         """测试外键约束"""
         # 使用不存在的 author_id
         logger.debug("测试外键约束：使用不存在的 author_id")

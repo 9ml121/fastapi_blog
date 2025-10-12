@@ -29,8 +29,14 @@ class PostBase(BaseModel):
 
     title: str = Field(min_length=1, max_length=200, description="文章标题")
     content: str = Field(min_length=1, description="文章正文内容，支持 Markdown")
-    summary: str | None = Field(default=None, max_length=500, description="文章摘要，用于列表页展示")
-    slug: str | None = Field(default=None, max_length=200, description="URL 友好标识，如果不提供则会根据标题自动生成")
+    summary: str | None = Field(
+        default=None, max_length=500, description="文章摘要，用于列表页展示"
+    )
+    slug: str | None = Field(
+        default=None,
+        max_length=200,
+        description="URL 友好标识，如果不提供则会根据标题自动生成",
+    )
 
 
 # ============ 创建模型 ============
@@ -52,7 +58,10 @@ class PostCreate(PostBase):
         json_schema_extra={
             "example": {
                 "title": "如何用 FastAPI 构建现代 API",
-                "content": "FastAPI 是一个基于 Starlette 和 Pydantic 的现代、高性能 Web 框架...",
+                "content": (
+                    "FastAPI 是一个基于 Starlette 和 Pydantic 的现代、"
+                    "高性能 Web 框架..."
+                ),
                 "summary": "本文将带你入门 FastAPI。",
                 "slug": "how-to-build-api-with-fastapi",
                 "tags": ["python", "fastapi", "webdev"],
@@ -77,7 +86,9 @@ class PostUpdate(BaseModel):
     content: str | None = Field(default=None, min_length=1)
     summary: str | None = Field(default=None, max_length=500)
     slug: str | None = Field(default=None, max_length=200)
-    tags: list[str] | None = Field(default=None, description="文章的全新标签列表，将覆盖旧的标签")
+    tags: list[str] | None = Field(
+        default=None, description="文章的全新标签列表，将覆盖旧的标签"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -109,7 +120,9 @@ class PostResponse(PostBase):
     tags: list[TagResponse] = Field(default=[], description="与文章关联的标签列表")
     created_at: datetime = Field(description="文章创建时间")
     updated_at: datetime = Field(description="文章最后更新时间")
-    published_at: datetime | None = Field(default=None, description="文章发布时间，如果未发布则为 null")
+    published_at: datetime | None = Field(
+        default=None, description="文章发布时间，如果未发布则为 null"
+    )
     view_count: int = Field(default=0, description="文章浏览次数")
     is_featured: bool = Field(default=False, description="是否为精选文章")
 

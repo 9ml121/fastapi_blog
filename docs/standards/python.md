@@ -258,8 +258,7 @@ for x, y in coordinates: ...
 ### 函数文档
 ```python
 def generate_slug(title: str, max_length: int = 50) -> str:
-    """
-    从标题生成 URL 友好的 slug
+    """从标题生成 URL 友好的 slug
 
     将标题转换为适合 URL 使用的格式，包括：
     - 移除特殊字符
@@ -286,8 +285,7 @@ def generate_slug(title: str, max_length: int = 50) -> str:
 ### 类文档
 ```python
 class Post(Base):
-    """
-    文章模型
+    """文章模型
 
     管理博客文章的数据模型，包含标题、内容、状态等信息。
 

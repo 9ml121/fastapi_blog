@@ -1,93 +1,130 @@
 # 项目开发进展
 
-## 📊 当前状态：Phase 4 - 文章管理 CRUD（进行中）
-
-**当前进度**：Phase 4.3 - 数据操作层（CRUD）✅ 已完成
-**完成度**：75%（Phase 4.3 完成，准备进入 4.4）
-
-## ✅ Phase 1, 2 & 3 完成概述
-
-### Phase 1 - 项目初始化 ✅
-- 项目架构搭建、开发环境配置、依赖管理设置
-
-### Phase 2 - 数据库设计 ✅
-- **核心模型**：User, Post, Comment, Tag, PostView
-- **数据库迁移**：通过 Alembic 创建所有表
-
-### Phase 3 - 管理员认证系统 ✅
-- **核心功能**：实现了完整的用户注册、登录、Token 认证、权限依赖注入
-- **测试覆盖**：为所有认证逻辑编写了单元测试和端到端测试，总测试数达到 163 个
-- **文档沉淀**：完成了 Pydantic, JWT, 依赖注入, 路由等核心知识点的文档
+> **文档用途**：AI 快速了解项目进度和当前任务
+> **更新频率**：Phase 开始、子任务完成、Phase 完成
 
 ---
 
-## 📅 Phase 4 - 文章管理 CRUD（进行中）
+## 🎯 当前任务
 
-**当前进度**：Phase 4.3 - 数据操作层（CRUD）
-**完成度**：66%（前两个子阶段已完成）
+**Phase 5.1 - 用户资料管理**（待开始）
 
-### 🎯 Phase 4.1 - 数据库模型回顾 ✅ **已完成**
-- [x] **讲解**: 回顾 Post, Tag, Comment 等模型关系与设计
-- [x] **编码**: 移除了 `Post` 模型中多余的 `generate_slug` 实例方法
-- [x] **测试**: 通过完整回归测试，确保移除代码无副作用
-- [x] **总结**: 明确了 `staticmethod` 的使用场景和必要性
+**下一步行动**：
+1. 阅读 Phase 5.1 任务清单（见下方 ⬇️）
+2. 开始 Step2 设计阶段：创建 `docs/design/Phase5-API完善概设.md`
 
-### 🎯 Phase 4.2 - Pydantic Schemas 设计与测试 ✅ **已完成**
-- [x] **讲解**: 探讨 Post, Comment, Tag 的输入/输出模型设计，以及递归模型等概念
-- [x] **编码**: 创建并优化了 `post.py`, `comment.py`, `tag.py` 三个 schemas 文件
-- [x] **测试**: 为所有新 schemas 编写了单元测试，并通过 `mypy` 和 `pytest --cov` 验证
-- [x] **总结**: 明确了输入/输出模型的差异，以及 `json_schema_extra` 的使用场景
+---
 
-### 🎯 Phase 4.3 - 数据操作层（CRUD）✅ **已完成**
+## ✅ 已完成功能清单（避免重复开发）
 
-**目标**：为文章、标签、评论创建健壮、可复用、经过充分测试的数据访问层。
+### Phase 1-2：基础设施 ✅
+- ✅ SQLAlchemy 模型：`User`, `Post`, `Comment`, `Tag`, `PostView`
+  - 代码位置：`app/models/*.py`
+- ✅ 数据库配置和迁移（Alembic）
+- ✅ 应用配置：`app/core/config.py`
 
-**成果总结**：
-- ✅ 完成了 `CRUDBase`, `CRUDTag`, `CRUDPost` 的完整实现
-- ✅ 实现了 PATCH 语义的部分更新（通过 `exclude_unset=True`）
-- ✅ 实现了智能标签同步（区分 None/[]/新列表 三种情况）
-- ✅ 补充了完整的 Google 风格文档注释
-- ✅ 测试覆盖率达到 98%，27 个测试全部通过
-- ✅ 代码通过 ruff + mypy 双重质量检查
+### Phase 3：认证系统 ✅
+- ✅ 用户注册/登录 API
+- ✅ JWT Token 认证：`app/core/security.py`
+- ✅ 权限依赖：`get_current_user`, `get_current_active_user`
+- ✅ User CRUD 完整实现
 
-#### 4.3.1 - 重构与优化 `CRUDBase` ✅ **已完成**
-- [x] **讲解**: 探讨 `CRUDBase` 的局限性与优化方案（如 `*` 用法, `**kwargs` 增强, 文档）
-- [x] **编码**: 增强 `create` 方法以支持 `**kwargs` 覆盖
-- [x] **编码**: 完善所有方法的文档字符串
-- [x] **编码**: 将 `remove` 方法的 `id` 参数类型从 `int` 修正为 `Any`
-- [x] **测试**: 运行 `mypy` 和 `ruff` 确保代码质量
-- [x] **总结**: 确认 `CRUDBase` 的最终设计
-
-#### 4.3.2 - 实现 `CRUDTag` ✅ **已完成**
-- [x] **讲解**: 设计 `get_or_create` 和 `create` 方法，明确各自职责
-- [x] **编码**: 创建 `app/crud/tag.py` 文件并实现 `CRUDTag` 类
-- [x] **测试**: 为 `CRUDTag` 编写单元测试，并检查覆盖率
-- [x] **总结**: 复盘 `CRUDTag` 的设计，为 `CRUDPost` 调用做好准备
-
-#### 4.3.3 - 实现 `CRUDPost` ✅ **已完成**
-- [x] **讲解**: 回顾 `create_with_author` 的实现要点（slug, tags）
-- [x] **编码**: 在 `crud.post.create_with_author` 中完成 `slug` 生成和 `tags` 处理逻辑
-- [x] **测试**: 修复并完善 `tests/test_crud/post.py` 的所有测试，确保全部通过
-- [x] **总结**: 确认 `CRUDPost` 创建功能完整且正确
-- [x] **讲解**: 探讨 `update` 方法处理多对多关系的逻辑（None vs [] 语义）
-- [x] **编码**: 实现 `update` 方法以正确同步标签，支持 PATCH 语义
-- [x] **文档**: 为所有 CRUD 模块补充完整的类级和方法级文档注释
-- [x] **测试**: `test_update_post_with_tags` 测试通过，覆盖率达到 98%
+### Phase 4：内容管理 ✅
+- ✅ **文章 CRUD**：`app/crud/post.py`, `app/api/v1/endpoints/posts.py`
+  - 支持标签关联（多对多）
+  - 权限控制（作者/管理员）
+- ✅ **标签 CRUD**：`app/crud/tag.py`, `app/api/v1/endpoints/tags.py`
+  - 去重逻辑、删除保护
+- ✅ **评论 CRUD**：`app/crud/comment.py`, `app/api/v1/endpoints/comments.py`
+  - 递归树形结构
+  - 嵌套路由：`/posts/{post_id}/comments`
+- ✅ **技术模式**：
+  - 泛型 CRUD 基类
+  - RESTful 最佳实践（PATCH 语义）
+  - selectinload 优化 N+1 查询
 
 
-#### 4.3.4 - 重构 `CRUDUser` (低优先级)
-- [ ] **编码**: 将 `app/crud/user.py` 重构为继承 `CRUDBase` 的类结构
-- [ ] **测试**: 更新 `tests/test_crud/test_user.py` 以适配重构，并确保测试通过
+---
 
-### 🎯 Phase 4.4 - API 端点实现
-- [ ] **设计**: 设计文章、标签、评论的 RESTful API 端点
-- [ ] **编码**: 创建 `posts.py`, `tags.py`, `comments.py` 路由文件并实现骨架
-- [ ] **编码**: 实现各端点的业务逻辑，并集成认证和权限依赖
-- [ ] **测试**: 编写完整的 API 集成测试
+## 📋 Phase 5 - API 完善与前端准备（当前阶段）
 
-### 🎯 Phase 4.5 - 总结与复盘
-- [ ] **文档**: 为 Phase 4 的核心知识点创建学习文档
-- [ ] **复盘**: 全面复盘 Phase 4 的产出与过程，提出优化建议
-- [ ] **提交**: 提醒用户将 Phase 4 的所有代码提交到代码仓库
+**整体目标**：完善后端 API 系统，使其达到生产就绪（Production-Ready）和前端友好（Frontend-Friendly）
+
+**预估工作量**：20-28 小时
+
+**验收标准**：
+- ✅ 用户资料管理（查看/更新/修改密码）
+- ✅ CORS 跨域 + 全局异常处理
+- ✅ 分页/过滤/排序功能
+- ✅ API 文档完善
+- ✅ 测试覆盖率 ≥ 85%
+
+---
+
+### 🎯 Phase 5.1 - 用户资料管理（大部分已完成）
+
+**目标**：实现用户个人资料的查看、更新和密码修改功能
+
+**核心交付**：
+- [x] Schemas: `UserProfileUpdate`, `PasswordChange`（`app/schemas/user.py`）
+- [x] CRUD: `update_profile()`, `update_password()`（`app/crud/user.py`）
+- [x] API: `GET/PATCH /users/me`, `PUT /users/me/password`（`app/api/v1/endpoints/users.py`）
+- [ ] 测试: 完整的单元测试和集成测试（**需要补充新功能的测试**）
+
+**详细设计**：见 `docs/design/Phase5-API完善概设.md`（子任务开始时创建）
+
+---
+
+### 🎯 Phase 5.2 - 基础设施（待开始）
+
+**目标**：建立前后端协作的基础设施（CORS、全局异常处理）
+
+**核心交付**：
+- [ ] CORS 中间件配置（`app/main.py`）
+- [ ] 全局异常处理器（`app/core/exceptions.py`）
+- [ ] 响应格式标准化（可选，与用户讨论）
+- [ ] 测试验证
+
+**详细设计**：见 `docs/design/Phase5-API完善概设.md`（子任务开始时增量补充）
+
+---
+
+### 🎯 Phase 5.3 - 分页与过滤（待开始）
+
+**目标**：为列表接口添加分页、排序、过滤功能
+
+**核心交付**：
+- [ ] 分页工具（`app/api/pagination.py`）
+- [ ] 文章列表分页/过滤/排序（更新 `app/crud/post.py` 和 `app/api/v1/endpoints/posts.py`）
+- [ ] 评论列表分页（更新 `app/api/v1/endpoints/comments.py`）
+- [ ] 完整的测试覆盖
+
+**详细设计**：见 `docs/design/Phase5-API完善概设.md`（子任务开始时增量补充）
+
+---
+
+### 🎯 Phase 5.4 - 文档与验收（可选）
+
+**目标**：完善 API 文档，进行全面验收测试
+
+**核心交付**：
+- [ ] OpenAPI 文档优化（`summary`, `description`, `example`）
+- [ ] 集成测试和覆盖率验证（≥ 85%）
+- [ ] 性能测试（可选）
+- [ ] Phase 5 复盘文档（`docs/learning/Phase5-代码review总结.md`）
+
+**详细设计**：见 `docs/design/Phase5-API完善概设.md`（子任务开始时增量补充）
+
+---
+
+## 📅 Phase 6 - 社交功能与内容增强（未来规划）
+
+**说明**：Phase 6 将实现以下功能（具体内容待 Phase 5 完成后规划）
+
+**候选功能模块**：
+- **社交互动**：点赞（Like）、收藏（Favorite）、关注（Follow）
+- **通知系统**：评论通知、点赞通知、关注通知
+- **内容增强**：草稿系统、文章分类、高级搜索、统计面板
+- **用户系统**：邮箱验证、角色权限管理、第三方登录
 
 ---

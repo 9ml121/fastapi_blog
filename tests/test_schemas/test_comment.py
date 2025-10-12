@@ -93,7 +93,8 @@ class TestCommentResponseSchema:
                 "replies": [],  # 没有回复
             },
         )()
-        # 2. 创建一个 mock 的 "父评论" 对象 (mock_parent_orm)，它的 `replies` 属性是一个包含 mock_reply_orm 的列表。
+        # 2. 创建一个 mock 的 "父评论" 对象 (mock_parent_orm)，
+        # 它的 `replies` 属性是一个包含 mock_reply_orm 的列表。
         mock_parent_orm = type(
             "MockComment",
             (),
@@ -106,7 +107,8 @@ class TestCommentResponseSchema:
             },
         )()
 
-        # 3. 使用 `CommentResponse.model_validate(mock_parent_orm)` 来创建 Pydantic 对象。
+        # 3. 使用 `CommentResponse.model_validate(mock_parent_orm)`
+        # 来创建 Pydantic 对象。
         parent_response = CommentResponse.model_validate(mock_parent_orm)
 
         # 4. 断言：

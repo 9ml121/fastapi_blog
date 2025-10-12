@@ -15,14 +15,13 @@
 #### ✅ 必须使用
 ```python
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from typing import Optional, List
 from uuid import UUID
 
 class User(Base):
     # 使用类型注解
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     username: Mapped[str] = mapped_column(String(50), unique=True)
-    avatar: Mapped[Optional[str]] = mapped_column(String(255), default=None)
+    avatar: Mapped[str | None] = mapped_column(String(255), default=None)
 ```
 
 #### ❌ 禁止使用
@@ -35,16 +34,16 @@ class User(Base):
     username = Column(String(50), unique=True)
 ```
 
-### 2. 必需导入模块
+### 2. 标准导入模块
 
 ```python
 """
-标准导入模板 - 所有模型文件必须包含
+标准导入模板
 """
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import String, Text, Boolean, DateTime, Integer, Enum as SQLEnum, ForeignKey
@@ -60,8 +59,7 @@ from app.db.database import Base
 
 ```python
 class ModelName(Base):
-    """
-    模型简述
+    """模型简述
     
     设计要点：
     1. 关键设计决策1
@@ -142,8 +140,8 @@ username: Mapped[str] = mapped_column(String(50))
 # 长文本：使用 Text
 content: Mapped[str] = mapped_column(Text)
 
-# 可空字符串：明确使用 Optional
-avatar: Mapped[Optional[str]] = mapped_column(String(255), default=None)
+# 可空字符串：使用联合类型
+avatar: Mapped[str | None] = mapped_column(String(255), default=None)
 ```
 
 ### 3. 枚举字段规范
@@ -265,10 +263,6 @@ def __init__(self, **kwargs):
     # 复杂逻辑：如果没有提供昵称，使用用户名作为昵称
     if 'nickname' not in kwargs and 'username' in kwargs:
         kwargs['nickname'] = kwargs['username']
-    
-    # 复杂逻辑：如果提供了标题但没有提供 slug，自动生成
-    if 'title' in kwargs and 'slug' not in kwargs:
-        kwargs['slug'] = self._generate_slug_static(kwargs['title'])
     
     super().__init__(**kwargs)
 ```
@@ -440,8 +434,7 @@ def archive(self) -> None:
 
 ```python
 class User(Base):
-    """
-    用户模型
+    """用户模型
     
     设计要点：
     1. 使用 UUID 作为主键，支持分布式系统
@@ -543,7 +536,7 @@ username: Mapped[str] = mapped_column(String(50))
 avatar: Mapped[str] = mapped_column(String(255), nullable=True)
 
 # ✅ 正确：类型层面明确可空性
-avatar: Mapped[Optional[str]] = mapped_column(String(255), default=None)
+avatar: Mapped[str | None] = mapped_column(String(255), default=None)
 ```
 
 ### 3. 关系定义陷阱

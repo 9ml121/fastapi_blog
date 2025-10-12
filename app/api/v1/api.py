@@ -6,7 +6,7 @@ API v1 路由聚合器
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth
+from app.api.v1.endpoints import auth, comments, posts, tags, users
 
 # 创建 API v1 的主路由器
 api_router = APIRouter()
@@ -18,10 +18,30 @@ api_router.include_router(
     tags=["认证"],  # Swagger 文档分组标签
 )
 
-# TODO(human): 未来添加其他业务模块路由
-# 例如:
-# api_router.include_router(
-#     posts.router,
-#     prefix="/posts",
-#     tags=["文章管理"],
-# )
+# 注册文章管理路由
+api_router.include_router(
+    posts.router,
+    prefix="/posts",
+    tags=["文章管理"],
+)
+
+# 注册标签管理路由
+api_router.include_router(
+    tags.router,
+    prefix="/tags",
+    tags=["标签管理"],
+)
+
+# 注册评论管理路由（嵌套在文章路由下）
+api_router.include_router(
+    comments.router,
+    prefix="/posts",  # 前缀：/posts，实际路由：/posts/{post_id}/comments
+    tags=["评论管理"],
+)
+
+# 注册用户资料管理路由
+api_router.include_router(
+    users.router,
+    prefix="/users",
+    tags=["用户管理"],
+)

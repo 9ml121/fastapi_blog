@@ -19,7 +19,16 @@ from enum import Enum
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
+)
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -141,25 +150,47 @@ class Post(Base):
             else:
                 cleaned = truncated + "..."
 
-        return cleaned if len(cleaned) >= 1 else f"文章-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        return (
+            cleaned
+            if len(cleaned) >= 1
+            else f"文章-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        )
 
     # 1. 主键
-    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid.uuid4, comment="文章唯一标识")
+    id: Mapped[UUID] = mapped_column(
+        primary_key=True, default=uuid.uuid4, comment="文章唯一标识"
+    )
 
     # 2. 核心业务字段 - 文章内容
-    title: Mapped[str] = mapped_column(String(200), nullable=False, index=True, comment="文章标题")
+    title: Mapped[str] = mapped_column(
+        String(200), nullable=False, index=True, comment="文章标题"
+    )
 
-    content: Mapped[str] = mapped_column(Text, nullable=False, comment="文章正文内容（Markdown 格式）")
+    content: Mapped[str] = mapped_column(
+        Text, nullable=False, comment="文章正文内容（Markdown 格式）"
+    )
 
-    slug: Mapped[str] = mapped_column(String(200), unique=True, index=True, nullable=False, comment="URL 友好标识（SEO 优化）")
+    slug: Mapped[str] = mapped_column(
+        String(200),
+        unique=True,
+        index=True,
+        nullable=False,
+        comment="URL 友好标识（SEO 优化）",
+    )
 
-    summary: Mapped[str | None] = mapped_column(String(500), default=None, comment="文章摘要（用于列表页展示）")
+    summary: Mapped[str | None] = mapped_column(
+        String(500), default=None, comment="文章摘要（用于列表页展示）"
+    )
 
     # 3. 状态和配置字段 - 状态
-    status: Mapped[PostStatus] = mapped_column(SQLEnum(PostStatus), default=PostStatus.DRAFT, index=True, comment="文章状态")
+    status: Mapped[PostStatus] = mapped_column(
+        SQLEnum(PostStatus), default=PostStatus.DRAFT, index=True, comment="文章状态"
+    )
 
     # 配置
-    is_featured: Mapped[bool] = mapped_column(Boolean, default=False, index=True, comment="是否置顶文章")
+    is_featured: Mapped[bool] = mapped_column(
+        Boolean, default=False, index=True, comment="是否置顶文章"
+    )
 
     # 状态
     view_count: Mapped[int] = mapped_column(Integer, default=0, comment="浏览次数统计")
@@ -174,15 +205,24 @@ class Post(Base):
 
     # 5. 时间戳字段
     published_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), default=None, index=True, comment="发布时间（仅发布后设置）"
+        DateTime(timezone=True),
+        default=None,
+        index=True,
+        comment="发布时间（仅发布后设置）",
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), index=True, comment="创建时间"
+        DateTime(timezone=True),
+        server_default=func.now(),
+        index=True,
+        comment="创建时间",
     )
 
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), comment="更新时间"
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        comment="更新时间",
     )
 
     # 6. 关系定义
@@ -206,7 +246,9 @@ class Post(Base):
     )
 
     # Post → Tag: 多对多
-    tags: Mapped[list["Tag"]] = relationship(secondary="post_tags", back_populates="posts")
+    tags: Mapped[list["Tag"]] = relationship(
+        secondary="post_tags", back_populates="posts"
+    )
 
     # Post → PostView: 一对多
     post_views: Mapped[list["PostView"]] = relationship(
@@ -217,7 +259,10 @@ class Post(Base):
 
     def __repr__(self) -> str:
         """开发调试用的字符串表示"""
-        return f"<Post(id={self.id}, title='{self.title[:30]}...', status='{self.status}')>"
+        return (
+            f"<Post(id={self.id}, title='{self.title[:30]}...', "
+            f"status='{self.status}')>"
+        )
 
     def __str__(self) -> str:
         """用户友好的字符串表示"""

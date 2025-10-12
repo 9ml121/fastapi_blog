@@ -143,7 +143,7 @@ PYTHONPATH=. uv run alembic current
 
 - [数据库设计参考](../reference/database-schema.md)
 - [数据模型开发规范](../standards/database-models.md)
-- [Alembic 迁移详解](../learning/phase2-database/02-Alembic数据库迁移详解.md)
+- [Alembic 迁移详解](02-Alembic数据库迁移详解.md)
 
 ---
 

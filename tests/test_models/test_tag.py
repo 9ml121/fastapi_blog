@@ -150,7 +150,9 @@ class TestTagModel:
         assert post1 in tag.posts
         assert post2 in tag.posts
 
-    def test_post_tags_relationship(self, session: Session, sample_user: User, sample_post: Post):
+    def test_post_tags_relationship(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试 Post -> Tag 多对多关系"""
         # 1. 创建 3 个标签（如 Python, FastAPI, Web）
         tag1 = Tag(name="Python", slug="Python")
@@ -169,7 +171,9 @@ class TestTagModel:
         assert tag2 in sample_post.tags
         assert tag3 in sample_post.tags
 
-    def test_remove_tag_from_post(self, session: Session, sample_user: User, sample_post: Post):
+    def test_remove_tag_from_post(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试从文章中移除标签"""
         # 1. 创建 2 个标签并添加到 sample_post
         tag1 = Tag(name="ToDelete", slug="to-delete")
@@ -194,7 +198,9 @@ class TestTagModel:
         assert tag1 in session.query(Tag).all()
         assert tag2 in session.query(Tag).all()
 
-    def test_delete_tag_removes_associations(self, session: Session, sample_user: User, sample_post: Post):
+    def test_delete_tag_removes_associations(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试删除标签时自动删除关联关系"""
         tag = Tag(name="ToDelete", slug="to-delete")
         session.add(tag)
@@ -214,7 +220,9 @@ class TestTagModel:
         assert len(sample_post.tags) == 0
         assert session.query(Post).filter_by(id=sample_post.id).first() is not None
 
-    def test_delete_post_removes_associations(self, session: Session, sample_post: Post):
+    def test_delete_post_removes_associations(
+        self, session: Session, sample_post: Post
+    ):
         """测试删除文章时自动删除关联关系"""
         # 1. 创建一个标签和一篇文章
         tag = Tag(name="ToDelete", slug="to-delete")

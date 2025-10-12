@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import hash_password, verify_password
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import UserCreate, UserProfileUpdate, UserUpdate
 
 
 def get_user_by_id(db: Session, *, user_id: UUID) -> User | None:
@@ -127,8 +127,7 @@ def create_user(db: Session, *, user_in: UserCreate) -> User:
 
 
 def update_user(db: Session, *, user_id: UUID, user_in: UserUpdate) -> User | None:
-    """
-    更新用户信息（部分更新）
+    """更新用户信息（部分更新,不包含密码）
 
     设计要点：
     1. 使用 model_dump(exclude_unset=True) 只更新提供的字段
@@ -152,6 +151,7 @@ def update_user(db: Session, *, user_id: UUID, user_in: UserUpdate) -> User | No
     # 2. 只提取实际提供的字段（exclude_unset=True）
     update_data = user_in.model_dump(exclude_unset=True)
 
+    # TODO:  1.处理密码,待删除； 2.待增加邮箱验证； 3.处理跟 update_profile 的重复代码；
     # 3. 处理密码更新（如果提供了密码）
     if "password" in update_data:
         hashed_password = hash_password(update_data.pop("password"))
@@ -202,8 +202,7 @@ def delete_user(db: Session, *, user_id: UUID) -> User | None:
 
 
 def authenticate_user(db: Session, *, identifier: str, password: str) -> User | None:
-    """
-    用户登录验证（支持邮箱或用户名 + 密码）
+    """用户登录验证（支持邮箱或用户名 + 密码）
 
     设计要点 - 安全考量：
     1. 支持邮箱或用户名登录：
@@ -250,4 +249,84 @@ def authenticate_user(db: Session, *, identifier: str, password: str) -> User | 
     #     return None
 
     # 5. 验证成功，返回用户对象
+    return user
+
+
+def update_profile(
+    db: Session, *, user: User, profile_update: UserProfileUpdate
+) -> User:
+    """更新用户个人资料（用户自主更新）
+
+    设计要点：
+    1. 只更新用户自己的资料，不允许修改他人资料
+    2. 邮箱去重检查（排除用户自己的邮箱）
+    3. 只更新实际提供的字段（exclude_unset=True）
+    4. 不包含权限相关字段（is_active 等）
+
+    Args:
+        db: 数据库会话对象
+        user: 当前用户对象（已通过认证）
+        profile_update: 用户资料更新数据
+
+    Returns:
+        更新后的用户对象
+
+    Raises:
+        ValueError: 当邮箱已被其他用户使用时
+    """
+    # 1. 如果更新邮箱，检查新邮箱是否已被占用（排除自己）
+    if profile_update.email and profile_update.email != user.email:
+        existing_user = get_user_by_email(db, email=profile_update.email)
+        if existing_user and existing_user.id != user.id:
+            raise ValueError("Email already registered")
+
+    # 2. 只提取实际提供的字段（exclude_unset=True 实现 PATCH 语义）
+    update_data = profile_update.model_dump(exclude_unset=True)
+
+    # 3. 逐个更新字段
+    for field, value in update_data.items():
+        setattr(user, field, value)
+
+    # 4. 提交更新（updated_at 由数据库自动更新）
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return user
+
+
+def update_password(
+    db: Session, *, user: User, old_password: str, new_password: str
+) -> User:
+    """更新用户密码
+
+    安全要点：
+    1. 必须验证旧密码正确性（防止会话劫持）
+    2. 使用 bcrypt 哈希存储新密码
+    3. 不返回任何敏感信息
+
+    Args:
+        db: 数据库会话对象
+        user: 当前用户对象（已通过认证）
+        old_password: 当前密码（明文，用于验证）
+        new_password: 新密码（明文，将被哈希）
+
+    Returns:
+        更新后的用户对象
+
+    Raises:
+        ValueError: 旧密码错误
+    """
+    # 1. 验证旧密码是否正确
+    if not verify_password(old_password, user.password_hash):
+        raise ValueError("旧密码错误")
+
+    # 2. 哈希新密码
+    user.password_hash = hash_password(new_password)
+
+    # 3. 提交更新（updated_at 由数据库自动更新）
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
     return user

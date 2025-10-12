@@ -59,9 +59,13 @@ class Comment(Base):
     )
 
     # ============ 状态管理字段 ============
-    is_approved: Mapped[bool] = mapped_column(Boolean, default=False, comment="是否审核通过")
+    is_approved: Mapped[bool] = mapped_column(
+        Boolean, default=False, comment="是否审核通过"
+    )
 
-    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, comment="软删除标记")
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean, default=False, comment="软删除标记"
+    )
 
     # ============ 时间戳 ============
     created_at: Mapped[datetime] = mapped_column(
@@ -87,7 +91,8 @@ class Comment(Base):
     )
 
     # Comment → replies Comment: 一对多
-    # ⚠️ lazy="select" 是默认值，可以先不指定，以后按需查询replies列表在指定（一对多用 selectin）
+    # ⚠️ lazy="select" 是默认值，可以先不指定，
+    # 以后按需查询replies列表在指定（一对多用 selectin）
     replies: Mapped[list["Comment"]] = relationship(
         "Comment",
         back_populates="parent",

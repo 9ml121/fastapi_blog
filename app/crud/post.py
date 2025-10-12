@@ -35,7 +35,9 @@ class CRUDPost(CRUDBase[Post, PostCreate, PostUpdate]):
         """
         return db.query(Post).filter(Post.slug == slug).first()
 
-    def create_with_author(self, db: Session, *, obj_in: PostCreate, author_id: UUID) -> Post:
+    def create_with_author(
+        self, db: Session, *, obj_in: PostCreate, author_id: UUID
+    ) -> Post:
         """创建新文章，并自动关联作者和标签。
 
         此方法会：
@@ -54,8 +56,12 @@ class CRUDPost(CRUDBase[Post, PostCreate, PostUpdate]):
             新创建的文章对象，包含完整的关联数据。
 
         Example:
-            >>> post_in = PostCreate(title="测试文章", content="内容", tags=["Python", "FastAPI"])
-            >>> new_post = post_crud.create_with_author(db, obj_in=post_in, author_id=user.id)
+            >>> post_in = PostCreate(
+            ...     title="测试文章", content="内容", tags=["Python", "FastAPI"]
+            ... )
+            >>> new_post = post_crud.create_with_author(
+            ...     db, obj_in=post_in, author_id=user.id
+            ... )
         """
 
         # 1. 从输入 schema 中提取数据
@@ -71,11 +77,12 @@ class CRUDPost(CRUDBase[Post, PostCreate, PostUpdate]):
         db.add(db_obj)
 
         # 4. 处理并关联标签
+        # ⚠️ tag_crud.get_or_create 是没有事务提交的
         for tag_name in tag_names:
             tag_obj = tag_crud.get_or_create(db, name=tag_name)
             db_obj.tags.append(tag_obj)
 
-        # 5. 提交事务，一次性保存所有内容
+        # 5. 一次性提交事务，保证事务完整性。
         db.commit()
         db.refresh(db_obj)
         return db_obj
@@ -84,11 +91,12 @@ class CRUDPost(CRUDBase[Post, PostCreate, PostUpdate]):
         """更新文章，同时智能处理标签同步。
 
         此方法会：
-        1. 将普通字段（title, content 等）委托给父类的 update 方法处理
+        1. 将普通字段（title, content 等）直接更新到对象
         2. 单独处理 tags 字段：
            - 如果 tags 未在输入中提供（None），则保持原有标签不变
            - 如果 tags 为空列表（[]），则清空所有标签
            - 如果 tags 为新列表，则完全替换为新标签
+        3. 在一个事务中统一提交所有修改，确保原子性
 
         Args:
             db: 数据库会话。
@@ -99,6 +107,9 @@ class CRUDPost(CRUDBase[Post, PostCreate, PostUpdate]):
             更新后的文章对象，包含最新的关联数据。
 
         Note:
+            ⚠️ 重要：整个更新过程在一个事务中完成，确保原子性。
+            如果标签处理失败，所有修改（包括普通字段）都会回滚。
+
             使用 `exclude_unset=True` 确保只更新实际提供的字段，
             这样可以实现部分更新（PATCH 语义）而非完全替换（PUT 语义）。
 
@@ -107,33 +118,45 @@ class CRUDPost(CRUDBase[Post, PostCreate, PostUpdate]):
             >>> post_crud.update(db, db_obj=post, obj_in=PostUpdate(title="新标题"))
             >>>
             >>> # 更新标题并替换标签
-            >>> post_crud.update(db, db_obj=post, obj_in=PostUpdate(title="新标题", tags=["新标签"]))
+            >>> post_crud.update(
+            ...     db, db_obj=post, obj_in=PostUpdate(title="新标题", tags=["新标签"])
+            ... )
             >>>
             >>> # 清空所有标签
             >>> post_crud.update(db, db_obj=post, obj_in=PostUpdate(tags=[]))
         """
 
         # 1. 如果输入是 Pydantic 模型，先转换为字典
-        # ⚠️ exclude_unset=True 实现了 patch 语义
-        update_data = obj_in if isinstance(obj_in, dict) else obj_in.model_dump(exclude_unset=True)
+        # ⚠️ exclude_unset=True 实现了 PATCH 语义
+        update_data = (
+            obj_in
+            if isinstance(obj_in, dict)
+            else obj_in.model_dump(exclude_unset=True)
+        )
 
         # 2. 分离 `tags` 字段，因为它需要特殊处理
         tag_names = update_data.pop("tags", None)
 
-        # 3. 调用父类的 `update` 方法，更新文章模型自身的字段
-        #    此时 `update_data` 中已不包含 `tags`
-        updated_post = super().update(db, db_obj=db_obj, obj_in=update_data)
+        # 3. 更新普通字段（不调用父类 update，避免提前 commit）
+        #    这里直接使用 setattr 更新字段，复制自父类逻辑
+        for field, value in update_data.items():
+            setattr(db_obj, field, value)
 
-        # 4. 如果 `tags` 在输入中被提供了（即使是空列表），则处理标签更新
+        # 4. 处理标签同步
         if tag_names is not None:
             # 将标签名列表转换为 Tag 对象列表
             tags = [tag_crud.get_or_create(db, name=name) for name in tag_names]
             # 直接赋值给 relationship 属性，SQLAlchemy 会自动处理差异
-            updated_post.tags = tags
-            db.commit()
-            db.refresh(updated_post)
+            db_obj.tags = tags
 
-        return updated_post
+        # 5. 统一提交（一次性提交所有修改，确保事务原子性）
+        #    ✅ 要么全部成功，要么全部失败（回滚）
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+
+        return db_obj
 
 
+# Singleton实例模式：为每个CRUD类创建一个全局实例
 post = CRUDPost(Post)

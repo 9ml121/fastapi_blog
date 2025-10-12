@@ -60,12 +60,18 @@ class UserTraditional(Base):
         super().__init__(**kwargs)
 
     # 主键：使用 UUID 保证全局唯一性
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, comment="用户唯一标识")
+    id = Column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, comment="用户唯一标识"
+    )
 
     # 登录凭证
-    username = Column(String(50), unique=True, nullable=False, index=True, comment="用户名（唯一）")
+    username = Column(
+        String(50), unique=True, nullable=False, index=True, comment="用户名（唯一）"
+    )
 
-    email = Column(String(100), unique=True, nullable=False, index=True, comment="邮箱地址（唯一）")
+    email = Column(
+        String(100), unique=True, nullable=False, index=True, comment="邮箱地址（唯一）"
+    )
 
     password_hash = Column(String(255), nullable=False, comment="密码哈希值")
 
@@ -75,24 +81,42 @@ class UserTraditional(Base):
     avatar = Column(String(255), nullable=True, comment="头像文件路径")
 
     # 权限和状态
-    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.USER, comment="用户角色")  # type: ignore
+    role = Column(
+        SQLEnum(UserRole), nullable=False, default=UserRole.USER, comment="用户角色"
+    )  # type: ignore
 
-    is_active = Column(Boolean, nullable=False, default=True, comment="账户是否激活（软删除标记）")
+    is_active = Column(
+        Boolean, nullable=False, default=True, comment="账户是否激活（软删除标记）"
+    )
 
-    is_verified = Column(Boolean, nullable=False, default=False, comment="邮箱是否已验证")
+    is_verified = Column(
+        Boolean, nullable=False, default=False, comment="邮箱是否已验证"
+    )
 
     # 时间戳
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), comment="创建时间")
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="创建时间",
+    )
 
     updated_at = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now(), comment="更新时间"
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+        comment="更新时间",
     )
 
     last_login = Column(DateTime(timezone=True), nullable=True, comment="最后登录时间")
 
     def __repr__(self) -> str:
         """字符串表示，用于调试"""
-        return f"<UserTraditional(id={self.id}, username='{self.username}', role='{self.role}')>"
+        return (
+            f"<UserTraditional(id={self.id}, username='{self.username}', "
+            f"role='{self.role}')>"
+        )
 
     def __str__(self) -> str:
         """用户友好的字符串表示"""

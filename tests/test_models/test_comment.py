@@ -27,7 +27,9 @@ class TestCommentModel:
 
     # ============ 基础 CRUD 操作测试 ============
 
-    def test_create_comment(self, session: Session, sample_user: User, sample_post: Post):
+    def test_create_comment(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试创建评论"""
         comment = Comment(
             content="This is a test comment.",
@@ -64,7 +66,9 @@ class TestCommentModel:
         assert retrieved_comment.content == "Test comment for reading."
         assert retrieved_comment.user_id == sample_user.id
 
-    def test_update_comment(self, session: Session, sample_user: User, sample_post: Post):
+    def test_update_comment(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试更新评论"""
         comment = Comment(
             content="Original content.",
@@ -81,7 +85,9 @@ class TestCommentModel:
 
         assert comment.content == "Updated content."
 
-    def test_delete_comment(self, session: Session, sample_user: User, sample_post: Post):
+    def test_delete_comment(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试删除评论（硬删除）"""
         comment = Comment(
             content="Comment to be deleted.",
@@ -102,7 +108,9 @@ class TestCommentModel:
 
     # ============ 数据库约束测试 ============
 
-    def test_comment_content_not_null(self, session: Session, sample_user: User, sample_post: Post):
+    def test_comment_content_not_null(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试评论内容不能为空"""
         with pytest.raises(IntegrityError):
             comment = Comment(
@@ -159,7 +167,9 @@ class TestCommentModel:
 
     # ============ 模型关系测试 ============
 
-    def test_comment_author_relationship(self, session: Session, sample_user: User, sample_post: Post):
+    def test_comment_author_relationship(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试 Comment -> User 关系"""
         comment = Comment(
             content="Test comment.",
@@ -175,7 +185,9 @@ class TestCommentModel:
         assert comment.author.id == sample_user.id
         assert comment.author.username == sample_user.username
 
-    def test_user_comments_relationship(self, session: Session, sample_user: User, sample_post: Post):
+    def test_user_comments_relationship(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试 User -> Comment 关系（一对多）"""
         # 创建多条评论
         comment1 = Comment(
@@ -197,7 +209,9 @@ class TestCommentModel:
         assert comment1 in sample_user.comments
         assert comment2 in sample_user.comments
 
-    def test_comment_post_relationship(self, session: Session, sample_user: User, sample_post: Post):
+    def test_comment_post_relationship(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试 Comment -> Post 关系"""
         comment = Comment(
             content="Test comment.",
@@ -213,7 +227,9 @@ class TestCommentModel:
         assert comment.post.id == sample_post.id
         assert comment.post.title == sample_post.title
 
-    def test_post_comments_relationship(self, session: Session, sample_user: User, sample_post: Post):
+    def test_post_comments_relationship(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试 Post -> Comment 关系（一对多）"""
         # 1. 创建 3 条评论关联到 sample_post
         comment1 = Comment(
@@ -247,7 +263,9 @@ class TestCommentModel:
 
     # ============ 自引用关系测试（评论回复评论）============
 
-    def test_create_reply_comment(self, session: Session, sample_user: User, sample_post: Post):
+    def test_create_reply_comment(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试创建回复评论（父子关系）"""
         # 1. 创建顶级评论（parent_id=None）
         top_comment = Comment(
@@ -274,7 +292,9 @@ class TestCommentModel:
         # 4. 验证回复评论的 parent 关系指向顶级评论
         assert reply_comment.parent == top_comment
 
-    def test_comment_replies_relationship(self, session: Session, sample_user: User, sample_post: Post):
+    def test_comment_replies_relationship(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试评论的 replies 关系（一对多）"""
         # 1. 创建 1 条顶级评论
         top_comment = Comment(
@@ -317,7 +337,9 @@ class TestCommentModel:
         assert reply_comment2.parent_id == top_comment.id
         assert reply_comment3.parent_id == top_comment.id
 
-    def test_nested_comment_structure(self, session: Session, sample_user: User, sample_post: Post):
+    def test_nested_comment_structure(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试多层嵌套评论结构"""
         # 创建评论层级：评论1 -> 评论2 -> 评论3
         comment1 = Comment(
@@ -361,7 +383,9 @@ class TestCommentModel:
         assert comment2.parent is not None
         assert comment2.parent.id == comment1.id
 
-    def test_delete_parent_cascades_to_replies(self, session: Session, sample_user: User, sample_post: Post):
+    def test_delete_parent_cascades_to_replies(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试删除父评论时级联删除子评论"""
         # 1. 创建 1 条顶级评论
         comment1 = Comment(
@@ -409,7 +433,9 @@ class TestCommentModel:
 
     # ============ 业务方法测试 ============
 
-    def test_approve_comment(self, session: Session, sample_user: User, sample_post: Post):
+    def test_approve_comment(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试审核通过评论"""
         comment = Comment(
             content="Comment to be approved.",
@@ -429,7 +455,9 @@ class TestCommentModel:
 
         assert comment.is_approved is True
 
-    def test_soft_delete_comment(self, session: Session, sample_user: User, sample_post: Post):
+    def test_soft_delete_comment(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试软删除评论"""
         # 1. 创建评论
         comment = Comment(
@@ -453,7 +481,9 @@ class TestCommentModel:
         soft_deleted_comment = session.query(Comment).filter_by(id=comment.id).first()
         assert soft_deleted_comment is not None
 
-    def test_restore_comment(self, session: Session, sample_user: User, sample_post: Post):
+    def test_restore_comment(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试恢复已删除的评论"""
         comment = Comment(
             content="Comment to be restored.",
@@ -477,7 +507,9 @@ class TestCommentModel:
 
     # ============ 属性方法测试 ============
 
-    def test_is_top_level_property(self, session: Session, sample_user: User, sample_post: Post):
+    def test_is_top_level_property(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试 is_top_level 属性"""
         # 1. 创建顶级评论（parent_id=None）
         comment = Comment(
@@ -490,13 +522,20 @@ class TestCommentModel:
         # 2. 验证 is_top_level 返回 True
         assert comment.is_top_level is True
         # 3. 创建回复评论（parent_id=顶级评论.id）
-        reply_comment = Comment(content="Reply comment.", user_id=sample_user.id, post_id=sample_post.id, parent_id=comment.id)
+        reply_comment = Comment(
+            content="Reply comment.",
+            user_id=sample_user.id,
+            post_id=sample_post.id,
+            parent_id=comment.id,
+        )
         session.add(reply_comment)
         session.commit()
         # 4. 验证回复评论的 is_top_level 返回 False
         assert reply_comment.is_top_level is False
 
-    def test_reply_count_property(self, session: Session, sample_user: User, sample_post: Post):
+    def test_reply_count_property(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试 reply_count 属性"""
         # 1. 创建顶级评论
         comment = Comment(
@@ -509,9 +548,24 @@ class TestCommentModel:
         # 2. 初始 reply_count 应该是 0
         assert comment.reply_count == 0
         # 3. 创建 3 条回复评论
-        comment1 = Comment(content="Reply comment 1.", user_id=sample_user.id, post_id=sample_post.id, parent_id=comment.id)
-        comment2 = Comment(content="Reply comment 2.", user_id=sample_user.id, post_id=sample_post.id, parent_id=comment.id)
-        comment3 = Comment(content="Reply comment 3.", user_id=sample_user.id, post_id=sample_post.id, parent_id=comment.id)
+        comment1 = Comment(
+            content="Reply comment 1.",
+            user_id=sample_user.id,
+            post_id=sample_post.id,
+            parent_id=comment.id,
+        )
+        comment2 = Comment(
+            content="Reply comment 2.",
+            user_id=sample_user.id,
+            post_id=sample_post.id,
+            parent_id=comment.id,
+        )
+        comment3 = Comment(
+            content="Reply comment 3.",
+            user_id=sample_user.id,
+            post_id=sample_post.id,
+            parent_id=comment.id,
+        )
         session.add_all([comment1, comment2, comment3])
         session.commit()
         # 4. session.refresh(顶级评论)
@@ -541,7 +595,9 @@ class TestCommentModel:
 
     # ============ 边界情况测试 ============
 
-    def test_empty_content(self, session: Session, sample_user: User, sample_post: Post):
+    def test_empty_content(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试空字符串内容（不应该失败）"""
         # 注意：Comment 模型的 content 字段是 nullable=False
         # 但并没有限制最小长度，所以空字符串是合法的
@@ -555,7 +611,9 @@ class TestCommentModel:
 
         assert comment.content == ""
 
-    def test_very_long_content(self, session: Session, sample_user: User, sample_post: Post):
+    def test_very_long_content(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试超长评论内容"""
         long_content = "A" * 10000  # 10000 字符
         comment = Comment(

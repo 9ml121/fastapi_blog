@@ -54,7 +54,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """
         return db.get(self.model, id)
 
-    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> list[ModelType]:
+    def get_multi(
+        self, db: Session, *, skip: int = 0, limit: int = 100
+    ) -> list[ModelType]:
         """获取记录列表（支持分页）。
 
         Args:
@@ -67,7 +69,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """
         return db.query(self.model).offset(skip).limit(limit).all()
 
-    def create(self, db: Session, *, obj_in: CreateSchemaType, **kwargs: Any) -> ModelType:
+    def create(
+        self, db: Session, *, obj_in: CreateSchemaType, **kwargs: Any
+    ) -> ModelType:
         """创建新记录。
 
         Args:
@@ -88,7 +92,13 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db.refresh(db_obj)
         return db_obj
 
-    def update(self, db: Session, *, db_obj: ModelType, obj_in: UpdateSchemaType | dict[str, Any]) -> ModelType:
+    def update(
+        self,
+        db: Session,
+        *,
+        db_obj: ModelType,
+        obj_in: UpdateSchemaType | dict[str, Any],
+    ) -> ModelType:
         """更新现有记录。
 
         Args:
@@ -100,7 +110,11 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             更新后的数据库对象。
         """
         # 使用 Pydantic v2 的推荐方法
-        update_data = obj_in if isinstance(obj_in, dict) else obj_in.model_dump(exclude_unset=True)
+        update_data = (
+            obj_in
+            if isinstance(obj_in, dict)
+            else obj_in.model_dump(exclude_unset=True)
+        )
         for field, value in update_data.items():
             setattr(db_obj, field, value)
         db.add(db_obj)

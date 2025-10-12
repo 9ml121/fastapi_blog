@@ -18,7 +18,7 @@
 - ✅ **边界情况**：异常处理、极值测试
 - ✅ **字符串表示**：`__str__`、`__repr__` 方法
 
-#### API 测试（待 API 开发后补充）
+#### API 测试
 - ✅ **端点功能**：正常请求和响应
 - ✅ **认证授权**：权限控制测试
 - ✅ **参数验证**：输入验证和错误处理
@@ -72,42 +72,6 @@ def test_process_boundary_values():
     assert process(10) == "low"    # 边界：刚好不进入分支 B
 ```
 
-### 方法测试粒度
-
-**静态方法 vs 实例方法**分离测试：
-
-```python
-class Post:
-    @staticmethod
-    def _generate_slug_from_title(title: str) -> str:
-        """核心逻辑：纯函数"""
-        # ... 复杂的 slug 生成逻辑 ...
-
-    def generate_slug(self, title: str | None = None) -> str:
-        """实例方法：包装器"""
-        source_title = title or self.title
-        return self._generate_slug_from_title(source_title)
-
-# ✅ 测试 1：测试静态方法（核心逻辑）
-def test_slug_static_method():
-    """测试纯函数的所有边界情况"""
-    # 10+ 个测试场景，覆盖各种输入
-    assert Post._generate_slug_from_title("Hello") == "Hello"
-    assert Post._generate_slug_from_title("") == "文章-20251001-143022"
-    # ... 更多边界测试
-
-# ✅ 测试 2：测试实例方法（状态交互）
-def test_slug_instance_method(sample_post):
-    """测试与对象状态的交互"""
-    assert sample_post.generate_slug() == "预期的slug"  # 使用 self.title
-    assert sample_post.generate_slug("新标题") == "新标题"  # 使用参数
-    assert sample_post.generate_slug(None) == "预期的slug"  # None 用 self.title
-    assert sample_post.generate_slug("") == "预期的slug"  # 空字符串 fallback
-```
-
-**为什么要分离？**
-- 静态方法测试：专注测试**算法逻辑**的正确性（所有分支、边界）
-- 实例方法测试：专注测试**状态管理**和参数处理
 
 ### 边界情况识别清单
 

@@ -14,6 +14,7 @@ from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import ConnectionPoolEntry
 
+from app.core.security import create_access_token
 from app.db.database import Base
 
 # 导入所有模型，确保它们注册到 Base.metadata
@@ -49,7 +50,9 @@ def engine() -> Generator[Engine, None, None]:
 
     # 启用 SQLite 外键约束（必须在 create_all() 之前）
     @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_conn: sqlite3.Connection, _connection_record: ConnectionPoolEntry) -> None:
+    def set_sqlite_pragma(
+        dbapi_conn: sqlite3.Connection, _connection_record: ConnectionPoolEntry
+    ) -> None:
         """每次建立连接时自动启用外键约束"""
         cursor = dbapi_conn.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
@@ -119,6 +122,41 @@ def sample_user(session: Session) -> User:
     session.commit()
     session.refresh(user)  # 刷新以获取数据库生成的字段
     return user
+
+
+@pytest.fixture
+def sample_user_with_password(session: Session) -> tuple[User, str]:
+    """创建带有已知明文密码的测试用户（用于密码修改测试）
+
+    配置：
+    - 使用真实的密码哈希（bcrypt）
+    - 返回用户对象和明文密码的元组
+    - 已提交到数据库
+
+    Args:
+        session: 数据库会话 fixture
+
+    Returns:
+        tuple[User, str]: (用户对象, 明文密码)
+
+    Example:
+        >>> def test_password(sample_user_with_password):
+        ...     user, plain_password = sample_user_with_password
+        ...     # plain_password 是 "TestPassword123!"
+    """
+    from app.core.security import hash_password
+
+    plain_password = "TestPassword123!"
+    user = User(
+        username=f"testuser_{uuid.uuid4().hex[:8]}",
+        email=f"test_{uuid.uuid4().hex[:8]}@example.com",
+        password_hash=hash_password(plain_password),  # 使用真实的 bcrypt 哈希
+        nickname="Test User",
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user, plain_password
 
 
 @pytest.fixture
@@ -242,3 +280,10 @@ def client(session) -> Generator[TestClient, None, None]:
 
     # 清理覆盖
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def auth_headers(sample_user: User) -> dict:
+    """生成认证 headers（直接生成 token，不调用登录接口）"""
+    token = create_access_token(data={"sub": str(sample_user.id)})
+    return {"Authorization": f"Bearer {token}"}

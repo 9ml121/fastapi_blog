@@ -1,14 +1,17 @@
 """
 认证相关的 API 端点
 
-提供用户注册、登录、获取当前用户信息等功能
+提供用户注册、登录等功能
 
 知识点：
-1. Swagger UI 是 FastAPI 的杀手级功能：自动生成交互式 API 文档，点击"Try it out"就能测试API，
-   比看代码快10倍！访问 http://localhost:8000/docs 即可。
-2. Pydantic Schema 是 API 契约：Schema 定义了前后端的数据格式约定，是API文档的单一数据源（Single Source of Truth）。
-3. Depends() 表示"自动注入"：凡是看到 = Depends()，说明这个参数不需要客户端传递，FastAPI 会自动处理（数据库会话、当前用户等）。
-4. OAuth2PasswordRequestForm 的特殊性：它要求 Form Data（application/x-www-form-urlencoded），不是JSON！这是OAuth2标准规定的。
+1. Swagger UI 是 FastAPI 的杀手级功能：自动生成交互式 API 文档，
+   点击"Try it out"就能测试API，比看代码快10倍！访问 http://localhost:8000/docs 即可。
+2. Pydantic Schema 是 API 契约：Schema 定义了前后端的数据格式约定，
+   是API文档的单一数据源（Single Source of Truth）。
+3. Depends() 表示"自动注入"：凡是看到 = Depends()，说明这个参数不需要客户端传递，
+   FastAPI 会自动处理（数据库会话、当前用户等）。
+4. OAuth2PasswordRequestForm 的特殊性：它要求 Form Data
+   （application/x-www-form-urlencoded），不是JSON！这是OAuth2标准规定的。
 """
 
 from typing import Any
@@ -17,7 +20,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_active_user, get_db
+from app.api.deps import get_db
 from app.core.security import create_access_token
 from app.crud import user as crud_user
 from app.models.user import User
@@ -27,7 +30,9 @@ from app.schemas.user import UserCreate, UserResponse
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 async def register(
     user_data: UserCreate,  # ← Pydantic 自动验证
     db: Session = Depends(get_db),  # ← 依赖注入数据库会话
@@ -49,7 +54,9 @@ async def register(
         )
 
     # 检查用户名是否已存在
-    existing_username: User | None = crud_user.get_user_by_username(db, username=user_data.username)
+    existing_username: User | None = crud_user.get_user_by_username(
+        db, username=user_data.username
+    )
     if existing_username:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -62,7 +69,8 @@ async def register(
     return new_user
 
 
-# OAuth2PasswordRequestForm 的特殊性：它要求 Form Data（application/x-www-form-urlencoded），不是JSON！
+# OAuth2PasswordRequestForm 的特殊性：它要求 Form Data
+# （application/x-www-form-urlencoded），不是JSON！
 @router.post("/login")
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -75,9 +83,17 @@ async def login(
     1. 验证用户名和密码(支持邮箱或用户名登录), 注意：⚠️ 是 Form Data 不是 JSON！
     2. 生成 JWT access token
     3. 返回 token(用于后续请求认证)
+
+    python 请求示例：
+    >>> response = client.post(
+    >>>    "/api/v1/auth/login",
+    >>>    data={"username": "testuser", "password": "SecurePass123!"},
+    >>> )
     """
     # 认证用户(CRUD 层会防止时序攻击)
-    user = crud_user.authenticate_user(db, identifier=form_data.username, password=form_data.password)
+    user = crud_user.authenticate_user(
+        db, identifier=form_data.username, password=form_data.password
+    )
 
     if not user:
         raise HTTPException(
@@ -93,16 +109,3 @@ async def login(
         "access_token": access_token,
         "token_type": "bearer",
     }
-
-
-@router.get("/me", response_model=UserResponse)
-async def get_current_user_info(
-    current_user: User = Depends(get_current_active_user),
-) -> Any:
-    """
-    获取当前用户信息
-
-    需要在 Header 中提供有效的 JWT token:
-    Authorization: Bearer <access_token>
-    """
-    return current_user

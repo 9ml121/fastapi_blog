@@ -28,7 +28,9 @@ class TestPostViewModel:
 
     # ============ 基础 CRUD 操作测试 ============
 
-    def test_create_post_view(self, session: Session, sample_user: User, sample_post: Post):
+    def test_create_post_view(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试创建浏览记录"""
         view = PostView(
             user_id=sample_user.id,
@@ -61,7 +63,9 @@ class TestPostViewModel:
         assert view.user_id is None
         assert view.post_id == sample_post.id
 
-    def test_read_post_view(self, session: Session, sample_user: User, sample_post: Post):
+    def test_read_post_view(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试查询浏览记录"""
         view = PostView(user_id=sample_user.id, post_id=sample_post.id)
         session.add(view)
@@ -72,7 +76,9 @@ class TestPostViewModel:
         assert retrieved_view is not None
         assert retrieved_view.user_id == sample_user.id
 
-    def test_delete_post_view(self, session: Session, sample_user: User, sample_post: Post):
+    def test_delete_post_view(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试删除浏览记录"""
         view = PostView(user_id=sample_user.id, post_id=sample_post.id)
         session.add(view)
@@ -122,7 +128,9 @@ class TestPostViewModel:
 
     # ============ 模型关系测试 ============
 
-    def test_post_view_user_relationship(self, session: Session, sample_user: User, sample_post: Post):
+    def test_post_view_user_relationship(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试 PostView -> User 关系"""
         view = PostView(user_id=sample_user.id, post_id=sample_post.id)
         session.add(view)
@@ -134,7 +142,9 @@ class TestPostViewModel:
         assert view.user.id == sample_user.id
         assert view.user.username == sample_user.username
 
-    def test_post_view_post_relationship(self, session: Session, sample_user: User, sample_post: Post):
+    def test_post_view_post_relationship(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试 PostView -> Post 关系"""
         view = PostView(user_id=sample_user.id, post_id=sample_post.id)
         session.add(view)
@@ -146,7 +156,9 @@ class TestPostViewModel:
         assert view.post.id == sample_post.id
         assert view.post.title == sample_post.title
 
-    def test_user_post_views_relationship(self, session: Session, sample_user: User, sample_post_data):
+    def test_user_post_views_relationship(
+        self, session: Session, sample_user: User, sample_post_data
+    ):
         """测试 User -> PostView 关系（一对多）"""
         # 创建3篇文章
         post1 = Post(**sample_post_data())
@@ -169,7 +181,9 @@ class TestPostViewModel:
         assert view2 in sample_user.post_views
         assert view3 in sample_user.post_views
 
-    def test_post_post_views_relationship(self, session: Session, sample_user_data, sample_post: Post):
+    def test_post_post_views_relationship(
+        self, session: Session, sample_user_data, sample_post: Post
+    ):
         """测试 Post -> PostView 关系（一对多）"""
         # 创建3个用户
         user1 = User(**sample_user_data())
@@ -194,7 +208,9 @@ class TestPostViewModel:
 
     # ============ 匿名浏览测试 ============
 
-    def test_anonymous_view_user_relationship(self, session: Session, sample_post: Post):
+    def test_anonymous_view_user_relationship(
+        self, session: Session, sample_post: Post
+    ):
         """测试匿名浏览记录的 user 关系"""
         view = PostView(user_id=None, post_id=sample_post.id)
         session.add(view)
@@ -205,7 +221,9 @@ class TestPostViewModel:
         assert view.user is None
         assert view.user_id is None
 
-    def test_mixed_authenticated_and_anonymous_views(self, session: Session, sample_user: User, sample_post: Post):
+    def test_mixed_authenticated_and_anonymous_views(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试同时存在已登录和匿名浏览记录"""
         # 已登录用户浏览
         auth_view = PostView(user_id=sample_user.id, post_id=sample_post.id)
@@ -225,7 +243,9 @@ class TestPostViewModel:
 
     # ============ 级联删除测试 ============
 
-    def test_delete_post_cascades_to_views(self, session: Session, sample_user: User, sample_post_data):
+    def test_delete_post_cascades_to_views(
+        self, session: Session, sample_user: User, sample_post_data
+    ):
         """测试删除文章时级联删除浏览记录"""
         post = Post(**sample_post_data())
         session.add(post)
@@ -245,7 +265,9 @@ class TestPostViewModel:
         deleted_view = session.query(PostView).filter_by(id=view_id).first()
         assert deleted_view is None
 
-    def test_delete_user_cascades_to_views(self, session: Session, sample_user_data, sample_post: Post):
+    def test_delete_user_cascades_to_views(
+        self, session: Session, sample_user_data, sample_post: Post
+    ):
         """测试删除用户时级联删除浏览记录"""
         user = User(**sample_user_data())
         session.add(user)
@@ -267,7 +289,9 @@ class TestPostViewModel:
 
     # ============ 业务方法测试 ============
 
-    def test_is_duplicate_authenticated_user(self, session: Session, sample_user: User, sample_post: Post):
+    def test_is_duplicate_authenticated_user(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试防刷功能（已登录用户）"""
         # 第一次浏览
         view1 = PostView(user_id=sample_user.id, post_id=sample_post.id)
@@ -301,7 +325,9 @@ class TestPostViewModel:
         is_dup_later = PostView.is_duplicate(session, None, sample_post.id)
         assert is_dup_later is False
 
-    def test_is_duplicate_different_posts(self, session: Session, sample_user: User, sample_post_data):
+    def test_is_duplicate_different_posts(
+        self, session: Session, sample_user: User, sample_post_data
+    ):
         """测试不同文章不算重复"""
         post1 = Post(**sample_post_data())
         post2 = Post(**sample_post_data())
@@ -319,7 +345,9 @@ class TestPostViewModel:
 
     # ============ 属性方法测试 ============
 
-    def test_is_anonymous_property(self, session: Session, sample_user: User, sample_post: Post):
+    def test_is_anonymous_property(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试 is_anonymous 属性"""
         # 已登录用户浏览
         auth_view = PostView(user_id=sample_user.id, post_id=sample_post.id)
@@ -331,7 +359,9 @@ class TestPostViewModel:
 
     # ============ 字符串表示测试 ============
 
-    def test_post_view_repr(self, session: Session, sample_user: User, sample_post: Post):
+    def test_post_view_repr(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试 __repr__ 方法"""
         view = PostView(user_id=sample_user.id, post_id=sample_post.id)
         session.add(view)
@@ -370,7 +400,9 @@ class TestPostViewModel:
         assert view.ip_address == ipv6
         assert len(view.ip_address) <= 45  # 字段长度限制
 
-    def test_very_long_user_agent(self, session: Session, sample_user: User, sample_post: Post):
+    def test_very_long_user_agent(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试超长 User-Agent"""
         long_ua = "A" * 500  # 正好 500 字符（字段限制）
         view = PostView(
@@ -384,7 +416,9 @@ class TestPostViewModel:
         assert view.user_agent is not None
         assert len(view.user_agent) == 500
 
-    def test_optional_fields_can_be_null(self, session: Session, sample_user: User, sample_post: Post):
+    def test_optional_fields_can_be_null(
+        self, session: Session, sample_user: User, sample_post: Post
+    ):
         """测试可选字段可以为空"""
         view = PostView(
             user_id=sample_user.id,

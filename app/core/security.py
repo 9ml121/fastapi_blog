@@ -111,7 +111,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 # ==========================================
 
 
-def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    data: dict[str, Any], expires_delta: timedelta | None = None
+) -> str:
     """
     创建 JWT access token
 
@@ -132,7 +134,9 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = 
     Token 结构：
         Header: {"alg": "HS256", "typ": "JWT"}
         Payload: {"sub": "user_id", "exp": 1234567890, ...}
-        Signature: HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), secret)
+        Signature: HMACSHA256(
+            base64UrlEncode(header) + "." + base64UrlEncode(payload), secret
+        )
 
     安全性：
     - 签名防篡改：任何修改 payload 都会导致签名验证失败
@@ -141,7 +145,9 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = 
 
     示例：
         >>> from datetime import timedelta
-        >>> token = create_access_token({"sub": "user123"}, expires_delta=timedelta(minutes=30))
+        >>> token = create_access_token(
+        ...     {"sub": "user123"}, expires_delta=timedelta(minutes=30)
+        ... )
         >>> print(token)
         eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMTIzIiwiZXhwIjoxNjE2MjM5MDIyfQ...
     """
@@ -153,14 +159,18 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = 
         expire = datetime.now(UTC) + expires_delta
     else:
         # 使用配置的默认过期时间
-        expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(UTC) + timedelta(
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
 
     # 3. 添加过期时间到 payload（JWT 标准字段）
     to_encode.update({"exp": expire})
 
     # 4. 生成 JWT token
     # jwt.encode() 会自动添加 header {"alg": "HS256", "typ": "JWT"}
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
 
     return encoded_jwt
 
@@ -206,7 +216,9 @@ def decode_access_token(token: str) -> dict[str, Any] | None:
         # 1. 验证签名（使用 SECRET_KEY）
         # 2. 检查过期时间（exp claim）
         # 3. 解码 payload
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         return payload
     except JWTError:
         # Token 无效、过期、篡改等情况统一返回 None
