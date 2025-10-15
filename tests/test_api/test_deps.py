@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.exceptions import AppError
 from app.core.security import create_access_token
 from app.models.user import User
 
@@ -26,6 +27,15 @@ def _(current_user: User = Depends(deps.get_current_active_user)):
 @app.get("/test-superuser")
 def _(current_user: User = Depends(deps.get_current_superuser)):
     return current_user
+
+
+# 在测试应用中注册异常处理器
+@app.exception_handler(AppError)
+async def app_error_handler(request, exc: AppError):
+    """处理应用自定义异常"""
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
 
 
 client = TestClient(app)

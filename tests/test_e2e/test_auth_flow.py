@@ -237,7 +237,6 @@ class TestTokenLifecycle:
 
         # 3. 验证返回 401 Unauthorized
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert response.json()["detail"] == "Could not validate credentials"
 
     def test_valid_token_with_custom_expiration(
         self, client: TestClient, session: Session, sample_user

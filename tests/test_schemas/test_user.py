@@ -15,7 +15,6 @@ from app.schemas.user import UserCreate
 VALID_USER_DATA = {
     "username": "testuser",
     "email": "test@example.com",
-    "full_name": "Test User",
     "password": "ValidPass123",
 }
 

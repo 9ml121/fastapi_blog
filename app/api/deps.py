@@ -22,8 +22,9 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app import crud
+from app.core.exceptions import UnauthorizedError
 from app.core.security import decode_access_token
-from app.db.database import get_db  # 复用已有的 get_db 函数
+from app.db.database import get_db
 from app.models.user import User
 
 # ==========================================
@@ -73,33 +74,26 @@ def get_current_user(
     - 此依赖不检查用户状态（is_active），只验证 token 有效性
     - 如需验证用户状态，使用 get_current_active_user
     """
-    # 定义认证失败异常（复用）
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},  # OAuth2 标准响应头
-    )
-
     # 1. 解码 token
     payload = decode_access_token(token)
     if not payload:
-        raise credentials_exception
+        raise UnauthorizedError("Could not validate credentials")
 
     # 2. 从 payload 提取用户 ID（JWT 标准使用 sub 字段）
     user_id_str: str | None = payload.get("sub")
     if not user_id_str:
-        raise credentials_exception
+        raise UnauthorizedError("Invalid token payload")
 
     # 3. 转换 user_id 为 UUID
     try:
         user_id = UUID(user_id_str)
-    except ValueError:
-        raise credentials_exception from None
+    except ValueError as err:
+        raise UnauthorizedError("Invalid user ID format") from err
 
     # 4. 从数据库查询用户
     user = crud.user.get_user_by_id(db, user_id=user_id)
     if not user:
-        raise credentials_exception
+        raise UnauthorizedError("User not found")
 
     return user
 

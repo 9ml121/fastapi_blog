@@ -35,11 +35,11 @@ class User(BaseModel):
 
 ### 1.2 Pydantic 的三大功能
 
-| 功能 | 说明 | 示例 |
-|------|------|------|
-| **数据验证** | 自动验证输入数据类型和格式 | `age` 必须是整数 |
-| **数据解析** | 将 JSON/dict 自动转换为 Python 对象 | `{"age": "25"}` → `age=25` |
-| **数据序列化** | 将 Python 对象转换为 JSON/dict | `user.model_dump()` |
+| 功能           | 说明                                | 示例                       |
+| -------------- | ----------------------------------- | -------------------------- |
+| **数据验证**   | 自动验证输入数据类型和格式          | `age` 必须是整数           |
+| **数据解析**   | 将 JSON/dict 自动转换为 Python 对象 | `{"age": "25"}` → `age=25` |
+| **数据序列化** | 将 Python 对象转换为 JSON/dict      | `user.model_dump()`        |
 
 ### 1.3 为什么 FastAPI 选择 Pydantic
 
@@ -112,7 +112,7 @@ class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     email: EmailStr
     password: str = Field(min_length=8)
-    
+
     @field_validator('password')
     def validate_password_strength(cls, v):
         # 自定义密码强度验证
@@ -146,14 +146,15 @@ def create_user(user_data: UserCreate, db: Session):
 
 ### 2.3 职责分离的优势
 
-| 层次 | 职责 | 技术 | 关注点 |
-|------|------|------|--------|
-| **Pydantic Schema** | 数据验证、转换、序列化 | Pydantic | **外部接口**（API 输入/输出） |
-| **SQLAlchemy Model** | 数据库映射、持久化 | SQLAlchemy | **内部存储**（数据库结构） |
+| 层次                 | 职责                   | 技术       | 关注点                        |
+| -------------------- | ---------------------- | ---------- | ----------------------------- |
+| **Pydantic Schema**  | 数据验证、转换、序列化 | Pydantic   | **外部接口**（API 输入/输出） |
+| **SQLAlchemy Model** | 数据库映射、持久化     | SQLAlchemy | **内部存储**（数据库结构）    |
 
 **核心原则**：
-- Schema 关注"数据如何从外部进入系统"和"数据如何展示给外部"
-- Model 关注"数据如何在数据库中存储"
+
+-   Schema 关注"数据如何从外部进入系统"和"数据如何展示给外部"
+-   Model 关注"数据如何在数据库中存储"
 
 ---
 
@@ -161,16 +162,16 @@ def create_user(user_data: UserCreate, db: Session):
 
 ### 3.1 核心区别对比
 
-| 对比维度 | Pydantic Schema | SQLAlchemy Model |
-|---------|----------------|------------------|
-| **目的** | 数据验证和序列化 | 数据库 ORM 映射 |
-| **使用场景** | API 输入/输出 | 数据库操作 |
-| **生命周期** | 请求-响应期间 | 数据库会话期间 |
-| **验证时机** | 实例化时（构造函数） | 提交数据库时 |
-| **类型系统** | Python 类型注解 | SQLAlchemy 类型 |
-| **继承基类** | `BaseModel` | `DeclarativeBase` |
-| **序列化** | `model_dump()`, `model_dump_json()` | 需要手动实现 |
-| **不可变性** | 支持（`model_config frozen=True`） | 可变对象 |
+| 对比维度     | Pydantic Schema                     | SQLAlchemy Model  |
+| ------------ | ----------------------------------- | ----------------- |
+| **目的**     | 数据验证和序列化                    | 数据库 ORM 映射   |
+| **使用场景** | API 输入/输出                       | 数据库操作        |
+| **生命周期** | 请求-响应期间                       | 数据库会话期间    |
+| **验证时机** | 实例化时（构造函数）                | 提交数据库时      |
+| **类型系统** | Python 类型注解                     | SQLAlchemy 类型   |
+| **继承基类** | `BaseModel`                         | `DeclarativeBase` |
+| **序列化**   | `model_dump()`, `model_dump_json()` | 需要手动实现      |
+| **不可变性** | 支持（`model_config frozen=True`）  | 可变对象          |
 
 ### 3.2 字段定义对比
 
@@ -185,13 +186,13 @@ from uuid import UUID
 class UserCreate(BaseModel):
     """API 输入：用户注册"""
     username: str = Field(
-        min_length=3, 
+        min_length=3,
         max_length=50,
         description="用户名，3-50个字符"
     )
     email: EmailStr  # 自动验证邮箱格式
     password: str = Field(min_length=8)
-    
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -209,14 +210,14 @@ class UserResponse(BaseModel):
     email: EmailStr
     is_active: bool
     created_at: datetime
-    
+
     model_config = {"from_attributes": True}  # 允许从 ORM 对象创建
 
 # ============ SQLAlchemy Model ============
 class User(DeclarativeBase):
     """数据库模型：用户表"""
     __tablename__ = "users"
-    
+
     id: Mapped[UUID] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
@@ -225,7 +226,7 @@ class User(DeclarativeBase):
     is_superuser: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
-        default=datetime.utcnow, 
+        default=datetime.utcnow,
         onupdate=datetime.utcnow
     )
 ```
@@ -352,7 +353,7 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)  # 允许从 ORM 对象创建
 
 
@@ -417,11 +418,11 @@ def create_user(
     db: Session = Depends(get_db)
 ):
     # 1. Pydantic 自动验证了 user_data
-    
+
     # 2. 检查用户名是否已存在
     if get_user_by_username(db, user_data.username):
         raise HTTPException(status_code=409, detail="用户名已存在")
-    
+
     # 3. 创建数据库对象
     db_user = User(
         username=user_data.username,
@@ -429,11 +430,11 @@ def create_user(
         password_hash=hash_password(user_data.password),  # 哈希密码
         full_name=user_data.full_name
     )
-    
+
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    
+
     # 4. 返回时自动转换为 UserResponse
     #    （自动排除 password_hash 等敏感字段）
     return db_user
@@ -450,12 +451,12 @@ def update_user(
     db_user = get_user_by_id(db, user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="用户不存在")
-    
+
     # 只更新提供的字段（部分更新）
     update_data = user_data.model_dump(exclude_unset=True)  # 只包含设置的字段
     for field, value in update_data.items():
         setattr(db_user, field, value)
-    
+
     db.commit()
     db.refresh(db_user)
     return db_user
@@ -467,7 +468,7 @@ def get_user(user_id: UUID, db: Session = Depends(get_db)):
     db_user = get_user_by_id(db, user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="用户不存在")
-    
+
     # 自动转换为 UserResponse（排除敏感字段）
     return db_user
 ```
@@ -493,57 +494,58 @@ class UserProfile(BaseModel):
         pattern=r'^[a-zA-Z0-9_]+$',  # 正则表达式
         description="用户名：3-50个字符，只允许字母、数字、下划线"
     )
-    
+
     # 使用 constr（constrained string）
     display_name: constr(
         min_length=1,
         max_length=100,
         strip_whitespace=True  # 自动去除首尾空格
     )
-    
+
     # ============ 邮箱验证 ============
     email: EmailStr  # 自动验证邮箱格式
-    
+
     # ============ URL 验证 ============
     website: Optional[HttpUrl] = None  # 自动验证 URL 格式
     avatar_url: Optional[str] = Field(None, regex=r'^https?://.*\.(jpg|png|gif)$')
-    
+
     # ============ 数字验证 ============
     age: int = Field(ge=0, le=150)  # ge: >=, le: <=
     score: float = Field(gt=0, lt=100)  # gt: >, lt: <
-    
+
     # 使用 conint（constrained int）
     follower_count: conint(ge=0) = 0
-    
+
     # ============ 日期验证 ============
     birth_date: datetime
     registered_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     # ============ 枚举验证 ============
     from enum import Enum
-    
+
     class Role(str, Enum):
         USER = "user"
         ADMIN = "admin"
         MODERATOR = "moderator"
-    
+
     role: Role = Role.USER  # 只能是枚举中的值
-    
+
     # ============ 列表验证 ============
     tags: list[str] = Field(default_factory=list, max_length=10)
     interests: set[str] = set()  # 自动去重
 ```
 
-> [!NOTE]
-> **💡 风格对比与选择：`constr` vs `Field`**
+> [!NOTE] > **💡 风格对比与选择：`constr` vs `Field`**
 >
 > 你可能注意到有两种方式可以约束字符串和整数：
+>
 > 1.  **`constr`/`conint` 风格**: `name: constr(min_length=1)`
 > 2.  **`Field` 风格**: `name: str = Field(min_length=1)`
 >
 > **区别**：
-> - `constr` 是一个返回“带约束的类型”的函数，是 Pydantic V1 的旧风格。
-> - `Field` 是 Pydantic V2 推荐的现代风格，它将约束作为字段的元数据，更清晰、功能更强大（如支持 `description`, `example` 等）。
+>
+> -   `constr` 是一个返回“带约束的类型”的函数，是 Pydantic V1 的旧风格。
+> -   `Field` 是 Pydantic V2 推荐的现代风格，它将约束作为字段的元数据，更清晰、功能更强大（如支持 `description`, `example` 等）。
 >
 > **结论：在我们的项目中，应优先使用 `Field` 风格。**
 
@@ -560,7 +562,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     password_confirm: str
-    
+
     # ============ 字段级验证器 ============
     @field_validator('username')
     @classmethod
@@ -568,30 +570,30 @@ class UserCreate(BaseModel):
         """验证用户名格式"""
         if not v.isalnum() and '_' not in v:
             raise ValueError('用户名只能包含字母、数字和下划线')
-        
+
         if v.lower() in ['admin', 'root', 'system']:
             raise ValueError('该用户名为保留用户名')
-        
+
         return v.lower()  # 统一转为小写
-    
+
     @field_validator('password')
     @classmethod
     def validate_password_strength(cls, v: str) -> str:
         """验证密码强度"""
         if len(v) < 8:
             raise ValueError('密码至少需要8个字符')
-        
+
         if not any(c.isupper() for c in v):
             raise ValueError('密码必须包含至少一个大写字母')
-        
+
         if not any(c.islower() for c in v):
             raise ValueError('密码必须包含至少一个小写字母')
-        
+
         if not any(c.isdigit() for c in v):
             raise ValueError('密码必须包含至少一个数字')
-        
+
         return v
-    
+
     # ============ 模型级验证器 ============
     @model_validator(mode='after')
     def validate_passwords_match(self) -> 'UserCreate':
@@ -623,7 +625,7 @@ class Product(BaseModel):
     name: str
     price: float
     discount_price: Optional[float] = None
-    
+
     @field_validator('discount_price')
     @classmethod
     def validate_discount(cls, v: Optional[float], info: ValidationInfo) -> Optional[float]:
@@ -709,7 +711,7 @@ def get_user(user_id: UUID, db: Session = Depends(get_db)):
     db_user = get_user_by_id(db, user_id)
     if not db_user:
         raise HTTPException(status_code=404)
-    
+
     # db_user 可能包含 password_hash 等敏感字段
     # 但 FastAPI 只会返回 UserResponse 中定义的字段
     return db_user  # ← 自动转换为 UserResponse
@@ -725,21 +727,21 @@ class UserResponse(BaseModel):
     username: str
     email: EmailStr
     created_at: datetime
-    
+
     # ============ 配置选项 ============
     model_config = ConfigDict(
         # 允许从 ORM 对象创建（重要！）
         from_attributes=True,
-        
+
         # JSON 序列化配置
         json_encoders={
             datetime: lambda v: v.isoformat(),  # 自定义日期格式
             UUID: lambda v: str(v)  # UUID 转字符串
         },
-        
+
         # 字段别名（API 字段名 vs Python 属性名）
         populate_by_name=True,  # 允许使用原名称或别名
-        
+
         # 示例数据（用于 API 文档）
         json_schema_extra={
             "example": {
@@ -842,7 +844,7 @@ class UserResponse(UserBase):
     id: UUID
     is_active: bool
     created_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 ```
 
@@ -872,18 +874,18 @@ from pydantic import Field, PostgresDsn
 
 class Settings(BaseSettings):
     """应用配置（从环境变量加载）"""
-    
+
     # 应用配置
     app_name: str = "FastAPI Blog"
     debug: bool = False
     api_v1_prefix: str = "/api/v1"
-    
+
     # 数据库配置
     database_url: PostgresDsn = Field(
         ...,  # 必填
         description="PostgreSQL 数据库连接 URL"
     )
-    
+
     # JWT 配置
     secret_key: str = Field(
         ...,
@@ -891,10 +893,10 @@ class Settings(BaseSettings):
         description="JWT 密钥，至少32个字符"
     )
     access_token_expire_minutes: int = 30
-    
+
     # CORS 配置
     cors_origins: list[str] = ["http://localhost:3000"]
-    
+
     model_config = ConfigDict(
         env_file=".env",  # 从 .env 文件加载
         env_file_encoding="utf-8",
@@ -927,7 +929,7 @@ response = UserResponse.model_validate(db_user)  # ❌ ValidationError!
 class UserResponse(BaseModel):
     id: UUID
     username: str
-    
+
     model_config = ConfigDict(from_attributes=True)  # ✅ 添加这个
 
 # 现在可以正常使用
@@ -1007,7 +1009,7 @@ print(user2.tags)  # [] ← 正确
 class UserCreate(BaseModel):
     username: str
     email: EmailStr
-    
+
     @field_validator('username')
     @classmethod
     def username_must_be_unique(cls, v):
@@ -1022,9 +1024,77 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     # ✅ 在这里检查业务规则
     if get_user_by_username(db, user_data.username):
         raise HTTPException(status_code=409, detail="用户名已存在")
-    
+
     return create_user_in_db(db, user_data)
 ```
+
+### 8.5 忘记设置 `extra="forbid"` 导致的安全问题
+
+```python
+# ❌ 危险示例：没有设置 extra="forbid"
+class UserProfileUpdate(BaseModel):
+    nickname: Optional[str] = None
+    email: Optional[EmailStr] = None
+    # 没有设置 model_config
+
+# 用户可能传递额外字段
+request_data = {
+    "username": "hacker",  # 尝试修改用户名
+    "is_superuser": True,  # 尝试提升权限
+    "nickname": "新昵称"
+}
+
+# Pydantic 会静默忽略这些字段，用户以为更新成功
+schema = UserProfileUpdate(**request_data)  # ✅ 创建成功
+update_data = schema.model_dump(exclude_unset=True)  # {"nickname": "新昵称"}
+# 但用户以为 username 和 is_superuser 也被更新了！
+
+# ✅ 正确示例：设置 extra="forbid"
+class UserProfileUpdate(BaseModel):
+    nickname: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+    model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全
+        json_schema_extra={
+            "examples": [
+                {
+                    "nickname": "张三 Updated",
+                    "email": "zhangsan@example.com",
+                }
+            ]
+        }
+    )
+
+# 现在用户传递额外字段会收到明确的错误
+try:
+    schema = UserProfileUpdate(**request_data)
+except ValidationError as e:
+    print(e.errors())
+    # [
+    #   {
+    #     "type": "extra_forbidden",
+    #     "loc": ("username",),
+    #     "msg": "Extra inputs are not permitted",
+    #     "input": "hacker"
+    #   },
+    #   {
+    #     "type": "extra_forbidden",
+    #     "loc": ("is_superuser",),
+    #     "msg": "Extra inputs are not permitted",
+    #     "input": True
+    #   }
+    # ]
+```
+
+**配置决策原则**：
+
+| Schema 类型  | extra 配置              | 原因                         |
+| ------------ | ----------------------- | ---------------------------- |
+| **输入模型** | `extra="forbid"`        | 防止用户传递不允许的字段     |
+| **响应模型** | 不设置（默认 `ignore`） | 从数据库读取，不需要严格验证 |
+| **基础模型** | 不设置                  | 被继承的基类，不需要单独配置 |
+| **过滤模型** | `extra="forbid"`        | 查询参数需要严格验证         |
 
 ---
 
@@ -1033,41 +1103,53 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
 ### 核心要点
 
 1. **职责分离**：
-   - Pydantic Schema = 数据验证 + 序列化（外部接口）
-   - SQLAlchemy Model = 数据持久化（内部存储）
+
+    - Pydantic Schema = 数据验证 + 序列化（外部接口）
+    - SQLAlchemy Model = 数据持久化（内部存储）
 
 2. **四种 Schema 模式**：
-   - `Create`：创建资源的输入
-   - `Update`：更新资源的输入（字段可选）
-   - `Response`：返回给客户端的输出
-   - `InDB`：内部使用，包含敏感字段
+
+    - `Create`：创建资源的输入
+    - `Update`：更新资源的输入（字段可选）
+    - `Response`：返回给客户端的输出
+    - `InDB`：内部使用，包含敏感字段
 
 3. **验证时机**：
-   - Pydantic：实例化时立即验证
-   - SQLAlchemy：数据库提交时验证约束
+
+    - Pydantic：实例化时立即验证
+    - SQLAlchemy：数据库提交时验证约束
 
 4. **最佳实践**：
-   - 使用 `from_attributes=True` 允许从 ORM 创建
-   - 复用基类减少重复代码
-   - 使用 `Field()` 添加验证规则和文档
-   - 自定义验证器只做格式验证，不做业务逻辑
+
+    - 使用 `from_attributes=True` 允许从 ORM 创建
+    - 复用基类减少重复代码
+    - 使用 `Field()` 添加验证规则和文档
+    - 自定义验证器只做格式验证，不做业务逻辑
+    - **设置 `extra="forbid"` 确保输入模型类型安全**
+    - **区分输入模型和响应模型的配置策略**
+
+5. **安全配置策略**：
+    - **输入模型**：`extra="forbid"` 防止恶意字段注入
+    - **响应模型**：不设置 `extra`（默认 `ignore`）允许灵活序列化
+    - **基础模型**：不设置配置，由继承的模型决定
+    - **过滤模型**：`extra="forbid"` 确保查询参数安全
 
 ### 下一步
 
 阅读完本文档后，你应该能够：
-- ✅ 理解为什么需要独立的数据验证层
-- ✅ 区分 Pydantic Schema 和 SQLAlchemy Model 的职责
-- ✅ 设计符合 RESTful 规范的 Schema 结构
-- ✅ 使用验证器实现复杂的数据验证逻辑
-- ✅ 在 FastAPI 中正确使用 Pydantic
 
-**准备好动手实践了吗？**
-接下来我们将创建博客系统的 User Schemas，应用这些概念！🚀
+-   ✅ 理解为什么需要独立的数据验证层
+-   ✅ 区分 Pydantic Schema 和 SQLAlchemy Model 的职责
+-   ✅ 设计符合 RESTful 规范的 Schema 结构
+-   ✅ 使用验证器实现复杂的数据验证逻辑
+-   ✅ 在 FastAPI 中正确使用 Pydantic
+-   ✅ 根据模型用途选择合适的 ConfigDict 配置
+-   ✅ 识别和避免 Schema 设计中的安全陷阱
 
 ---
 
 ## 参考资源
 
-- [Pydantic 官方文档](https://docs.pydantic.dev/)
-- [FastAPI 数据验证教程](https://fastapi.tiangolo.com/tutorial/body/)
-- [Pydantic V2 迁移指南](https://docs.pydantic.dev/latest/migration/)
+-   [Pydantic 官方文档](https://docs.pydantic.dev/)
+-   [FastAPI 数据验证教程](https://fastapi.tiangolo.com/tutorial/body/)
+-   [Pydantic V2 迁移指南](https://docs.pydantic.dev/latest/migration/)

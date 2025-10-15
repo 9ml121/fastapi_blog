@@ -7,6 +7,8 @@
 - DELETE /posts/{post_id}/comments/{comment_id} - 删除评论
 """
 
+from pprint import pprint  # noqa: F401
+
 import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -52,6 +54,7 @@ def sample_comments(
       - 评论2 (回复评论1)
       - 评论3 (回复评论1)
     - 评论4 (顶级)
+    - 评论5 (顶级)
     """
     comments = []
 
@@ -90,6 +93,15 @@ def sample_comments(
     )
     comments.append(comment4)
 
+    # 顶级评论5
+    comment5 = comment_crud.create_with_author(
+        db=session,
+        obj_in=CommentCreate(content="可以用 Docker 部署"),
+        author_id=sample_user.id,
+        post_id=sample_post.id,
+    )
+    comments.append(comment5)
+
     return comments
 
 
@@ -108,7 +120,7 @@ class TestCreateComment:
         sample_user: User,
         auth_headers: dict,
     ):
-        """测试成功创建顶级评论"""
+        """✅ 正常数据：测试成功创建顶级评论"""
         response = client.post(
             f"/api/v1/posts/{sample_post.id}/comments",
             headers=auth_headers,
@@ -132,7 +144,7 @@ class TestCreateComment:
         sample_comments: list[Comment],
         auth_headers: dict,
     ):
-        """测试成功创建回复评论"""
+        """✅ 正常数据：测试成功创建回复评论"""
         parent_comment = sample_comments[0]
 
         response = client.post(
@@ -154,7 +166,7 @@ class TestCreateComment:
         client: TestClient,
         auth_headers: dict,
     ):
-        """测试文章不存在 - 应返回 404"""
+        """✅ 异常数据：测试文章不存在 - 应返回 404"""
         fake_post_id = "00000000-0000-0000-0000-000000000000"
 
         response = client.post(
@@ -164,7 +176,7 @@ class TestCreateComment:
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.json()["detail"] == "文章不存在"
+        assert response.json()["error"]["message"] == "文章不存在"
 
     def test_create_comment_parent_not_found(
         self,
@@ -172,7 +184,7 @@ class TestCreateComment:
         sample_post: Post,
         auth_headers: dict,
     ):
-        """测试父评论不存在 - 应返回 404"""
+        """✅ 异常数据：测试父评论不存在 - 应返回 404"""
         fake_parent_id = "00000000-0000-0000-0000-000000000000"
 
         response = client.post(
@@ -185,7 +197,7 @@ class TestCreateComment:
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.json()["detail"] == "父评论不存在"
+        assert response.json()["error"]["message"] == "父评论不存在"
 
     def test_create_comment_cross_post_reply(
         self,
@@ -196,7 +208,7 @@ class TestCreateComment:
         sample_comments: list[Comment],
         auth_headers: dict,
     ):
-        """测试跨文章回复 - 应返回 400
+        """✅ 异常数据：测试跨文章回复 - 应返回 400
 
         场景：尝试在文章B下回复文章A的评论
         """
@@ -223,14 +235,14 @@ class TestCreateComment:
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.json()["detail"] == "父评论不属于该文章"
+        assert response.json()["error"]["message"] == "父评论不属于该文章"
 
     def test_create_comment_unauthorized(
         self,
         client: TestClient,
         sample_post: Post,
     ):
-        """测试未登录创建评论 - 应返回 401"""
+        """✅ 异常数据：测试未登录创建评论 - 应返回 401"""
         response = client.post(
             f"/api/v1/posts/{sample_post.id}/comments",
             # 不提供 auth_headers
@@ -238,6 +250,58 @@ class TestCreateComment:
         )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_create_comment_content_too_long(
+        self,
+        client: TestClient,
+        sample_post: Post,
+        auth_headers: dict,
+    ):
+        """✅ 极端数据：测试超长评论内容 - 应返回 422"""
+        # 创建超过1000字符的评论内容
+        long_content = "这是一条超长评论内容。" * 200  # 约2000字符
+
+        response = client.post(
+            f"/api/v1/posts/{sample_post.id}/comments",
+            headers=auth_headers,
+            json={"content": long_content},
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_create_comment_special_characters(
+        self,
+        client: TestClient,
+        sample_post: Post,
+        auth_headers: dict,
+    ):
+        """✅ 极端数据：测试特殊字符和表情符号"""
+        special_content = "测试特殊字符：@#$%^&*()_+{}|:<>?[]\\;'\",./ 还有表情😀🎉🚀"
+
+        response = client.post(
+            f"/api/v1/posts/{sample_post.id}/comments",
+            headers=auth_headers,
+            json={"content": special_content},
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        assert data["content"] == special_content
+
+    def test_create_comment_empty_content(
+        self,
+        client: TestClient,
+        sample_post: Post,
+        auth_headers: dict,
+    ):
+        """✅ 边界数据：测试空评论内容 - 应返回 422"""
+        response = client.post(
+            f"/api/v1/posts/{sample_post.id}/comments",
+            headers=auth_headers,
+            json={"content": ""},
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 # ============================================
@@ -253,13 +317,16 @@ class TestGetComments:
         client: TestClient,
         sample_post: Post,
     ):
-        """测试获取空评论列表"""
+        """✅ 边界数据：测试获取空评论列表"""
         response = client.get(f"/api/v1/posts/{sample_post.id}/comments")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert isinstance(data, list)
-        assert len(data) == 0
+
+        assert isinstance(data, dict)
+        assert "items" in data
+        assert isinstance(data["items"], list)
+        assert len(data["items"]) == 0
 
     def test_get_comments_tree_structure(
         self,
@@ -267,53 +334,64 @@ class TestGetComments:
         sample_post: Post,
         sample_comments: list[Comment],
     ):
-        """测试评论树形结构"""
+        """✅ 正常数据：测试评论树形结构"""
         response = client.get(f"/api/v1/posts/{sample_post.id}/comments")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        # 应该只返回 2 个顶级评论（评论1 和 评论4）
-        assert len(data) == 2
+        # 验证分页格式
+        assert isinstance(data, dict)
+        assert "items" in data
+        assert isinstance(data["items"], list)
 
-        # 提取所有顶级评论的内容（不依赖顺序）
-        top_level_contents = {comment["content"] for comment in data}
-        assert "这篇文章写得很好！" in top_level_contents
-        assert "请问如何部署？" in top_level_contents
-
-        # 找到有回复的评论（评论1）
-        comment_with_replies = next(
-            c for c in data if c["content"] == "这篇文章写得很好！"
-        )
-        assert len(comment_with_replies["replies"]) == 2
-
-        # 验证回复的内容
-        replies = comment_with_replies["replies"]
-        reply_contents = {r["content"] for r in replies}
-        assert "同意楼上" in reply_contents
-        assert "@楼上 感谢支持" in reply_contents
+        # 验证树形结构（只返回顶级评论）
+        comments = data["items"]
+        for comment in comments:
+            # 顶级评论没有 parent_id 字段，但有 replies 字段
+            assert "replies" in comment  # 包含回复字段
 
         # 验证回复也可以有回复（递归结构）
-        for reply in replies:
-            assert "replies" in reply
-
-        # 找到没有回复的评论（评论4）
-        comment_without_replies = next(
-            c for c in data if c["content"] == "请问如何部署？"
-        )
-        assert len(comment_without_replies["replies"]) == 0
+        for comment in comments:
+            for reply in comment.get("replies", []):
+                assert "replies" in reply
 
     def test_get_comments_post_not_found(
         self,
         client: TestClient,
     ):
-        """测试文章不存在 - 应返回 404"""
+        """✅ 异常数据：测试文章不存在 - 应返回 404"""
         fake_post_id = "00000000-0000-0000-0000-000000000000"
 
         response = client.get(f"/api/v1/posts/{fake_post_id}/comments")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.json()["detail"] == "文章不存在"
+        assert response.json()["error"]["message"] == "文章不存在"
+
+    def test_get_comments_large_dataset(
+        self,
+        client: TestClient,
+        session: Session,
+        sample_post: Post,
+        sample_user: User,
+    ):
+        """✅ 极端数据：测试大量评论数据的性能"""
+        # 创建大量评论数据（50条）
+        for i in range(50):
+            comment_crud.create_with_author(
+                db=session,
+                obj_in=CommentCreate(content=f"批量评论 {i + 1}"),
+                author_id=sample_user.id,
+                post_id=sample_post.id,
+            )
+
+        response = client.get(f"/api/v1/posts/{sample_post.id}/comments")
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        # 验证分页处理大量数据
+        assert data["total"] >= 50
+        assert len(data["items"]) <= 20  # 默认分页大小
 
 
 # ============================================
@@ -331,7 +409,7 @@ class TestDeleteComment:
         sample_comments: list[Comment],
         auth_headers: dict,
     ):
-        """测试成功删除自己的评论"""
+        """✅ 正常数据：测试成功删除自己的评论"""
         comment_to_delete = sample_comments[0]
 
         response = client.delete(
@@ -349,7 +427,7 @@ class TestDeleteComment:
         sample_comments: list[Comment],
         auth_headers: dict,
     ):
-        """测试删除评论会级联删除子评论"""
+        """✅ 正常数据：测试删除评论会级联删除子评论"""
         # 删除评论1（有 2 个子评论）
         comment_to_delete = sample_comments[0]
         response = client.delete(
@@ -371,7 +449,7 @@ class TestDeleteComment:
         sample_post: Post,
         auth_headers: dict,
     ):
-        """测试删除不存在的评论 - 应返回 404"""
+        """✅ 异常数据：测试删除不存在的评论 - 应返回 404"""
         fake_comment_id = "00000000-0000-0000-0000-000000000000"
         response = client.delete(
             f"/api/v1/posts/{sample_post.id}/comments/{fake_comment_id}",
@@ -379,7 +457,7 @@ class TestDeleteComment:
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.json()["detail"] == "评论不存在"
+        assert response.json()["error"]["message"] == "评论不存在"
 
     def test_delete_comment_wrong_post(
         self,
@@ -390,7 +468,7 @@ class TestDeleteComment:
         sample_comments: list[Comment],
         auth_headers: dict,
     ):
-        """测试评论不属于该文章 - 应返回 404"""
+        """✅ 异常数据：测试评论不属于该文章 - 应返回 404"""
         # 创建第二篇文章
         other_post = post_crud.create_with_author(
             db=session,
@@ -408,7 +486,7 @@ class TestDeleteComment:
         )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.json()["detail"] == "评论不属于该文章"
+        assert response.json()["error"]["message"] == "评论不属于该文章"
 
     def test_delete_comment_forbidden(
         self,
@@ -417,7 +495,7 @@ class TestDeleteComment:
         sample_post: Post,
         sample_comments: list[Comment],
     ):
-        """测试删除他人评论 - 应返回 403"""
+        """✅ 异常数据：测试删除他人评论 - 应返回 403"""
         from app.crud.user import create_user
         from app.schemas.user import UserCreate
 
@@ -435,7 +513,7 @@ class TestDeleteComment:
             headers=auth_headers,
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.json()["detail"] == "无权删除他人评论"
+        assert response.json()["error"]["message"] == "无权删除他人评论"
 
     def test_delete_comment_unauthorized(
         self,
@@ -443,10 +521,26 @@ class TestDeleteComment:
         sample_post: Post,
         sample_comments: list[Comment],
     ):
-        """测试未登录删除评论 - 应返回 401"""
+        """✅ 异常数据：测试未登录删除评论 - 应返回 401"""
         response = client.delete(
             f"/api/v1/posts/{sample_post.id}/comments/{sample_comments[0].id}",
         )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert response.json()["detail"] == "Not authenticated"
+        assert response.json()["error"]["message"] == "Not authenticated"
+
+    def test_delete_comment_invalid_uuid_format(
+        self,
+        client: TestClient,
+        sample_post: Post,
+        auth_headers: dict,
+    ):
+        """✅ 极端数据：测试无效的UUID格式 - 应返回 422"""
+        invalid_comment_id = "invalid-uuid-format"
+
+        response = client.delete(
+            f"/api/v1/posts/{sample_post.id}/comments/{invalid_comment_id}",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

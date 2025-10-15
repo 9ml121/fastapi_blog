@@ -6,12 +6,14 @@ app/crud/post.py
 
 from uuid import UUID
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.api.pagination import PaginationParams, paginate_query
 from app.crud.base import CRUDBase
 from app.crud.tag import tag as tag_crud
 from app.models.post import Post
-from app.schemas.post import PostCreate, PostUpdate
+from app.schemas.post import PostCreate, PostFilters, PostUpdate
 
 
 class CRUDPost(CRUDBase[Post, PostCreate, PostUpdate]):
@@ -156,6 +158,87 @@ class CRUDPost(CRUDBase[Post, PostCreate, PostUpdate]):
         db.refresh(db_obj)
 
         return db_obj
+
+    def get_paginated(
+        self,
+        db: Session,
+        *,
+        params: PaginationParams,
+        filters: PostFilters | None = None,
+    ) -> tuple[list[Post], int]:
+        """获取分页的文章列表
+
+        使用新的分页工具，支持：
+        - 分页：page/size 参数，默认分页数量 20
+        - 排序：sort/order 参数，默认按照 created_at 降序排序
+        - 安全验证：自动验证排序字段
+        - 多种过滤：按作者、标签、发布状态、标题关键词过滤
+
+        Args:
+            db: 数据库会话
+            params: 分页参数（包含页码、每页数量、排序字段、排序方向）
+            filters: 过滤条件（PostFilters 对象）
+
+        Returns:
+            tuple: (文章列表, 总记录数)
+
+        Example:
+            >>> # 基础分页
+            >>> params = PaginationParams(page=1, size=10)
+            >>> posts, total = post_crud.get_paginated(db, params=params)
+
+            >>> # 按作者分页
+            >>> filters = PostFilters(author_id=user.id)
+            >>> posts, total = post_crud.get_paginated(
+            ...     db, params=params, filters=filters
+            ... )
+
+            >>> # 组合过滤：已发布的Python标签文章
+            >>> filters = PostFilters(tag_name="Python", is_published=True)
+            >>> posts, total = post_crud.get_paginated(
+            ...     db, params=params, filters=filters
+            ... )
+        """
+        # 构建基础查询
+        query = select(Post)
+
+        # 应用过滤条件
+        if filters:
+            # 按作者过滤
+            if filters.author_id is not None:
+                query = query.where(Post.author_id == filters.author_id)
+
+            # 按标签过滤（需要 JOIN）
+            if filters.tag_name is not None:
+                from app.models.tag import Tag
+
+                query = query.join(Post.tags).where(Tag.name == filters.tag_name)
+
+            # 按发布状态过滤
+            if filters.is_published is not None:
+                from app.models.post import PostStatus
+
+                if filters.is_published:
+                    query = query.where(Post.status == PostStatus.PUBLISHED)
+                else:
+                    query = query.where(Post.status != PostStatus.PUBLISHED)
+
+            # 按标题关键词过滤（模糊匹配，不区分大小写）
+            if filters.title_contains is not None:
+                query = query.where(
+                    func.lower(Post.title).like(f"%{filters.title_contains.lower()}%")
+                )
+
+            # 按发布时间范围过滤
+            if filters.published_at_from is not None:
+                query = query.where(Post.published_at >= filters.published_at_from)
+            if filters.published_at_to is not None:
+                query = query.where(Post.published_at <= filters.published_at_to)
+
+        # 使用分页工具执行查询
+        items, total = paginate_query(db, query, params, model=Post)
+
+        return items, total
 
 
 # Singleton实例模式：为每个CRUD类创建一个全局实例

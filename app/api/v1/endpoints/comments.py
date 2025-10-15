@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_user, get_db
+from app.api.pagination import PaginatedResponse, PaginationParams
 from app.crud.comment import comment as comment_crud
 from app.crud.post import post as post_crud
 from app.models.user import User
@@ -94,26 +95,35 @@ async def create_comment(
     return comment
 
 
-@router.get("/{post_id}/comments", response_model=list[CommentResponse])
+@router.get("/{post_id}/comments", response_model=PaginatedResponse[CommentResponse])
 async def get_comments(
     post_id: UUID,
+    params: PaginationParams = Depends(),
     db: Session = Depends(get_db),
-) -> Any:
-    """
-    获取文章的所有评论（树形结构）
+) -> PaginatedResponse[CommentResponse]:
+    """获取文章评论列表（支持分页、排序）
 
-    权限：公开访问，无需登录
+    **权限**: 公开访问，无需登录
 
-    路径参数：
+    **路径参数**:
     - post_id: 文章 ID
 
-    返回：
-    - 顶级评论列表（每个评论递归包含 replies 子评论）
-    - 按创建时间倒序排列（最新评论在前）
+    **查询参数**:
+    - page: 页码（从1开始，默认1）
+    - size: 每页数量（1-100，默认20）
+    - sort: 排序字段（默认created_at）
+    - order: 排序方向（asc/desc，默认desc）
 
-    注意：
-    - 只返回顶级评论（parent_id=None），子评论通过 replies 字段递归获取
-    - 使用 lazy="selectin" 避免 N+1 查询，总查询次数为 2 次
+    **返回**:
+    - 200: 分页的评论列表,只返回顶级评论（parent_id=None），
+    子评论通过 replies 字段递归获取
+    - 404: 文章不存在
+    - 422: 参数验证失败
+
+    **示例**:
+    - GET /api/v1/posts/123/comments/?page=1&size=10
+    - GET /api/v1/posts/123/comments/?sort=created_at&order=desc
+
     """
     # 1. 验证文章存在
     post = post_crud.get(db, id=post_id)
@@ -124,8 +134,11 @@ async def get_comments(
         )
 
     # 2. 获取评论列表
-    comments = comment_crud.get_by_post(db, post_id=post_id)
-    return comments
+    comments, total = comment_crud.get_paginated_by_post(
+        db, post_id=post_id, params=params
+    )
+
+    return PaginatedResponse.create(comments, total, params)  # type: ignore
 
 
 @router.delete(

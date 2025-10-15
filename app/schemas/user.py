@@ -107,6 +107,7 @@ class UserCreate(UserBase):
 
     # 为自动生成 API 的数据模型文档设置示例值
     model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全
         json_schema_extra={
             "examples": [
                 {
@@ -116,7 +117,7 @@ class UserCreate(UserBase):
                     "password": "SecurePass123",
                 }
             ]
-        }
+        },
     )
 
 
@@ -148,6 +149,7 @@ class UserProfileUpdate(BaseModel):
     )
 
     model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全
         json_schema_extra={
             "examples": [
                 {
@@ -155,7 +157,7 @@ class UserProfileUpdate(BaseModel):
                     "email": "zhangsan@example.com",
                 }
             ]
-        }
+        },
     )
 
 
@@ -194,6 +196,7 @@ class UserUpdate(BaseModel):
     )
 
     model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全
         json_schema_extra={
             "examples": [
                 {
@@ -201,7 +204,7 @@ class UserUpdate(BaseModel):
                     "is_active": True,
                 }
             ]
-        }
+        },
     )
 
 
@@ -237,6 +240,7 @@ class PasswordChange(BaseModel):
         return validate_password_complexity(v)
 
     model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全
         json_schema_extra={
             "examples": [
                 {
@@ -244,7 +248,7 @@ class PasswordChange(BaseModel):
                     "new_password": "NewPassword456!",
                 }
             ]
-        }
+        },
     )
 
 

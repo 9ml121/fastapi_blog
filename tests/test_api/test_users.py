@@ -52,7 +52,11 @@ class TestGetCurrentUserProfile:
         response = client.get(self.url)
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert response.json()["detail"] == "Not authenticated"
+
+        # HTTPException 现在通过我们的处理器返回统一格式
+        error_data = response.json()["error"]
+        assert error_data["code"] == "HTTP_ERROR"
+        assert error_data["message"] == "Not authenticated"
 
     def test_get_profile_invalid_token(self, client: TestClient):
         """✅ 异常数据：无效的 token - 应该返回 401"""
@@ -60,7 +64,10 @@ class TestGetCurrentUserProfile:
         response = client.get(self.url, headers=headers)
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "Could not validate credentials" in response.json()["detail"]
+        # 现在使用新格式（自定义异常处理器）
+        error_data = response.json()["error"]
+        assert error_data["code"] == "UNAUTHORIZED"
+        assert "Could not validate credentials" in error_data["message"]
 
 
 class TestUpdateCurrentUserProfile:
@@ -77,7 +84,7 @@ class TestUpdateCurrentUserProfile:
     def test_update_nickname_success(
         self, client: TestClient, auth_headers: dict, sample_user: User
     ):
-        """✅ 正常数据：成功更新昵称"""
+        """✅ 正常数据：成功更新昵称，其他字段未被修改"""
         new_nickname = "新昵称"
         response = client.patch(
             self.url,
@@ -112,10 +119,7 @@ class TestUpdateCurrentUserProfile:
 
     def test_update_multiple_fields(self, client: TestClient, auth_headers: dict):
         """✅ 正常数据：同时更新多个字段"""
-        update_data = {
-            "nickname": "多字段更新",
-            "email": "multiple_update@example.com",
-        }
+        update_data = {"nickname": "多字段更新", "email": "multiple_update@example.com"}
         response = client.patch(
             self.url,
             headers=auth_headers,
@@ -127,26 +131,19 @@ class TestUpdateCurrentUserProfile:
         assert data["nickname"] == update_data["nickname"]
         assert data["email"] == update_data["email"]
 
-    def test_update_partial_fields_only(
+    def test_update_not_defined_fields(
         self, client: TestClient, auth_headers: dict, sample_user: User
     ):
-        """✅ 边界数据：PATCH 语义验证 - 只传入一个字段，其他字段不变"""
-        original_email = sample_user.email
-
-        # 只更新 nickname
+        """✅ 异常数据：尝试修改更新模型未定义的字段，应该返回 422"""
+        # 尝试更新 usename, 接口会报错
         response = client.patch(
             self.url,
             headers=auth_headers,
-            json={"nickname": "只改昵称"},
+            json={"username": "new_username"},
         )
 
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-
-        # 验证只有 nickname 被更新
-        assert data["nickname"] == "只改昵称"
-        # 验证其他字段保持不变
-        assert data["email"] == original_email
+        print(response.json())
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     def test_update_empty_nickname(self, client: TestClient, auth_headers: dict):
         """✅ 边界数据：空字符串昵称 - 应该返回 422（Schema 限制 min_length=1）"""
@@ -181,7 +178,9 @@ class TestUpdateCurrentUserProfile:
         )
 
         assert response.status_code == status.HTTP_409_CONFLICT
-        assert "邮箱已被其他用户占用" in response.json()["detail"]
+        error_data = response.json()["error"]
+        assert error_data["code"] == "EMAIL_ALREADY_EXISTS"
+        assert "邮箱已被注册" in error_data["message"]
 
     def test_update_invalid_email_format(self, client: TestClient, auth_headers: dict):
         """✅ 异常数据：无效的邮箱格式 - 应该返回 422"""
@@ -230,24 +229,6 @@ class TestChangePassword:
         headers = {"Authorization": f"Bearer {token}"}
         return headers, plain_password
 
-    # TODO(human): 完成修改密码的测试用例
-    #
-    # 📝 重要提示：
-    # - 使用 `auth_headers_with_password` fixture 获取认证和密码
-    # - 它返回 (headers, plain_password) 元组
-    # - plain_password 是 "TestPassword123!"
-    #
-    # 使用方式：
-    # def test_xxx(self, client, auth_headers_with_password, session):
-    #     headers, old_password = auth_headers_with_password
-    #     # 然后使用 old_password 和 headers
-    #
-    # 编写以下 6 个测试场景：
-    #
-    # 1. ✅ 正常数据：test_change_password_success
-    #    - 提供正确的旧密码和有效的新密码
-    #    - json={"old_password": old_password, "new_password": "NewPassword123!"}
-    #    - 验证返回 200 和 {"message": "密码修改成功"}
     def test_change_password_success(
         self, client: TestClient, auth_headers_with_password: tuple[dict, str]
     ):
@@ -261,10 +242,6 @@ class TestChangePassword:
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["message"] == "密码修改成功"
 
-    # 2. ✅ 异常数据：test_change_password_wrong_old_password
-    #    - 提供错误的旧密码
-    #    - json={"old_password": "WrongPassword!", "new_password": "NewPassword123!"}
-    #    - 验证返回 400 和错误信息包含"旧密码错误"
     def test_change_password_wrong_old_password(
         self, client: TestClient, auth_headers_with_password: tuple[dict, str]
     ):
@@ -276,11 +253,10 @@ class TestChangePassword:
             json={"old_password": "WrongPassword!", "new_password": "NewPassword123!"},
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "旧密码错误" in response.json()["detail"]
+        error_data = response.json()["error"]
+        assert error_data["code"] == "INVALID_PASSWORD"
+        assert "旧密码错误" in error_data["message"]
 
-    # 3. ✅ 边界数据：test_change_password_too_short
-    #    - 新密码太短（例如 "123"）
-    #    - 验证返回 422（Pydantic 验证失败）
     def test_change_password_too_short(
         self, client: TestClient, auth_headers_with_password: tuple[dict, str]
     ):
@@ -292,16 +268,14 @@ class TestChangePassword:
             json={"old_password": old_password, "new_password": "123!"},
         )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-        # print(response.json())
-        assert (
-            "String should have at least 8 characters"
-            in response.json()["detail"][0]["msg"]
-        )
+        # 验证响应格式（现在通过全局异常处理器处理）
+        error_data = response.json()["error"]
+        assert error_data["code"] == "VALIDATION_ERROR"
+        assert "请求数据格式错误" in error_data["message"]
+        # 验证 details 中包含密码长度错误
+        details = error_data["details"]
+        assert any("new_password" in str(detail.get("loc", [])) for detail in details)
 
-    # 4. ✅ 边界数据：test_change_password_same_as_old
-    #    - 新旧密码相同
-    #    - json={"old_password": old_password, "new_password": old_password}
-    #    - 验证返回 200（允许，这是业务决策）
     def test_change_password_same_as_old(
         self, client: TestClient, auth_headers_with_password: tuple[dict, str]
     ):
@@ -315,9 +289,6 @@ class TestChangePassword:
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["message"] == "密码修改成功"
 
-    # 5. ✅ 异常数据：test_change_password_without_authentication
-    #    - 不提供 token（不使用 headers）
-    #    - 验证返回 401
     def test_change_password_without_authentication(self, client: TestClient):
         """✅ 异常数据：不提供 token"""
         response = client.put(
@@ -326,13 +297,6 @@ class TestChangePassword:
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    # 6. ✅ 极端数据：test_change_password_can_login_with_new_password
-    #    - 修改密码后，验证能用新密码登录
-    #    - 步骤：
-    #      a. 调用修改密码 API
-    #      b. 从 sample_user_with_password 获取用户名
-    #      c. 调用 POST /api/v1/auth/login，使用新密码
-    #      d. 验证登录成功（返回 access_token）
     def test_change_password_can_login_with_new_password(
         self,
         client: TestClient,

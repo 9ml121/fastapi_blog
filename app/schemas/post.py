@@ -46,7 +46,7 @@ class PostCreate(PostBase):
 
     特点：
     - 继承 PostBase 的所有字段。
-    - 允许客户端直接传递一个字符串列表作为标签，后端将处理“获取或创建”逻辑。
+    - 允许客户端直接传递一个字符串列表作为标签，后端将处理"获取或创建"逻辑。
     - ⚠️ post创建模型不能包含 author_id 隐私字段
 
     用途：POST /api/v1/posts/
@@ -55,6 +55,7 @@ class PostCreate(PostBase):
     tags: list[str] | None = Field(default=None, description="与文章关联的标签名称列表")
 
     model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全
         json_schema_extra={
             "example": {
                 "title": "如何用 FastAPI 构建现代 API",
@@ -66,7 +67,7 @@ class PostCreate(PostBase):
                 "slug": "how-to-build-api-with-fastapi",
                 "tags": ["python", "fastapi", "webdev"],
             }
-        }
+        },
     )
 
 
@@ -91,13 +92,14 @@ class PostUpdate(BaseModel):
     )
 
     model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全
         json_schema_extra={
             "example": {
                 "title": "如何用 FastAPI 构建现代 API (已更新)",
                 "content": "在原文基础上，增加关于依赖注入的章节。",
                 "tags": ["python", "fastapi", "di"],
             }
-        }
+        },
     )
 
 
@@ -163,5 +165,64 @@ class PostResponse(PostBase):
                     "is_featured": False,
                 }
             ]
+        },
+    )
+
+
+# ============ 过滤模型 ============
+class PostFilters(BaseModel):
+    """
+    文章过滤条件
+
+    用于文章列表查询时的过滤参数，支持多种过滤条件组合。
+
+    特点：
+    - 所有字段都是可选的，支持任意组合过滤
+    - 使用 Field 提供清晰的描述和示例
+    - 禁止额外字段，确保类型安全
+
+    用途：GET /api/v1/posts/ 的查询参数
+    """
+
+    author_id: UUID | None = Field(
+        default=None,
+        description="按作者ID过滤文章",
+        examples=["a1b2c3d4-e5f6-7890-1234-567890abcdef"],
+    )
+    tag_name: str | None = Field(
+        default=None,
+        description="按标签名称过滤文章",
+        examples=["Python", "FastAPI", "Web开发"],
+    )
+    is_published: bool | None = Field(
+        default=None, description="按发布状态过滤文章", examples=[True, False]
+    )
+    title_contains: str | None = Field(
+        default=None,
+        description="按标题关键词过滤文章（模糊匹配）",
+        examples=["FastAPI", "教程", "入门"],
+    )
+    published_at_from: datetime | None = Field(
+        default=None,
+        description="按发布时间范围过滤（起始时间）",
+        examples=["2024-01-01T00:00:00Z"],
+    )
+    published_at_to: datetime | None = Field(
+        default=None,
+        description="按发布时间范围过滤（结束时间）",
+        examples=["2024-12-31T23:59:59Z"],
+    )
+
+    model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全，pydantic 默认是'ignore'
+        json_schema_extra={
+            "example": {
+                "author_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+                "tag_name": "Python",
+                "is_published": True,
+                "title_contains": "FastAPI",
+                "published_at_from": "2024-06-01T00:00:00Z",
+                "published_at_to": "2024-06-30T23:59:59Z",
+            }
         },
     )

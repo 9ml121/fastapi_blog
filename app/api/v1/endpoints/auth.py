@@ -14,13 +14,16 @@
    （application/x-www-form-urlencoded），不是JSON！这是OAuth2标准规定的。
 """
 
-from typing import Any
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.core.exceptions import (
+    EmailAlreadyExistsError,
+    InvalidCredentialsError,
+    UsernameAlreadyExistsError,
+)
 from app.core.security import create_access_token
 from app.crud import user as crud_user
 from app.models.user import User
@@ -34,61 +37,70 @@ router = APIRouter()
     "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
 async def register(
-    user_data: UserCreate,  # ← Pydantic 自动验证
-    db: Session = Depends(get_db),  # ← 依赖注入数据库会话
-) -> Any:
+    user_data: UserCreate,
+    db: Session = Depends(get_db),
+) -> UserResponse:
     """用户注册
 
-    注册流程:
-    1. 验证邮箱未被注册
-    2. 验证用户名未被使用
-    3. 创建用户(密码自动哈希)
-    4. 返回用户信息(排除密码)
+    **权限**: 公开访问，无需登录
+
+    **请求体**:
+    - UserCreate: 用户注册数据（用户名、邮箱、密码等）
+
+    **返回**:
+    - 201: 用户注册成功
+    - 400: 邮箱或用户名已存在
+    - 422: 请求数据无效
+
+    **示例**:
+        POST /api/v1/auth/register
+        {
+            "username": "johndoe",
+            "email": "john@example.com",
+            "password": "securepassword",
+            "nickname": "John Doe"
+        }
     """
     # 检查邮箱是否已存在
     existing_user = crud_user.get_user_by_email(db, email=user_data.email)
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="邮箱已被注册",
-        )
+        raise EmailAlreadyExistsError(email=user_data.email)
 
     # 检查用户名是否已存在
     existing_username: User | None = crud_user.get_user_by_username(
         db, username=user_data.username
     )
     if existing_username:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="用户名已被使用",
-        )
+        raise UsernameAlreadyExistsError(username=user_data.username)
 
     # 创建用户(密码会在 CRUD 层自动哈希)
     new_user: User = crud_user.create_user(db, user_in=user_data)
 
-    return new_user
+    return new_user  # type: ignore
 
 
-# OAuth2PasswordRequestForm 的特殊性：它要求 Form Data
-# （application/x-www-form-urlencoded），不是JSON！
 @router.post("/login")
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
-) -> Any:
-    """
-    用户登录
+) -> dict[str, str]:
+    """用户登录
 
-    登录流程:
-    1. 验证用户名和密码(支持邮箱或用户名登录), 注意：⚠️ 是 Form Data 不是 JSON！
-    2. 生成 JWT access token
-    3. 返回 token(用于后续请求认证)
+    **权限**: 公开访问，无需登录
 
-    python 请求示例：
-    >>> response = client.post(
-    >>>    "/api/v1/auth/login",
-    >>>    data={"username": "testuser", "password": "SecurePass123!"},
-    >>> )
+    **请求体** (Form Data):
+    - username: 用户名或邮箱
+    - password: 密码
+
+    **返回**:
+    - 200: 登录成功，返回 access_token
+    - 401: 用户名或密码错误
+
+    **示例**:
+        POST /api/v1/auth/login
+        Content-Type: application/x-www-form-urlencoded
+
+        username=johndoe&password=securepassword
     """
     # 认证用户(CRUD 层会防止时序攻击)
     user = crud_user.authenticate_user(
@@ -96,11 +108,7 @@ async def login(
     )
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误",
-            headers={"WWW-Authenticate": "Bearer"},  # OAuth2 规范要求
-        )
+        raise InvalidCredentialsError()
 
     # 生成 JWT access token
     access_token = create_access_token(data={"sub": str(user.id)})

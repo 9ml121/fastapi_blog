@@ -6,8 +6,10 @@ app/crud/comment.py
 
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.pagination import PaginationParams, paginate_query
 from app.crud.base import CRUDBase
 from app.models.comment import Comment
 from app.schemas.comment import CommentCreate, CommentUpdate
@@ -87,6 +89,7 @@ class CRUDComment(CRUDBase[Comment, CommentCreate, CommentUpdate]):
             >>> comments = crud.comment.get_by_post(db, post_id=post.id)
             >>> # 返回：[Comment(replies=[Comment(), Comment()]), Comment(replies=[])]
         """
+        # SQLAlchemy 传统语法（Legacy）
         return (
             db.query(Comment)
             .filter(
@@ -96,6 +99,40 @@ class CRUDComment(CRUDBase[Comment, CommentCreate, CommentUpdate]):
             .order_by(Comment.created_at.desc())  # 最新评论在前
             .all()
         )
+
+    def get_paginated_by_post(
+        self,
+        db: Session,
+        *,
+        post_id: UUID,
+        params: PaginationParams,
+    ) -> tuple[list[Comment], int]:
+        """获取文章的分页评论列表
+
+        使用新的分页工具，支持：
+        - 分页：page/size 参数
+        - 排序：sort/order 参数（默认按 created_at desc）
+        - 安全验证：自动验证排序字段
+        - 只返回顶级评论（parent_id=None），子评论通过 replies 字段递归获取
+
+        Args:
+            db: 数据库会话
+            post_id: 文章ID
+            params: 分页参数
+
+        Returns:
+            tuple: (顶级评论列表, 总记录数)
+        """
+        # SQLAlchemy 现代语法（Modern）构建查询
+        query = select(Comment)
+
+        # 添加过滤条件：post_id 和 parent_id.is_(None)
+        query = query.where(Comment.post_id == post_id, Comment.parent_id.is_(None))
+
+        # 调用分页工具执行查询
+        items, total = paginate_query(db, query, params, model=Comment)
+
+        return items, total
 
 
 # 创建单例实例

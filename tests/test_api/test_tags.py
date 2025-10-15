@@ -224,7 +224,8 @@ class TestGetTagBySlug:
         # 提示：使用不存在的 slug，如 "nonexistent-tag"
         response = client.get("/api/v1/tags/nonexistent-tag")
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.json()["detail"] == "标签不存在"
+        print(response.json())
+        assert response.json()["error"]["message"] == "标签不存在"
 
     #  添加中文 slug 测试
     def test_get_tag_by_slug_chinese(self, client, posts_with_tags):

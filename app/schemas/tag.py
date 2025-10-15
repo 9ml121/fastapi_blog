@@ -19,12 +19,13 @@ class TagBase(BaseModel):
 # 创建模型
 class TagCreate(TagBase):
     model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全
         json_schema_extra={
             "example": {
                 "name": "Python",
                 "description": "关于 Python 编程语言的所有文章。",
             }
-        }
+        },
     )
 
 
@@ -34,11 +35,12 @@ class TagUpdate(BaseModel):
     description: str | None = None
 
     model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全
         json_schema_extra={
             "example": {
                 "description": "关于 Python 3.8+ 编程语言的所有文章。",
             }
-        }
+        },
     )
 
 

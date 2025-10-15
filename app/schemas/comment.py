@@ -22,12 +22,13 @@ class CommentCreate(CommentBase):
     parent_id: UUID | None = Field(default=None, description="父评论ID，用于回复")
 
     model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全
         json_schema_extra={
             "example": {
                 "content": "这篇文章写得太好了，赞！",
                 "parent_id": None,  # 顶级评论
             }
-        }
+        },
     )
 
 
@@ -36,11 +37,12 @@ class CommentUpdate(BaseModel):
     content: str | None = Field(default=None, min_length=1, max_length=1000)
 
     model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全
         json_schema_extra={
             "example": {
                 "content": "这篇文章写得太好了，赞！(编辑于 2025-10-08)",
             }
-        }
+        },
     )
 
 
