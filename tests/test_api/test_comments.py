@@ -317,7 +317,9 @@ class TestGetComments:
         client: TestClient,
         sample_post: Post,
     ):
-        """✅ 边界数据：测试获取空评论列表"""
+        """✅ 边界数据：测试获取空评论列表
+        注意：参数没有传入 sample_comments fixture，所以评论列表为空
+        """
         response = client.get(f"/api/v1/posts/{sample_post.id}/comments")
 
         assert response.status_code == status.HTTP_200_OK
@@ -340,11 +342,6 @@ class TestGetComments:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        # 验证分页格式
-        assert isinstance(data, dict)
-        assert "items" in data
-        assert isinstance(data["items"], list)
-
         # 验证树形结构（只返回顶级评论）
         comments = data["items"]
         for comment in comments:
@@ -355,6 +352,14 @@ class TestGetComments:
         for comment in comments:
             for reply in comment.get("replies", []):
                 assert "replies" in reply
+
+        # 验证返回默认的分页的数据格式
+        assert data["page"] == 1
+        assert data["size"] == 20  # 默认分页大小
+        assert data["pages"] == 1  # 总共只有3 条顶级评论，所以只有1页
+        assert data["has_next"] is False
+        assert data["has_prev"] is False
+        assert data["total"] == 3  # 总只返回 3 条顶级评论
 
     def test_get_comments_post_not_found(
         self,
@@ -375,7 +380,7 @@ class TestGetComments:
         sample_post: Post,
         sample_user: User,
     ):
-        """✅ 极端数据：测试大量评论数据的性能"""
+        """✅ 极端数据：测试大量评论数据的分页性能"""
         # 创建大量评论数据（50条）
         for i in range(50):
             comment_crud.create_with_author(
@@ -385,13 +390,17 @@ class TestGetComments:
                 post_id=sample_post.id,
             )
 
-        response = client.get(f"/api/v1/posts/{sample_post.id}/comments")
-
+        # 验证分页处理大量数据
+        response = client.get(f"/api/v1/posts/{sample_post.id}/comments?page=1&size=10")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        # 验证分页处理大量数据
-        assert data["total"] >= 50
-        assert len(data["items"]) <= 20  # 默认分页大小
+        assert data["page"] == 1
+        assert data["size"] == 10
+        assert data["pages"] == 5
+        assert data["has_next"] is True
+        assert data["has_prev"] is False
+        assert data["total"] == 50
+        assert len(data["items"]) == 10
 
 
 # ============================================
