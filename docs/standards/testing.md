@@ -104,7 +104,7 @@ def test_process_boundary_values():
 
 ```python
 def test_slug_generation(self):
-    """测试 slug 生成的各种场景"""
+    """✅ 正常数据：测试 slug 生成的各种场景"""
 
     # 1. 正常中文标题
     slug = generate_slug("我的文章")

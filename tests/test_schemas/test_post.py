@@ -111,6 +111,7 @@ class TestPostResponseSchema:
                 "slug": "orm-post-title",  # 为 mock 对象提供 slug
                 "tags": [],  # 简单起见，tags 为空
                 "author": type("MockUser", (), mock_author)(),
+                "status": "draft",  # 添加 status 字段
                 "created_at": "2024-01-02T14:00:00",
                 "updated_at": "2024-01-02T14:00:00",
                 "published_at": None,

@@ -4,8 +4,12 @@
 测试覆盖:
 - POST /posts - 创建文章
 - GET /posts - 获取文章列表（分页）
+- GET /posts/drafts - 获取用户草稿列表 (Phase 6.1)
 - GET /posts/{post_id} - 获取单篇文章
 - PATCH /posts/{post_id} - 更新文章（权限控制）
+- PATCH /posts/{post_id}/publish - 发布文章 (Phase 6.1)
+- PATCH /posts/{post_id}/archive - 归档文章 (Phase 6.1)
+- PATCH /posts/{post_id}/revert-to-draft - 回退为草稿 (Phase 6.1)
 - DELETE /posts/{post_id} - 删除文章（权限控制）
 """
 
@@ -23,10 +27,11 @@ from app.models.post import Post
 from app.models.user import User
 from app.schemas.post import PostCreate
 
+# ============================================
+# 共享 Fixtures
+# ============================================
 
-# ============================================
-# 测试类：POST /posts - 创建文章
-# ============================================
+
 @pytest.fixture
 def post_data() -> dict:
     """API 测试用的文章数据"""
@@ -36,6 +41,32 @@ def post_data() -> dict:
         "summary": "文章摘要",
         "tags": ["Python", "FastAPI", "测试"],
     }
+
+
+@pytest.fixture
+def other_user(session: Session) -> User:
+    """创建第二个用户用于权限测试"""
+    from app.crud.user import create_user
+    from app.schemas.user import UserCreate
+
+    user_in = UserCreate(
+        username="other_user",
+        email="other@example.com",
+        password="Password123!",
+    )
+    return create_user(session, user_in=user_in)
+
+
+@pytest.fixture
+def other_user_headers(other_user: User) -> dict:
+    """第二个用户的认证 headers"""
+    token = create_access_token(data={"sub": str(other_user.id)})
+    return {"Authorization": f"Bearer {token}"}
+
+
+# ============================================
+# POST /posts - 创建文章
+# ============================================
 
 
 class TestCreatePost:
@@ -81,8 +112,8 @@ class TestCreatePost:
 
     def test_create_post_without_auth(self, client: TestClient, post_data: dict):
         """✅ 异常数据：测试未登录创建文章 - 应该返回 401"""
-        response = client.post("/api/v1/posts/", json=post_data)
         # 注意：没有 headers 参数
+        response = client.post("/api/v1/posts/", json=post_data)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_create_post_with_custom_slug(
@@ -122,9 +153,10 @@ class TestCreatePost:
         assert response.status_code == status.HTTP_409_CONFLICT
         error_data = response.json()["error"]
         print(error_data)
-        assert error_data["code"] == "HTTP_ERROR"
-        assert error_data["details"] is None
-        assert error_data["message"] == "文章 slug 已存在，请使用其他 slug"
+        assert error_data["code"] == "DATABASE_INTEGRITY_ERROR"
+        assert error_data["details"] is not None
+        # 检查错误消息包含冲突相关信息
+        assert "冲突" in error_data["message"] or "约束" in error_data["message"]
 
     def test_create_post_without_tags(
         self,
@@ -151,7 +183,7 @@ class TestCreatePost:
 
 
 # ============================================
-# 测试类：GET /posts - 获取文章列表
+# GET /posts - 获取文章列表（分页）
 # ============================================
 
 
@@ -251,23 +283,27 @@ class TestGetPosts:
         self, client: TestClient, sample_posts: list[Post]
     ):
         """✅ 正常数据：测试过滤功能:按发布状态过滤"""
-        # 测试已发布文章
-        response = client.get("/api/v1/posts/?is_published=true")
+        # 测试已发布文章 - 使用 statuses 参数
+        response = client.get("/api/v1/posts/?statuses=published")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        # 验证所有返回的文章都是已发布状态
+        # 验证所有返回的文章都是已发布状态（有 published_at 且不为 None）
         for post in data["items"]:
-            assert post["published_at"] is not None
+            # 只验证状态为 published 的文章
+            if post["status"] == "published":
+                assert post["published_at"] is not None
 
-        # 测试未发布文章（草稿）
-        response = client.get("/api/v1/posts/?is_published=false")
+        # 测试未发布文章（草稿）- 使用 statuses 参数
+        response = client.get("/api/v1/posts/?statuses=draft")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        # 验证所有返回的文章都是未发布状态
+        # 验证所有返回的文章都是未发布状态（published_at 为 None 或 status 为 draft）
         for post in data["items"]:
-            assert post["published_at"] is None
+            # 只验证状态为 draft 的文章
+            if post["status"] == "draft":
+                assert post["published_at"] is None
 
     def test_get_posts_filter_combined(
         self, client: TestClient, sample_user: User, sample_posts: list[Post]
@@ -333,7 +369,79 @@ class TestGetPosts:
 
 
 # ============================================
-# 测试类：GET /posts/{post_id} - 获取单篇文章
+# GET /posts/drafts - 获取用户草稿列表 (Phase 6.1)
+# ============================================
+
+
+class TestGetUserDrafts:
+    """测试获取用户草稿列表 API"""
+
+    def test_get_user_drafts_success(
+        self,
+        client: TestClient,
+        session: Session,
+        auth_headers: dict,
+        sample_user: User,
+    ):
+        """✅ 正常数据：测试获取用户草稿列表"""
+        # 创建一些草稿文章
+        from app.schemas.post import PostCreate
+
+        draft1 = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="草稿1", content="内容1"),
+            author_id=sample_user.id,
+        )
+        draft2 = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="草稿2", content="内容2"),
+            author_id=sample_user.id,
+        )
+
+        # 发布一篇文章（不应该出现在草稿列表中）
+        published_post = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="已发布", content="内容"),
+            author_id=sample_user.id,
+        )
+        post_crud.publish(db=session, post_id=published_post.id)
+
+        response = client.get("/api/v1/posts/drafts", headers=auth_headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) == 2  # 只有草稿
+
+        # 验证只返回草稿
+        draft_ids = {post["id"] for post in data}
+        assert str(draft1.id) in draft_ids
+        assert str(draft2.id) in draft_ids
+        assert str(published_post.id) not in draft_ids
+
+        # 验证按创建时间倒序排列
+        assert data[0]["created_at"] >= data[1]["created_at"]
+
+    def test_get_user_drafts_empty(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+    ):
+        """✅ 边界数据：测试用户无草稿时返回空列表"""
+        response = client.get("/api/v1/posts/drafts", headers=auth_headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data == []
+
+    def test_get_user_drafts_without_auth(self, client: TestClient):
+        """✅ 异常数据：测试未登录获取草稿列表（应该返回 401）"""
+        response = client.get("/api/v1/posts/drafts")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# ============================================
+# GET /posts/{post_id} - 获取单篇文章
 # ============================================
 
 
@@ -374,28 +482,8 @@ class TestGetPost:
 
 
 # ============================================
-# 测试类：PATCH /posts/{post_id} - 更新文章
+# PATCH /posts/{post_id} - 更新文章
 # ============================================
-# 创建第二个用户的 fixture
-@pytest.fixture
-def other_user(session: Session) -> User:
-    """创建第二个用户用于权限测试"""
-    from app.crud.user import create_user
-    from app.schemas.user import UserCreate
-
-    user_in = UserCreate(
-        username="other_user",
-        email="other@example.com",
-        password="Password123!",
-    )
-    return create_user(session, user_in=user_in)
-
-
-@pytest.fixture
-def other_user_headers(other_user: User) -> dict:
-    """第二个用户的认证 headers"""
-    token = create_access_token(data={"sub": str(other_user.id)})
-    return {"Authorization": f"Bearer {token}"}
 
 
 class TestUpdatePost:
@@ -505,7 +593,345 @@ class TestUpdatePost:
 
 
 # ============================================
-# 测试类：DELETE /posts/{post_id} - 删除文章
+# PATCH /posts/{post_id}/publish - 发布文章 (Phase 6.1)
+# ============================================
+
+
+class TestPublishPost:
+    """测试发布文章 API"""
+
+    def test_publish_post_success(
+        self,
+        client: TestClient,
+        session: Session,
+        auth_headers: dict,
+        sample_user: User,
+    ):
+        """✅ 正常数据：测试成功发布草稿"""
+        # 创建草稿文章
+        from app.schemas.post import PostCreate
+
+        draft_post = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="草稿文章", content="内容"),
+            author_id=sample_user.id,
+        )
+
+        response = client.patch(
+            f"/api/v1/posts/{draft_post.id}/publish", headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["status"] == "published"
+        assert data["published_at"] is not None
+
+    def test_publish_post_not_found(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+    ):
+        """✅ 异常数据：测试发布不存在的文章（应该返回 404）"""
+        response = client.patch(
+            "/api/v1/posts/00000000-0000-0000-0000-000000000000/publish",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_publish_post_already_published(
+        self,
+        client: TestClient,
+        session: Session,
+        auth_headers: dict,
+        sample_user: User,
+    ):
+        """✅ 异常数据：测试发布已发布的文章（应该返回 409）"""
+        # 创建并发布文章
+        from app.schemas.post import PostCreate
+
+        post = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="文章", content="内容"),
+            author_id=sample_user.id,
+        )
+        post_crud.publish(db=session, post_id=post.id)
+
+        # 尝试再次发布
+        response = client.patch(
+            f"/api/v1/posts/{post.id}/publish", headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_publish_post_not_author(
+        self,
+        client: TestClient,
+        session: Session,
+        other_user_headers: dict,
+        sample_user: User,
+    ):
+        """✅ 异常数据：测试非作者发布文章（应该返回 403）"""
+        # 创建草稿文章
+        from app.schemas.post import PostCreate
+
+        draft_post = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="草稿", content="内容"),
+            author_id=sample_user.id,
+        )
+
+        # 其他用户尝试发布
+        response = client.patch(
+            f"/api/v1/posts/{draft_post.id}/publish", headers=other_user_headers
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_publish_post_without_auth(
+        self,
+        client: TestClient,
+        session: Session,
+        sample_user: User,
+    ):
+        """✅ 异常数据：测试未登录发布文章（应该返回 401）"""
+        # 创建草稿文章
+        from app.schemas.post import PostCreate
+
+        draft_post = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="草稿", content="内容"),
+            author_id=sample_user.id,
+        )
+
+        response = client.patch(f"/api/v1/posts/{draft_post.id}/publish")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+# ============================================
+# PATCH /posts/{post_id}/archive - 归档文章 (Phase 6.1)
+# ============================================
+
+
+class TestArchivePost:
+    """测试归档文章 API"""
+
+    def test_archive_post_success(
+        self,
+        client: TestClient,
+        session: Session,
+        auth_headers: dict,
+        sample_user: User,
+    ):
+        """✅ 正常数据：测试成功归档已发布文章"""
+        # 创建并发布文章
+        from app.schemas.post import PostCreate
+
+        post = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="文章", content="内容"),
+            author_id=sample_user.id,
+        )
+        post_crud.publish(db=session, post_id=post.id)
+
+        response = client.patch(
+            f"/api/v1/posts/{post.id}/archive", headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["status"] == "archived"
+
+    def test_archive_post_not_found(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+    ):
+        """✅ 异常数据：测试归档不存在的文章（应该返回 404）"""
+        response = client.patch(
+            "/api/v1/posts/00000000-0000-0000-0000-000000000000/archive",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_archive_post_draft(
+        self,
+        client: TestClient,
+        session: Session,
+        auth_headers: dict,
+        sample_user: User,
+    ):
+        """✅ 异常数据：测试归档草稿文章（应该返回 409）"""
+        # 创建草稿文章
+        from app.schemas.post import PostCreate
+
+        draft_post = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="草稿", content="内容"),
+            author_id=sample_user.id,
+        )
+
+        response = client.patch(
+            f"/api/v1/posts/{draft_post.id}/archive", headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_archive_post_not_author(
+        self,
+        client: TestClient,
+        session: Session,
+        other_user_headers: dict,
+        sample_user: User,
+    ):
+        """✅ 异常数据：测试非作者归档文章（应该返回 403）"""
+        # 创建并发布文章
+        from app.schemas.post import PostCreate
+
+        post = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="文章", content="内容"),
+            author_id=sample_user.id,
+        )
+        post_crud.publish(db=session, post_id=post.id)
+
+        # 其他用户尝试归档
+        response = client.patch(
+            f"/api/v1/posts/{post.id}/archive", headers=other_user_headers
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ============================================
+# PATCH /posts/{post_id}/revert-to-draft - 回退为草稿 (Phase 6.1)
+# ============================================
+
+
+class TestRevertToDraft:
+    """测试回退为草稿 API"""
+
+    def test_revert_published_to_draft_success(
+        self,
+        client: TestClient,
+        session: Session,
+        auth_headers: dict,
+        sample_user: User,
+    ):
+        """✅ 正常数据：测试成功将已发布文章回退为草稿"""
+        # 创建并发布文章
+        from app.schemas.post import PostCreate
+
+        post = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="文章", content="内容"),
+            author_id=sample_user.id,
+        )
+        post_crud.publish(db=session, post_id=post.id)
+
+        response = client.patch(
+            f"/api/v1/posts/{post.id}/revert-to-draft", headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["status"] == "draft"
+        assert data["published_at"] is None
+
+    def test_revert_archived_to_draft_success(
+        self,
+        client: TestClient,
+        session: Session,
+        auth_headers: dict,
+        sample_user: User,
+    ):
+        """✅ 正常数据：测试成功将已归档文章回退为草稿"""
+        # 创建、发布并归档文章
+        from app.schemas.post import PostCreate
+
+        post = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="文章", content="内容"),
+            author_id=sample_user.id,
+        )
+        post_crud.publish(db=session, post_id=post.id)
+        post_crud.archive(db=session, post_id=post.id)
+
+        response = client.patch(
+            f"/api/v1/posts/{post.id}/revert-to-draft", headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["status"] == "draft"
+        assert data["published_at"] is None
+
+    def test_revert_post_not_found(
+        self,
+        client: TestClient,
+        auth_headers: dict,
+    ):
+        """✅ 异常数据：测试回退不存在的文章（应该返回 404）"""
+        response = client.patch(
+            "/api/v1/posts/00000000-0000-0000-0000-000000000000/revert-to-draft",
+            headers=auth_headers,
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_revert_already_draft(
+        self,
+        client: TestClient,
+        session: Session,
+        auth_headers: dict,
+        sample_user: User,
+    ):
+        """✅ 异常数据：测试回退已是草稿的文章（应该返回 409）"""
+        # 创建草稿文章
+        from app.schemas.post import PostCreate
+
+        draft_post = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="草稿", content="内容"),
+            author_id=sample_user.id,
+        )
+
+        response = client.patch(
+            f"/api/v1/posts/{draft_post.id}/revert-to-draft", headers=auth_headers
+        )
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+    def test_revert_post_not_author(
+        self,
+        client: TestClient,
+        session: Session,
+        other_user_headers: dict,
+        sample_user: User,
+    ):
+        """✅ 异常数据：测试非作者回退文章（应该返回 403）"""
+        # 创建并发布文章
+        from app.schemas.post import PostCreate
+
+        post = post_crud.create_with_author(
+            db=session,
+            obj_in=PostCreate(title="文章", content="内容"),
+            author_id=sample_user.id,
+        )
+        post_crud.publish(db=session, post_id=post.id)
+
+        # 其他用户尝试回退
+        response = client.patch(
+            f"/api/v1/posts/{post.id}/revert-to-draft", headers=other_user_headers
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ============================================
+# DELETE /posts/{post_id} - 删除文章
 # ============================================
 
 

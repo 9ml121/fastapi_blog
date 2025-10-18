@@ -7,6 +7,7 @@ Pytest 配置文件 - 定义共享的 fixture
 import sqlite3
 import uuid
 from collections.abc import Callable, Generator
+from datetime import datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,11 +16,13 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import ConnectionPoolEntry
 
 from app.core.security import create_access_token
+from app.crud.post import post as post_crud
 from app.db.database import Base
 
-# 导入所有模型，确保它们注册到 Base.metadata
-# 这样 create_all() 才能创建所有表
+# 导入所有模型，确保它们注册到 Base.metadata,这样 create_all() 才能创建所有表
 from app.models import Comment, Post, PostView, Tag, User  # noqa: F401
+from app.models.post import PostStatus
+from app.schemas.post import PostCreate
 
 # ============================================
 # 数据库相关 Fixture
@@ -188,7 +191,7 @@ def sample_post(session: Session, sample_user: User) -> Post:
 
 
 # ============================================
-# 辅助 Fixture
+# 用于测试 models 原始数据工厂函数 Fixture
 # ============================================
 
 
@@ -287,3 +290,144 @@ def auth_headers(sample_user: User) -> dict:
     """生成认证 headers（直接生成 token，不调用登录接口）"""
     token = create_access_token(data={"sub": str(sample_user.id)})
     return {"Authorization": f"Bearer {token}"}
+
+
+# ============================================
+# 多个用户和文章数据 Fixture
+# ============================================
+@pytest.fixture
+def sample_users(session: Session, sample_user: User) -> list[User]:
+    """创建多个测试用户，包含 sample_user
+
+    创建 2 个额外的测试用户，用于：
+    - 测试用户 API 端点
+    - 作为文章和评论的作者
+    - 避免与 sample_user 冲突
+    """
+    from app.crud.user import create_user
+    from app.schemas.user import UserCreate
+
+    users = [sample_user]
+    user_templates = [
+        {
+            "username": "zhangsan",
+            "email": "zhangsan@example.com",
+            "password": "testpassword123",
+        },
+        {
+            "username": "lisi",
+            "email": "lisi@example.com",
+            "password": "testpassword123",
+        },
+    ]
+
+    for template in user_templates:
+        user_data = UserCreate(**template)
+        user = create_user(session, user_in=user_data)
+        users.append(user)
+
+    return users
+
+
+@pytest.fixture
+def sample_posts(session: Session, sample_user: User) -> list[Post]:
+    """创建多样化的测试文章数据
+
+    - 使用 sample_user 作为作者
+    - 不同标签（Python, FastAPI, Web开发, 教程, 实战）
+    - 不同发布状态（已发布、草稿、 归档）
+    - 不同发布时间（分散在最近30天内）
+    - 不同标题内容（便于测试模糊搜索）
+    """
+
+    # 定义测试数据模板
+    post_templates = [
+        # 已发布的文章
+        {
+            "title": "Python 入门教程",
+            "content": "Python 是一门简单易学的编程语言...",
+            "summary": "Python 基础语法介绍",
+            "tags": ["Python", "教程"],
+            "status": PostStatus.PUBLISHED,
+            "published_at_offset": None,  # 25天前发布
+        },
+        {
+            "title": "FastAPI 快速开发指南",
+            "content": "FastAPI 是现代 Python Web 框架...",
+            "summary": "FastAPI 核心特性介绍",
+            "tags": ["FastAPI", "Web开发"],
+            "status": PostStatus.PUBLISHED,
+            "published_at_offset": -20,
+        },
+        {
+            "title": "Web 开发最佳实践",
+            "content": "现代 Web 开发需要考虑很多因素...",
+            "summary": "Web 开发经验总结",
+            "tags": ["Web开发", "实战"],
+            "status": PostStatus.PUBLISHED,
+            "published_at_offset": -15,
+        },
+        {
+            "title": "Python 数据分析实战",
+            "content": "使用 Python 进行数据分析...",
+            "summary": "数据分析项目实战",
+            "tags": ["Python", "实战"],
+            "status": PostStatus.PUBLISHED,
+            "published_at_offset": -10,
+        },
+        # 归档文章
+        {
+            "title": "FastAPI 性能优化技巧",
+            "content": "如何优化 FastAPI 应用性能...",
+            "summary": "性能优化经验分享",
+            "tags": ["FastAPI", "性能"],
+            "status": PostStatus.ARCHIVED,
+            "published_at_offset": -5,
+        },
+        # 草稿文章
+        {
+            "title": "Django vs FastAPI 对比",
+            "content": "Django 和 FastAPI 的详细对比...",
+            "summary": "框架对比分析",
+            "tags": ["Django", "FastAPI"],
+            "status": PostStatus.DRAFT,
+            "published_at_offset": -1,
+        },
+        {
+            "title": "Python 异步编程详解",
+            "content": "深入理解 Python 异步编程...",
+            "summary": "异步编程概念解析",
+            "tags": ["Python", "异步"],
+            "status": PostStatus.DRAFT,
+            "published_at_offset": None,
+        },
+    ]
+
+    posts = []
+    base_time = datetime.now()
+
+    for _, template in enumerate(post_templates):
+        # 创建文章
+        post_in = PostCreate(
+            title=template["title"],
+            content=template["content"],
+            summary=template["summary"],
+            tags=template["tags"],
+        )
+
+        post = post_crud.create_with_author(
+            db=session, obj_in=post_in, author_id=sample_user.id
+        )
+
+        # 手动设置发布状态和发布时间
+        post.status = template["status"]
+        if template["published_at_offset"] is not None:
+            post.published_at = base_time + timedelta(
+                days=template["published_at_offset"]
+            )
+
+        session.add(post)
+        posts.append(post)
+
+    session.commit()
+    return posts

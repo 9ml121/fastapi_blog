@@ -24,7 +24,6 @@ from sqlalchemy import func, select
 from app.api.pagination import (
     PaginatedResponse,
     PaginationParams,
-    apply_safe_sorting,
     get_sortable_columns,
     paginate_query,
 )
@@ -249,63 +248,6 @@ class TestGetSortableColumns:
         assert "comments" not in sortable_fields
 
 
-class TestApplySafeSorting:
-    """测试安全排序功能"""
-
-    def test_apply_safe_sorting_valid_field(self, session):
-        """✅ 正常数据：有效字段排序"""
-        from app.models.post import Post
-
-        query = select(Post)
-        model = Post
-        sort_field = "created_at"
-        sort_order = "desc"
-
-        # 应用排序
-        sorted_query = apply_safe_sorting(query, model, sort_field, sort_order)
-
-        # 验证查询对象被修改
-        assert sorted_query is not None
-        # 注意：这里我们主要测试函数不抛出异常
-        # 实际的SQL生成测试需要更复杂的设置
-
-    def test_apply_safe_sorting_asc_order(self, session):
-        """✅ 正常数据：升序排序"""
-        from app.models.post import Post
-
-        query = select(Post)
-        model = Post
-        sort_field = "title"
-        sort_order = "asc"
-
-        sorted_query = apply_safe_sorting(query, model, sort_field, sort_order)
-        assert sorted_query is not None
-
-    def test_apply_safe_sorting_invalid_field(self, session):
-        """❌ 异常数据：无效字段"""
-        from app.models.post import Post
-
-        query = select(Post)
-        model = Post
-        sort_field = "nonexistent_field"
-        sort_order = "desc"
-
-        with pytest.raises(ValueError):
-            apply_safe_sorting(query, model, sort_field, sort_order)
-
-    def test_apply_safe_sorting_sql_injection_attempt(self, session):
-        """❌ 异常数据：SQL注入尝试"""
-        from app.models.post import Post
-
-        query = select(Post)
-        model = Post
-        sort_field = "id; DROP TABLE posts; --"
-        sort_order = "desc"
-
-        with pytest.raises(ValueError):
-            apply_safe_sorting(query, model, sort_field, sort_order)
-
-
 class TestPaginateQuery:
     """测试分页查询函数"""
 
@@ -404,6 +346,29 @@ class TestPaginateQuery:
 
         query = select(Post)
         params = PaginationParams(sort="invalid_field")
+
+        with pytest.raises(ValueError):
+            paginate_query(session, query, params, model=Post)
+
+    def test_paginate_query_asc_order(self, session, post_datas):
+        """✅ 正常数据：升序排序"""
+        query = select(Post)
+        params = PaginationParams(page=1, size=5, sort="created_at", order="asc")
+
+        items, total = paginate_query(session, query, params, model=Post)
+
+        # 验证升序排序：第一条应该 <= 第二条 <= 第三条
+        assert len(items) >= 3
+        assert items[0].created_at <= items[1].created_at
+        assert items[1].created_at <= items[2].created_at
+
+    def test_paginate_query_sql_injection_attempt(self, session, sample_post):
+        """❌ 异常数据：SQL注入尝试"""
+        from app.models.post import Post
+
+        query = select(Post)
+        # 尝试通过排序字段进行SQL注入
+        params = PaginationParams(sort="id; DROP TABLE posts; --")
 
         with pytest.raises(ValueError):
             paginate_query(session, query, params, model=Post)

@@ -8,17 +8,25 @@
    （POST=创建, GET=查询, PATCH=更新, DELETE=删除）
 2. 依赖注入链：db → current_user → current_active_user，每层只负责一个验证步骤
 3. Response Model：FastAPI 自动将 ORM 对象转为 Pydantic Schema，过滤敏感字段
-4. 异常处理：用 HTTPException 返回标准错误响应（状态码 + detail）
+
+📋 FastAPI 参数顺序规则：
+1.路径参数 (post_id: UUID) - 必须在前
+2.请求体参数 (post_in: PostUpdate) - 在路径参数之后
+3.查询参数 (params: PaginationParams) - 在请求体参数之后
+4.依赖注入参数 (db: Session = Depends(...)) - 必须在最后
 """
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.exc import IntegrityError
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_user, get_db
 from app.api.pagination import PaginatedResponse, PaginationParams
+from app.core.exceptions import (
+    PermissionDeniedError,
+    ResourceNotFoundError,
+)
 from app.crud.post import post as post_crud
 from app.models.user import User
 from app.schemas.post import PostCreate, PostFilters, PostResponse, PostUpdate
@@ -33,7 +41,7 @@ async def create_post(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> PostResponse:
-    """创建新文章
+    """创建新文章，默认创建为草稿状态
 
     **权限**: 需要登录且账户活跃
 
@@ -53,22 +61,12 @@ async def create_post(
             "tags": ["Python", "FastAPI", "Web开发"]
         }
     """
-    try:
-        new_post = post_crud.create_with_author(
-            db=db,
-            obj_in=post_in,
-            author_id=current_user.id,
-        )
-        return new_post  # type: ignore
-    except IntegrityError:
-        # 数据库唯一约束冲突（如 slug 重复）
-        # 显式抑制异常链， from None 转换所有数据库异常！
-        # ⚠️ 避免隐式异常链暴露数据库内部错误！
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="文章 slug 已存在，请使用其他 slug",
-        ) from None
+    new_post = post_crud.create_with_author(
+        db=db,
+        obj_in=post_in,
+        author_id=current_user.id,
+    )
+    return new_post  # type: ignore
 
 
 @router.get("/", response_model=PaginatedResponse[PostResponse])
@@ -106,18 +104,31 @@ async def get_posts(
     - GET /api/v1/posts/?published_at_from=2024-06-01T00:00:00Z
             &is_published=true
     """
-    try:
-        # 调用 CRUD 方法获取分页数据
-        posts, total = post_crud.get_paginated(db, params=params, filters=filters)
+    # 调用 CRUD 方法获取分页数据
+    posts, total = post_crud.get_paginated(db, params=params, filters=filters)
 
-        # 构建分页响应（FastAPI 会自动将 Post 转换为 PostResponse）
-        return PaginatedResponse.create(posts, total, params)  # type: ignore
-    except ValueError as e:
-        # 排序字段验证失败
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from None
+    # 构建分页响应
+    return PaginatedResponse.create(posts, total, params)  # type: ignore
+
+
+@router.get("/drafts", response_model=list[PostResponse])
+async def get_user_drafts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> list[PostResponse]:
+    """查看用户草稿列表
+
+    **权限**: 需要登录且是文章作者
+
+    **返回**:
+    - 200: 用户草稿列表
+    - 403: 无权限查看草稿列表
+
+    **示例**:
+        GET /api/v1/posts/user/drafts
+    """
+    drafts = post_crud.get_user_drafts(db, user_id=current_user.id)
+    return drafts  # type: ignore
 
 
 @router.get("/{post_id}", response_model=PostResponse)
@@ -141,10 +152,7 @@ async def get_post(
     """
     post = post_crud.get(db, id=post_id)
     if not post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="文章不存在",
-        )
+        raise ResourceNotFoundError(resource="文章")
 
     return post  # type: ignore
 
@@ -181,14 +189,11 @@ async def update_post(
     # 1. 获取文章
     post = post_crud.get(db, id=post_id)
     if not post:
-        raise HTTPException(404, "文章不存在")
+        raise ResourceNotFoundError(resource="文章")
 
     # 2. 检查权限：只有作者可以更新
     if post.author_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权限修改此文章",
-        )
+        raise PermissionDeniedError(message="无权限修改此文章")
 
     # 3. 执行更新
     updated_post = post_crud.update(db=db, db_obj=post, obj_in=post_in)
@@ -220,17 +225,128 @@ async def delete_post(
     # 1. 获取文章并检查存在性
     post = post_crud.get(db, id=post_id)
     if not post:
-        raise HTTPException(404, "文章不存在")
+        raise ResourceNotFoundError(resource="文章")
 
     # 2. 检查权限：只有作者可以删除
     if post.author_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权限删除此文章",
-        )
+        raise PermissionDeniedError(message="无权限删除此文章")
 
     # 3. 执行删除
     post_crud.remove(db, id=post_id)
 
     # FastAPI 自动返回 204
     return None
+
+
+@router.patch("/{post_id}/publish", response_model=PostResponse)
+async def publish_post(
+    post_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> PostResponse:
+    """发布文章
+
+    **权限**: 需要登录且是文章作者或admin
+
+    **NOTE**:
+    1. 管理员可以发布任何文章，作者只能发布自己的文章
+    2. 只有草稿状态的文章才能发布,如果要重新发布已归档的，应该先转回草稿
+
+    **路径参数**:
+    - post_id: 文章的 UUID
+
+    **返回**:
+    - 200: 发布成功
+    - 404: 文章不存在
+    - 403: 无权限发布此文章
+    - 409: 文章状态不正确，只有草稿状态才能发布
+
+    **示例**:
+        PATCH /api/v1/posts/123e4567-e89b-12d3-a456-426614174000/publish
+
+    """
+    post = post_crud.get(db, id=post_id)
+    if not post:
+        raise ResourceNotFoundError(resource="文章")
+
+    # 检查权限：作者或管理员
+    if post.author_id != current_user.id and not current_user.is_admin:
+        raise PermissionDeniedError(message="无权限发布此文章")
+
+    # 执行发布
+    published_post = post_crud.publish(db, post_id=post_id)
+
+    return published_post  # type: ignore
+
+
+@router.patch("/{post_id}/archive", response_model=PostResponse)
+async def archive_post(
+    post_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> PostResponse:
+    """归档文章
+
+    **权限**: 需要登录且是文章作者或admin
+
+    **路径参数**:
+    - post_id: 文章的 UUID
+
+    **返回**:
+    - 200: 归档成功
+    - 404: 文章不存在
+    - 403: 无权限归档此文章
+    - 409: 文章状态不正确，只有已发布状态才能归档
+
+    **示例**:
+        PATCH /api/v1/posts/123e4567-e89b-12d3-a456-426614174000/archive
+    """
+    # 1. 检查文章是否存在和权限
+    post = post_crud.get(db, id=post_id)
+    if not post:
+        raise ResourceNotFoundError(resource="文章")
+
+    # 2. 检查权限：作者或管理员
+    if post.author_id != current_user.id and not current_user.is_admin:
+        raise PermissionDeniedError(message="无权限归档此文章")
+
+    # 3. 执行归档
+    archived_post = post_crud.archive(db, post_id=post_id)
+
+    return archived_post  # type: ignore
+
+
+@router.patch("/{post_id}/revert-to-draft", response_model=PostResponse)
+async def revert_to_draft(
+    post_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> PostResponse:
+    """回退文章为草稿状态
+
+    **权限**: 需要登录且是文章作者或 admin
+
+    **使用场景**:
+    - 已发布文章需要修改：回退为草稿 → 编辑 → 重新发布
+    - 已归档文章需要重新处理：回退为草稿 → 编辑或发布
+
+    **路径参数**:
+    - post_id: 文章的 UUID
+
+    **返回**:
+    - 200: 回退成功
+    - 404: 文章不存在
+    - 403: 无权限回退此文章
+    - 409: 文章已是草稿状态
+    """
+    # 1. 检查文章是否存在和权限
+    post = post_crud.get(db, id=post_id)
+    if not post:
+        raise ResourceNotFoundError(resource="文章")
+
+    if post.author_id != current_user.id and not current_user.is_admin:
+        raise PermissionDeniedError(message="无权限回退此文章")
+
+    # 2. 执行回退操作（业务规则校验在 CRUD 层）
+    reverted_post = post_crud.revert_to_draft(db, post_id=post_id)
+    return reverted_post  # type: ignore

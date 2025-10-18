@@ -43,18 +43,18 @@ class Base(DeclarativeBase):
 
 
 def get_db() -> Generator[Session, None, None]:
-    """
-    数据库会话依赖注入函数
+    """数据库会话依赖注入函数
 
+    说明：
     这个函数将被 FastAPI 的依赖注入系统使用：
     - 自动创建数据库会话
     - 在请求结束时自动关闭会话
     - 异常时自动回滚事务
 
-    使用方式：
-    @app.get("/users/")
-    def read_users(db: Session = Depends(get_db)):
-        return crud.get_users(db)
+    示例：
+    >>> @app.get("/users/")
+    >>> def read_users(db: Session = Depends(get_db)):
+    ...     return crud.get_users(db)
     """
     db = SessionLocal()
     try:
@@ -64,8 +64,7 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def create_all_tables():
-    """
-    创建所有数据库表
+    """创建所有数据库表
 
     注意：在生产环境中，我们会使用 Alembic 进行数据库迁移
     这个函数主要用于开发和测试环境
@@ -74,8 +73,7 @@ def create_all_tables():
 
 
 def drop_all_tables():
-    """
-    删除所有数据库表
+    """删除所有数据库表
 
     警告：这个函数会删除所有数据，仅用于开发和测试环境
     """

@@ -128,6 +128,27 @@ class InvalidPasswordError(AppError):
         )
 
 
+class InvalidParametersError(AppError):
+    """参数验证错误异常
+
+    使用场景：
+    - 排序字段无效
+    - 过滤条件格式错误
+    - 分页参数越界
+
+    Example:
+        >>> if invalid_sort_field:
+        >>>     raise InvalidParametersError(message="排序字段 'invalid_field' 不存在")
+    """
+
+    def __init__(self, message: str = "参数验证失败"):
+        super().__init__(
+            code="INVALID_PARAMETERS",
+            message=message,
+            status_code=400,
+        )
+
+
 # ============ 授权相关异常 ============
 
 

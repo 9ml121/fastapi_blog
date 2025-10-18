@@ -20,12 +20,14 @@ from sqlalchemy import asc, desc, func, inspect, select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select
 
+from app.core.exceptions import InvalidParametersError
 from app.db.database import Base
 
 ItemType = TypeVar("ItemType")
 ModelType = TypeVar("ModelType", bound=Base)
 
 
+# TODO: 多字段排序缺失（P1 - 中优先级）
 class PaginationParams(BaseModel):
     """分页查询参数
 
@@ -34,6 +36,7 @@ class PaginationParams(BaseModel):
         size: 每页数量（1-100）
         sort: 排序字段
         order: 排序方向（asc/desc）
+
     """
 
     page: int = Field(default=1, ge=1, description="页码（从1开始）")
@@ -108,6 +111,7 @@ class PaginatedResponse(BaseModel, Generic[ItemType]):
         )
 
 
+# TODO: 应该为内部函数，函数名称用_开头
 def get_sortable_columns(model: type[ModelType]) -> dict[str, Any]:
     """动态获取模型的可排序字段
 
@@ -137,7 +141,7 @@ def get_sortable_columns(model: type[ModelType]) -> dict[str, Any]:
     return sortable_fields
 
 
-def apply_safe_sorting(
+def _apply_safe_sorting(
     query: Select[tuple[ModelType]],
     model: type[ModelType],
     sort_field: str,
@@ -194,7 +198,7 @@ def paginate_query(
     *,
     count_query: Select[tuple[int]] | None = None,
 ) -> tuple[list[ModelType], int]:
-    """执行分页查询（支持安全排序）
+    """执行分页查询（Offset-based, 支持安全排序）
 
     Args:
         db: 数据库会话
@@ -222,7 +226,7 @@ def paginate_query(
     """
     try:
         # 应用安全排序
-        query = apply_safe_sorting(query, model, params.sort, params.order)
+        query = _apply_safe_sorting(query, model, params.sort, params.order)
 
         # 获取总数
         if count_query is None:
@@ -237,9 +241,6 @@ def paginate_query(
 
         return items, total
 
-    except ValueError:
+    except ValueError as e:
         # 排序字段验证失败，重新抛出
-        raise
-    except Exception as e:
-        # 捕获其他数据库异常
-        raise RuntimeError(f"Pagination query failed: {e}") from e
+        raise InvalidParametersError(message=str(e)) from e

@@ -15,6 +15,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.post import PostStatus
+
 from .tag import TagResponse
 from .user import UserResponse
 
@@ -47,11 +49,15 @@ class PostCreate(PostBase):
     特点：
     - 继承 PostBase 的所有字段。
     - 允许客户端直接传递一个字符串列表作为标签，后端将处理"获取或创建"逻辑。
+    - status 字段允许指定初始状态，默认为 draft（草稿）
     - ⚠️ post创建模型不能包含 author_id 隐私字段
 
     用途：POST /api/v1/posts/
     """
 
+    status: PostStatus = Field(
+        default=PostStatus.DRAFT, description="文章初始状态（draft/published/archived）"
+    )
     tags: list[str] | None = Field(default=None, description="与文章关联的标签名称列表")
 
     model_config = ConfigDict(
@@ -65,6 +71,7 @@ class PostCreate(PostBase):
                 ),
                 "summary": "本文将带你入门 FastAPI。",
                 "slug": "how-to-build-api-with-fastapi",
+                "status": "draft",
                 "tags": ["python", "fastapi", "webdev"],
             }
         },
@@ -78,6 +85,7 @@ class PostUpdate(BaseModel):
 
     特点：
     - 所有字段都是可选的，支持部分更新（PATCH）。
+    - 包含 `status` 字段，允许更改文章状态（发布、撤回、归档）
     - 包含 `tags` 字段，允许全量更新文章的标签关联。
 
     用途：PATCH /api/v1/posts/{post_id}
@@ -87,6 +95,9 @@ class PostUpdate(BaseModel):
     content: str | None = Field(default=None, min_length=1)
     summary: str | None = Field(default=None, max_length=500)
     slug: str | None = Field(default=None, max_length=200)
+    status: PostStatus | None = Field(
+        default=None, description="文章状态（draft/published/archived）"
+    )
     tags: list[str] | None = Field(
         default=None, description="文章的全新标签列表，将覆盖旧的标签"
     )
@@ -97,6 +108,7 @@ class PostUpdate(BaseModel):
             "example": {
                 "title": "如何用 FastAPI 构建现代 API (已更新)",
                 "content": "在原文基础上，增加关于依赖注入的章节。",
+                "status": "published",
                 "tags": ["python", "fastapi", "di"],
             }
         },
@@ -112,6 +124,7 @@ class PostResponse(PostBase):
     - 继承 PostBase 的核心字段。
     - 包含 `author` 和 `tags` 的完整嵌套信息，使用对应的 Response Schema。
     - 包含所有系统生成的和用于展示的状态字段。
+    - 包含 `status` 字段，用于前端判断文章可见性
     - ⚠️ 不包含任何未来可能添加的敏感字段。
 
     用途：所有返回单个或多个文章信息的 API 端点。
@@ -120,6 +133,7 @@ class PostResponse(PostBase):
     id: UUID = Field(description="文章唯一标识符")
     author: UserResponse = Field(description="文章作者的详细信息")
     tags: list[TagResponse] = Field(default=[], description="与文章关联的标签列表")
+    status: PostStatus = Field(description="文章状态（draft/published/archived）")
     created_at: datetime = Field(description="文章创建时间")
     updated_at: datetime = Field(description="文章最后更新时间")
     published_at: datetime | None = Field(
@@ -135,6 +149,7 @@ class PostResponse(PostBase):
                 {
                     "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
                     "title": "探索 FastAPI 的强大功能",
+                    "status": "published",
                     "content": "FastAPI 是一个现代、快速的 Web 框架...",
                     "summary": "本文介绍了 FastAPI 的核心特性...",
                     "slug": "explore-fastapi-features",
@@ -171,8 +186,7 @@ class PostResponse(PostBase):
 
 # ============ 过滤模型 ============
 class PostFilters(BaseModel):
-    """
-    文章过滤条件
+    """文章过滤条件
 
     用于文章列表查询时的过滤参数，支持多种过滤条件组合。
 
@@ -180,6 +194,7 @@ class PostFilters(BaseModel):
     - 所有字段都是可选的，支持任意组合过滤
     - 使用 Field 提供清晰的描述和示例
     - 禁止额外字段，确保类型安全
+    - statuses 支持多选，允许同时查询多种状态
 
     用途：GET /api/v1/posts/ 的查询参数
     """
@@ -194,8 +209,10 @@ class PostFilters(BaseModel):
         description="按标签名称过滤文章",
         examples=["Python", "FastAPI", "Web开发"],
     )
-    is_published: bool | None = Field(
-        default=None, description="按发布状态过滤文章", examples=[True, False]
+    statuses: list[PostStatus] | None = Field(
+        default=None,
+        description="按文章状态过滤（支持多选）",
+        examples=[["draft", "published"], ["published"]],
     )
     title_contains: str | None = Field(
         default=None,
@@ -219,7 +236,7 @@ class PostFilters(BaseModel):
             "example": {
                 "author_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
                 "tag_name": "Python",
-                "is_published": True,
+                "statuses": ["published"],
                 "title_contains": "FastAPI",
                 "published_at_from": "2024-06-01T00:00:00Z",
                 "published_at_to": "2024-06-30T23:59:59Z",

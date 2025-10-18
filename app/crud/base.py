@@ -59,6 +59,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     ) -> list[ModelType]:
         """获取记录列表（支持分页）。
 
+        .. deprecated:: 1.0.0
+        已弃用。请使用app.api.pagination.paginate_query() 替代。
+
         Args:
             db: 数据库会话。
             skip: 跳过的记录数。

@@ -72,8 +72,6 @@ def sample_posts(session: Session, sample_users: list[User]) -> list[Post]:
     - 不同发布时间（分散在最近30天内）
     - 不同标题内容（便于测试模糊搜索）
     """
-    # 使用前3个用户作为文章作者
-    all_authors = sample_users[:3]
 
     # 定义测试数据模板
     post_templates = [
@@ -204,6 +202,7 @@ def sample_posts(session: Session, sample_users: list[User]) -> list[Post]:
 
     posts = []
     base_time = datetime.now()
+    all_authors = sample_users[:2]
 
     for i, template in enumerate(post_templates):
         # 轮换分配作者
