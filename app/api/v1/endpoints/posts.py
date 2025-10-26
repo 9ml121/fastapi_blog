@@ -19,22 +19,29 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+import app.crud.post as post_crud
 from app.api.deps import get_current_active_user, get_db
-from app.api.pagination import PaginatedResponse, PaginationParams
 from app.core.exceptions import (
-    PermissionDeniedError,
     ResourceNotFoundError,
 )
-from app.crud.post import post as post_crud
+from app.core.pagination import PaginatedResponse
 from app.models.user import User
-from app.schemas.post import PostCreate, PostFilters, PostResponse, PostUpdate
+from app.schemas.post import (
+    PostCreate,
+    PostFilters,
+    PostPaginationParams,
+    PostResponse,
+    PostUpdate,
+)
 
 # 创建路由器
 router = APIRouter()
 
 
+# ============================= 创建文章 ===========================
 @router.post(path="/", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
 async def create_post(
     post_in: PostCreate,
@@ -61,56 +68,68 @@ async def create_post(
             "tags": ["Python", "FastAPI", "Web开发"]
         }
     """
-    new_post = post_crud.create_with_author(
-        db=db,
-        obj_in=post_in,
-        author_id=current_user.id,
-    )
+    new_post = post_crud.create_post(db=db, post_in=post_in, author_id=current_user.id)
     return new_post  # type: ignore
 
 
+# ============================= 查询已发布文章列表 ===========================
 @router.get("/", response_model=PaginatedResponse[PostResponse])
-async def get_posts(
-    params: PaginationParams = Depends(),
-    filters: PostFilters = Depends(),
+async def get_published_posts(
+    pagination_params: PostPaginationParams = Depends(),
+    filters_params: PostFilters = Depends(),
     db: Session = Depends(get_db),
 ) -> PaginatedResponse[PostResponse]:
-    """获取文章列表（支持分页、排序、过滤）
+    """获取已发布文章列表（支持分页、排序、过滤）
 
     **权限**: 公开访问，无需登录
 
     **查询参数**:
-    - page: 页码（从1开始，默认1）
-    - size: 每页数量（1-100，默认20）
-    - sort: 排序字段（默认created_at）
-    - order: 排序方向（asc/desc，默认desc）
-    - author_id: 按作者ID过滤（可选）
-    - tag_name: 按标签名称过滤（可选）
-    - is_published: 按发布状态过滤（可选）
-    - title_contains: 按标题关键词过滤（可选）
-    - published_at_from: 按发布时间范围过滤（起始时间，可选）
-    - published_at_to: 按发布时间范围过滤（结束时间，可选）
+    【分页参数】
+        - page: 页码（从1开始，默认1）
+        - size: 每页数量（1-100，默认20）
+        - sort: 排序字段（⚠️默认优先显示置顶文章，然后是published_at）
+        - order: 排序方向（asc/desc，默认desc）
+        - prioritize_featured: 是否优先显示置顶文章（默认True）
+    【过滤参数】
+        - author_id: 按作者ID过滤（可选）
+        - tag_name: 按标签名称过滤（可选）
+        - title_contains: 按标题关键词过滤（可选）
+        - published_at_from: 按发布时间范围过滤（起始时间，可选）
+        - published_at_to: 按发布时间范围过滤（结束时间，可选）
 
     **返回**:
-    - 200: 分页的文章列表
-    - 422: 参数验证失败
+        - 200: 分页的文章列表
+        - 422: 参数验证失败
 
     **示例**:
-    - GET /api/v1/posts/?page=1&size=10&sort=created_at&order=desc
-    - GET /api/v1/posts/?author_id=123&is_published=true
-    - GET /api/v1/posts/?tag_name=Python&title_contains=FastAPI
-    - GET /api/v1/posts/?published_at_from=2024-06-01T00:00:00Z
-            &published_at_to=2024-06-30T23:59:59Z
-    - GET /api/v1/posts/?published_at_from=2024-06-01T00:00:00Z
-            &is_published=true
+        - GET /api/v1/posts/?page=1&size=10&sort=created_at&order=desc
+        - GET /api/v1/posts/?author_id=123
+        - GET /api/v1/posts/?tag_name=Python&title_contains=FastAPI
+        - GET /api/v1/posts/?published_at_from=2024-06-01T00:00:00Z
+                &published_at_to=2024-06-30T23:59:59Z
+        - GET /api/v1/posts/?published_at_from=2024-06-01T00:00:00Z
     """
-    # 调用 CRUD 方法获取分页数据
-    posts, total = post_crud.get_paginated(db, params=params, filters=filters)
+    # 构建查询对象
+    response = post_crud.get_published_posts_paginated(
+        db, filters_params=filters_params, pagination_params=pagination_params
+    )
+    return response  # type: ignore
 
-    # 构建分页响应
-    return PaginatedResponse.create(posts, total, params)  # type: ignore
+# ============================= 查询置顶文章列表 ===========================
+@router.get("/featured", response_model=PaginatedResponse[PostResponse])
+async def get_featured_posts(
+    pagination_params: PostPaginationParams = Depends(),
+    db: Session = Depends(get_db),
+) -> PaginatedResponse[PostResponse]:
+    """获取置顶文章列表"""
+    featured_posts = post_crud.get_featured_posts(
+        db=db, pagination_params=pagination_params
+    )
+
+    return featured_posts  # type: ignore
 
 
+# ============================= 查询用户草稿列表 ===========================
 @router.get("/drafts", response_model=list[PostResponse])
 async def get_user_drafts(
     db: Session = Depends(get_db),
@@ -131,8 +150,9 @@ async def get_user_drafts(
     return drafts  # type: ignore
 
 
+# ============================= 查询单篇文章详情 ===========================
 @router.get("/{post_id}", response_model=PostResponse)
-async def get_post(
+async def get_post_detail(
     post_id: UUID,
     db: Session = Depends(get_db),
 ) -> PostResponse:
@@ -150,13 +170,15 @@ async def get_post(
     **示例**:
         GET /api/v1/posts/123e4567-e89b-12d3-a456-426614174000
     """
-    post = post_crud.get(db, id=post_id)
+    post = post_crud.get_post_by_id(db, post_id=post_id)
     if not post:
         raise ResourceNotFoundError(resource="文章")
-
     return post  # type: ignore
 
 
+
+
+# ============================= 更新文章 ===========================
 @router.patch("/{post_id}", response_model=PostResponse)
 async def update_post(
     post_id: UUID,
@@ -186,58 +208,15 @@ async def update_post(
             "tags": ["Python", "FastAPI"]
         }
     """
-    # 1. 获取文章
-    post = post_crud.get(db, id=post_id)
-    if not post:
-        raise ResourceNotFoundError(resource="文章")
 
-    # 2. 检查权限：只有作者可以更新
-    if post.author_id != current_user.id:
-        raise PermissionDeniedError(message="无权限修改此文章")
-
-    # 3. 执行更新
-    updated_post = post_crud.update(db=db, db_obj=post, obj_in=post_in)
+    updated_post = post_crud.update_post(
+        db=db, post_id=post_id, user_id=current_user.id, post_in=post_in
+    )
 
     return updated_post  # type: ignore
 
 
-@router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_post(
-    post_id: UUID,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-) -> None:
-    """删除文章
-
-    **权限**: 需要登录且是文章作者
-
-    **路径参数**:
-    - post_id: 文章的 UUID
-
-    **返回**:
-    - 204: 删除成功（无响应体）
-    - 404: 文章不存在
-    - 403: 无权限删除此文章
-
-    **示例**:
-        DELETE /api/v1/posts/123e4567-e89b-12d3-a456-426614174000
-    """
-    # 1. 获取文章并检查存在性
-    post = post_crud.get(db, id=post_id)
-    if not post:
-        raise ResourceNotFoundError(resource="文章")
-
-    # 2. 检查权限：只有作者可以删除
-    if post.author_id != current_user.id:
-        raise PermissionDeniedError(message="无权限删除此文章")
-
-    # 3. 执行删除
-    post_crud.remove(db, id=post_id)
-
-    # FastAPI 自动返回 204
-    return None
-
-
+# ============================= 发布文章 ===========================
 @router.patch("/{post_id}/publish", response_model=PostResponse)
 async def publish_post(
     post_id: UUID,
@@ -265,20 +244,13 @@ async def publish_post(
         PATCH /api/v1/posts/123e4567-e89b-12d3-a456-426614174000/publish
 
     """
-    post = post_crud.get(db, id=post_id)
-    if not post:
-        raise ResourceNotFoundError(resource="文章")
-
-    # 检查权限：作者或管理员
-    if post.author_id != current_user.id and not current_user.is_admin:
-        raise PermissionDeniedError(message="无权限发布此文章")
-
-    # 执行发布
-    published_post = post_crud.publish(db, post_id=post_id)
-
+    published_post = post_crud.publish_post(
+        db=db, post_id=post_id, user_id=current_user.id
+    )
     return published_post  # type: ignore
 
 
+# ============================= 归档文章 ===========================
 @router.patch("/{post_id}/archive", response_model=PostResponse)
 async def archive_post(
     post_id: UUID,
@@ -301,21 +273,14 @@ async def archive_post(
     **示例**:
         PATCH /api/v1/posts/123e4567-e89b-12d3-a456-426614174000/archive
     """
-    # 1. 检查文章是否存在和权限
-    post = post_crud.get(db, id=post_id)
-    if not post:
-        raise ResourceNotFoundError(resource="文章")
-
-    # 2. 检查权限：作者或管理员
-    if post.author_id != current_user.id and not current_user.is_admin:
-        raise PermissionDeniedError(message="无权限归档此文章")
-
-    # 3. 执行归档
-    archived_post = post_crud.archive(db, post_id=post_id)
+    archived_post = post_crud.archive_post(
+        db=db, post_id=post_id, user_id=current_user.id
+    )
 
     return archived_post  # type: ignore
 
 
+# ============================= 回退文章为草稿状态 ===========================
 @router.patch("/{post_id}/revert-to-draft", response_model=PostResponse)
 async def revert_to_draft(
     post_id: UUID,
@@ -339,14 +304,65 @@ async def revert_to_draft(
     - 403: 无权限回退此文章
     - 409: 文章已是草稿状态
     """
-    # 1. 检查文章是否存在和权限
-    post = post_crud.get(db, id=post_id)
-    if not post:
-        raise ResourceNotFoundError(resource="文章")
 
-    if post.author_id != current_user.id and not current_user.is_admin:
-        raise PermissionDeniedError(message="无权限回退此文章")
-
-    # 2. 执行回退操作（业务规则校验在 CRUD 层）
-    reverted_post = post_crud.revert_to_draft(db, post_id=post_id)
+    reverted_post = post_crud.revert_post_to_draft(
+        db=db, post_id=post_id, user_id=current_user.id
+    )
     return reverted_post  # type: ignore
+
+
+# ============================= 切换文章置顶状态 ===========================
+@router.patch("/{post_id}/toggle-featured", response_model=PostResponse)
+async def toggle_post_featured(
+    post_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> PostResponse:
+    """切换文章置顶状态（仅管理员）
+
+      **权限**: 需要管理员权限
+
+      **使用场景**: 切换文章的置顶状态（置顶/取消置顶）
+
+      **路径参数**:
+      - post_id: 文章的 UUID
+
+      **返回**:
+      - 200: 切换成功
+      - 404: 文章不存在
+      - 403: 无权限切换此文章
+
+      **示例**: PATCH /api/v1/posts/123e4567-e89b-12d3-a456-426614174000/toggle-featured
+
+    """
+    featured_post = post_crud.toggle_post_featured(
+        db=db, post_id=post_id, user_id=current_user.id
+    )
+    return featured_post  # type: ignore
+
+
+# ============================= 删除文章 ===========================
+@router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_post(
+    post_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Response:
+    """删除文章
+
+    **权限**: 需要登录且是文章作者或admin
+
+    **路径参数**:
+    - post_id: 文章的 UUID
+
+    **返回**:
+    - 204: 删除成功（无响应体）
+    - 404: 文章不存在
+    - 403: 无权限删除此文章
+
+    **示例**:
+        DELETE /api/v1/posts/123e4567-e89b-12d3-a456-426614174000
+    """
+    post_crud.delete_post(db=db, post_id=post_id, user_id=current_user.id)
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

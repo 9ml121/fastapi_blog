@@ -1,18 +1,3 @@
-"""
-文章模型 - 现代 SQLAlchemy 2.0+ 语法版本
-
-🚀 项目正式使用版本 - 采用现代声明式映射语法
-📚 严格按照 docs/standards/database-models.md 实现
-
-设计要点：
-1. 使用 UUID 作为主键，支持分布式系统
-2. 支持草稿、发布、归档等状态管理
-3. 包含 SEO 友好的 slug 字段
-4. 支持文章摘要和置顶功能
-5. 包含浏览量统计
-6. 与用户模型建立关联关系
-"""
-
 import uuid
 from datetime import datetime
 from enum import Enum
@@ -35,16 +20,17 @@ from sqlalchemy.sql import func
 
 from app.db.database import Base
 
-# 使用 TYPE_CHECKING 避免循环导入
-# 仅在类型检查时导入，运行时不导入
 if TYPE_CHECKING:
     from .comment import Comment
+    from .post_favorite import PostFavorite
+    from .post_like import PostLike
     from .post_view import PostView
     from .tag import Tag
     from .user import User
 
 
-# 关联表定义
+# 文章表和标签表多对多关系需要用到关联表
+# 参考：https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html#many-to-many
 # ⚠️ 直接用 Table 模型（没有业务属性），联合主键：(post_id, tag_id)，级联删除
 post_tags = Table(
     "post_tags",
@@ -55,11 +41,7 @@ post_tags = Table(
 
 
 class PostStatus(str, Enum):
-    """
-    文章状态枚举
-
-    继承 str 是为了让枚举值可以直接序列化为 JSON
-    这对 FastAPI 的自动文档生成很有帮助
+    """文章状态枚举
     """
 
     DRAFT = "draft"  # 草稿
@@ -68,8 +50,7 @@ class PostStatus(str, Enum):
 
 
 class Post(Base):
-    """
-    文章模型 - 现代 SQLAlchemy 2.0+ 语法版本
+    """posts数据库表模型
 
     设计要点：
     1. 使用 UUID 作为主键，支持分布式系统
@@ -77,27 +58,14 @@ class Post(Base):
     3. 包含 SEO 友好的 slug 字段用于 URL
     4. 支持文章摘要（用于列表页展示）
     5. 包含置顶功能和浏览量统计
-    6. 与 User 模型建立作者关联关系
-
-    🆕 现代语法特点：
-    - 使用 Mapped[Type] 类型注解
-    - 使用 mapped_column() 替代 Column()
-    - 类型更明确，IDE 支持更好
-    - Optional[Type] 明确表示可空字段
-
-    关联关系：
-    - 多对一：Post -> User (文章的作者)
-    - 一对多：Post -> Comment (文章的评论)
-    - 多对多：Post <-> Tag (文章的标签)
-    - 一对多：Post -> PostView (文章的浏览记录)
+    6. 与 User，Comment, Tag 等模型建立关联关系
     """
 
     __tablename__ = "posts"
 
     @staticmethod
     def _generate_slug_from_title(title: str) -> str:
-        """
-        静态方法：从标题生成 URL 友好的 slug
+        """静态方法：从标题生成 URL 友好的 slug
 
         生成逻辑：
         1. 如果标题为空或 None，返回时间戳格式：文章-YYYYMMDD-HHMMSS
@@ -162,43 +130,47 @@ class Post(Base):
     )
 
     # 2. 核心业务字段 - 文章内容
-    title: Mapped[str] = mapped_column(
-        String(200), nullable=False, index=True, comment="文章标题"
-    )
+    title: Mapped[str] = mapped_column(String(200), index=True, comment="文章标题")
 
-    content: Mapped[str] = mapped_column(
-        Text, nullable=False, comment="文章正文内容（Markdown 格式）"
-    )
+    content: Mapped[str] = mapped_column(Text, comment="文章正文内容（Markdown 格式）")
 
     slug: Mapped[str] = mapped_column(
         String(200),
         unique=True,
         index=True,
-        nullable=False,
         comment="URL 友好标识（SEO 优化）",
     )
 
     summary: Mapped[str | None] = mapped_column(
-        String(500), default=None, comment="文章摘要（用于列表页展示）"
+        String(500), comment="文章摘要（用于列表页展示）"
     )
 
-    # 3. 状态和配置字段 - 状态
-    status: Mapped[PostStatus] = mapped_column(
-        SQLEnum(PostStatus), default=PostStatus.DRAFT, index=True, comment="文章状态"
-    )
+    # 3. 状态和配置字段
 
-    # 配置
+    # 配置字段
     is_featured: Mapped[bool] = mapped_column(
         Boolean, default=False, index=True, comment="是否置顶文章"
     )
 
-    # 状态
+    # 状态字段
+    status: Mapped[PostStatus] = mapped_column(
+        SQLEnum(PostStatus), default=PostStatus.DRAFT, index=True, comment="文章状态"
+    )
+
+    # 状态字段：浏览，点赞和收藏次数统计
+    # ⚠️ alembic 迁移表新增字段时，需要手动设置 server_default=text("0")，
+    # 否则会出现 NotNullViolation 错误
     view_count: Mapped[int] = mapped_column(Integer, default=0, comment="浏览次数统计")
+
+    like_count: Mapped[int] = mapped_column(Integer, default=0, comment="点赞次数统计")
+
+    favorite_count: Mapped[int] = mapped_column(
+        Integer, default=0, comment="收藏次数统计"
+    )
 
     # 4. 关联外键字段
     author_id: Mapped[UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
         index=True,
         comment="作者用户 ID",
     )
@@ -206,7 +178,6 @@ class Post(Base):
     # 5. 时间戳字段
     published_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
-        default=None,
         index=True,
         comment="发布时间（仅发布后设置）",
     )
@@ -232,29 +203,45 @@ class Post(Base):
     # - "selectin"：批量 IN 查询，适合一对多关系
     # - "subquery"：使用子查询，适合复杂场景
 
-    # Post → User: 多对一
+    # Post → User: 多对一（文章作者）
+    # ⚠️ 这里Mapped["User"]必须要使用字符串（前向引用），避免循环导入
     author: Mapped["User"] = relationship(
         back_populates="posts",
-        lazy="joined",  # 优化：使用 JOIN 避免 N+1 查询问题
+        lazy="joined",  # 查询文章时通常需要作者信息
     )
 
-    # Post → Comment: 一对多
+    # Post → Comment: 一对多（文章所有评论列表）
     comments: Mapped[list["Comment"]] = relationship(
         back_populates="post",
         cascade="all, delete-orphan",  # 删除文章时，所有 comments都删除
-        order_by="Comment.created_at",  # 自动按照评论创建时间排序
+        order_by="desc(Comment.created_at)",  # 按评论创建时间降序
     )
 
-    # Post → Tag: 多对多
+    # Post → Tag: 多对多（文章所有标签列表）
     tags: Mapped[list["Tag"]] = relationship(
-        secondary="post_tags", back_populates="posts"
+        secondary="post_tags",  # ⚠️ 指定中间表为 post_tags
+        back_populates="posts",
     )
 
-    # Post → PostView: 一对多
+    # Post → PostView: 一对多（文章所有浏览记录列表）
     post_views: Mapped[list["PostView"]] = relationship(
         back_populates="post",
         cascade="all, delete-orphan",  # 删除文章时删除所有浏览记录
-        order_by="PostView.viewed_at.desc()",  # 按浏览时间倒序
+        order_by="desc(PostView.viewed_at)",  # 按浏览时间倒序
+    )
+
+    # Post → PostLike: 一对多（文章所有点赞记录列表）
+    likes: Mapped[list["PostLike"]] = relationship(
+        back_populates="post",
+        cascade="all, delete-orphan",  # 删除文章时删除所有点赞记录
+        order_by="desc(PostLike.created_at)",  # 按点赞时间降序
+    )
+
+    # Post → PostFavorite: 一对多（文章所有收藏记录列表）
+    favorites: Mapped[list["PostFavorite"]] = relationship(
+        back_populates="post",
+        cascade="all, delete-orphan",  # 删除文章时删除所有收藏记录
+        order_by="desc(PostFavorite.created_at)",  # 按收藏时间降序
     )
 
     def __repr__(self) -> str:
@@ -266,7 +253,7 @@ class Post(Base):
 
     def __str__(self) -> str:
         """用户友好的字符串表示"""
-        return self.title
+        return self.display_title
 
     # 业务状态检查属性
     @property
@@ -333,9 +320,26 @@ class Post(Base):
         """增加浏览次数"""
         self.view_count += 1
 
+    def increment_like_count(self) -> None:
+        """增加点赞数"""
+        self.like_count += 1
+
+    def decrement_like_count(self) -> None:
+        """减少点赞数（防止负数）"""
+        if self.like_count > 0:
+            self.like_count -= 1
+
+    def increment_favorite_count(self) -> None:
+        """增加收藏数"""
+        self.favorite_count += 1
+
+    def decrement_favorite_count(self) -> None:
+        """减少收藏数（防止负数）"""
+        if self.favorite_count > 0:
+            self.favorite_count -= 1
+
     def set_summary_from_content(self, max_length: int = 100) -> None:
-        """
-        从文章内容自动生成摘要
+        """从文章内容自动生成摘要
 
         Args:
             max_length: 摘要最大长度，默认 100 字符

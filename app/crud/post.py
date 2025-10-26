@@ -9,375 +9,399 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.pagination import PaginationParams, paginate_query
-from app.core.exceptions import ResourceConflictError, ResourceNotFoundError
-from app.crud.base import CRUDBase
+from app.core.exceptions import (
+    PermissionDeniedError,
+    ResourceConflictError,
+    ResourceNotFoundError,
+)
+from app.core.pagination import PaginatedResponse, paginate_query
 from app.crud.tag import tag as tag_crud
+from app.crud.user import get_user_by_id
 from app.models.post import Post, PostStatus
-from app.schemas.post import PostCreate, PostFilters, PostUpdate
+from app.schemas.post import (
+    PostCreate,
+    PostFilters,
+    PostPaginationParams,
+    PostResponse,
+    PostUpdate,
+)
 
 
-class CRUDPost(CRUDBase[Post, PostCreate, PostUpdate]):
-    """文章的 CRUD 操作类。
+# ================================= 文章基础查询函数 =================================
+def get_post_by_id(db: Session, *, post_id: UUID) -> Post | None:
+    """通过文章 ID 查询文章
 
-    继承自 CRUDBase，提供文章特有的业务逻辑，包括：
-    - 基于 slug 的查询
-    - 创建文章时自动处理 slug 生成和标签关联
-    - 更新文章时同步标签关系
+    Args:
+        db: 数据库会话
+        post_id: 文章 ID
+
+    Returns:
+        Post | None: 文章对象，如果不存在则返回 None
+    """
+    return db.get(Post, post_id)
+
+
+def get_post_by_slug(db: Session, *, slug: str) -> Post | None:
+    """通过文章 slug 查询文章
+
+    Args:
+        db: 数据库会话
+        slug: 文章 slug
+
+    Returns:
+        Post | None: 文章对象，如果不存在则返回 None
+    """
+    return db.query(Post).filter(Post.slug == slug).first()
+
+
+# =============================== 文章列表查询函数 ===========================
+def get_published_posts_paginated(
+    db: Session,
+    *,
+    filters_params: PostFilters | None = None,
+    pagination_params: PostPaginationParams,
+) -> PaginatedResponse[PostResponse]:
+    """已发布文章列表分页查询（支持置顶优先）
+
+    Args:
+        db: 数据库会话
+        filters_params: 过滤条件,PostFilters模型
+        pagination_params: 分页参数, PostPaginationParams模型,
+        默认值为 PostPaginationParams(
+            page=1, size=20, sort="published_at", order="desc",
+            prioritize_featured=True
+        )
+
+    Returns:
+        PaginatedResponse[PostResponse]: 已发布文章分页查询结果
+    """
+    query = select(Post).where(Post.status == PostStatus.PUBLISHED)
+
+    # 应用过滤条件
+    if filters_params:
+        # 按作者过滤
+        if filters_params.author_id is not None:
+            query = query.where(Post.author_id == filters_params.author_id)
+
+        # 按标签过滤（JOIN 操作：连接 posts、post_tags、tags 三个表）
+        if filters_params.tag_name is not None:
+            from app.models.tag import Tag
+
+            query = query.join(Post.tags).where(Tag.name == filters_params.tag_name)
+
+        # 按标题关键词过滤（模糊匹配，不区分大小写）
+        if filters_params.title_contains is not None:
+            query = query.where(
+                func.lower(Post.title).like(
+                    f"%{filters_params.title_contains.lower()}%"
+                )
+            )
+
+        # 按发布时间范围过滤
+        if filters_params.published_at_from is not None:
+            query = query.where(Post.published_at >= filters_params.published_at_from)
+        if filters_params.published_at_to is not None:
+            query = query.where(Post.published_at <= filters_params.published_at_to)
+
+    # 应用排序（置顶优先）
+    if pagination_params.prioritize_featured:
+        query = query.order_by(Post.is_featured.desc(), Post.published_at.desc())
+    else:
+        query = query.order_by(Post.published_at.desc())
+
+    # 分页查询，返回数据列表和总记录数
+    items, total = paginate_query(db, query, pagination_params, model=Post)
+
+    return PaginatedResponse.create(items, total, pagination_params)
+
+
+def get_user_drafts(db: Session, *, user_id: UUID) -> list[Post]:
+    """用户草稿列表查询
+
+    Args:
+        db: 数据库会话
+        user_id: 用户 ID
+
+    Returns:
+        list[Post]: 用户草稿列表
+    """
+    return (
+        db.query(Post)
+        .filter(Post.author_id == user_id, Post.status == PostStatus.DRAFT)
+        .order_by(Post.created_at.desc())
+        .all()  # 查询结构为空，会返回一个空列表
+    )
+
+
+def get_featured_posts(
+    db: Session, pagination_params: PostPaginationParams
+) -> PaginatedResponse[PostResponse]:
+    """获取置顶文章列表"""
+    query = (
+        select(Post)
+        .where(Post.status == PostStatus.PUBLISHED, Post.is_featured.is_(True))
+        .order_by(Post.published_at.desc())
+    )
+
+    items, total = paginate_query(db, query, pagination_params, model=Post)
+    return PaginatedResponse.create(items, total, pagination_params)
+
+
+# ============================= 文章创建函数 ===========================
+def create_post(db: Session, *, post_in: PostCreate, author_id: UUID) -> Post:
+    """创建新文章，自动处理slug生成、标签关联、摘要生成
+    Args:
+        db: 数据库会话。
+        post_in: 文章创建数据,PostCreate模型
+        author_id: 文章作者的用户 ID
+
+    Returns:
+        Post: 新创建的文章对象，包含完整的关联数据。
     """
 
-    def get_by_slug(self, db: Session, *, slug: str) -> Post | None:
-        """通过 URL slug 获取文章。
+    # 1. 从输入 schema 中提取数据
+    post_in_data = post_in.model_dump(exclude={"tags"})
+    tag_names = post_in.tags or []
 
-        Args:
-            db: 数据库会话。
-            slug: 文章的 URL 友好标识符。
+    # 2. 处理 slug: 如果 slug 为空，就根据 title 自动生成一个
+    if not post_in_data.get("slug"):
+        post_in_data["slug"] = Post._generate_slug_from_title(post_in_data["title"])
 
-        Returns:
-            找到的文章对象，如果不存在则返回 None。
-        """
-        post = db.query(Post).filter(Post.slug == slug).first()
+    # 3. 创建 Post 对象, 并关联到指定作者
+    post = Post(**post_in_data, author_id=author_id)
 
-        return post
+    # 4. 处理 summary：如果未提供摘要，则从文章内容自动生成
+    if not post_in_data.get("summary"):
+        post.set_summary_from_content()
 
-    def create_with_author(
-        self, db: Session, *, obj_in: PostCreate, author_id: UUID
-    ) -> Post:
-        """创建新文章，并自动关联作者和标签。
+    # 5. 将 Post 对象添加到会话中，使其变为 pending 状态
+    db.add(post)
 
-        此方法会：
-        1. 从输入 schema 中提取文章数据
-        2. 如果未提供 slug，则根据标题自动生成
-        3. 创建文章对象并关联到指定作者
-        4. 处理标签关联（通过 get_or_create 确保标签唯一性）
-        5. 一次性提交所有更改到数据库
+    # 6. 处理标签同步
+    # ⚠️ tag_crud.get_or_create 是没有事务提交的
+    for tag_name in tag_names:
+        tag_obj = tag_crud.get_or_create(db, name=tag_name)
+        post.tags.append(tag_obj)
 
-        Args:
-            db: 数据库会话。
-            obj_in: 包含文章创建数据的 Pydantic schema。
-            author_id: 文章作者的用户 ID。
+    # 7. 一次性提交事务，保证事务完整性。
+    db.commit()
+    db.refresh(post)
+    return post
 
-        Returns:
-            新创建的文章对象，包含完整的关联数据。
 
-        Example:
-            >>> post_in = PostCreate(
-            ...     title="测试文章", content="内容", tags=["Python", "FastAPI"]
-            ... )
-            >>> new_post = post_crud.create_with_author(
-            ...     db, obj_in=post_in, author_id=user.id
-            ... )
-        """
+# ============================= 文章更新函数 ===========================
+def update_post(
+    db: Session, *, post_id: UUID, user_id: UUID, post_in: PostUpdate | dict
+) -> Post:
+    """更新文章，自动处理标签同步
+    Args:
+        db: 数据库会话
+        post_id: 要更新的文章 ID
+        user_id: 更新文章的用户 ID
+        post_in: 文章更新数据, PostUpdate模型或字典
 
-        # 1. 从输入 schema 中提取数据
-        obj_in_data = obj_in.model_dump(exclude={"tags"})
-        tag_names = obj_in.tags or []
+    Returns:
+        Post: 更新后的文章对象，包含最新的关联数据。
+    """
+    # 1. 文章存在性检查
+    post = get_post_by_id(db=db, post_id=post_id)
+    if not post:
+        raise ResourceNotFoundError(resource="文章")
 
-        # 2. 处理 slug: 如果 slug 为空，就根据 title 自动生成一个
-        if not obj_in_data.get("slug"):
-            obj_in_data["slug"] = Post._generate_slug_from_title(obj_in_data["title"])
+    # 2. 权限检查：只有作者可以更新
+    if post.author_id != user_id:
+        raise PermissionDeniedError(message="无权限修改此文章")
 
-        # 3. 创建 Post 对象并添加到会话中，使其变为 pending 状态
-        db_obj = self.model(**obj_in_data, author_id=author_id)
-        db.add(db_obj)
+    # 3. 如果输入是 Pydantic 模型，先转换为字典
+    # ⚠️ exclude_unset=True 实现了 PATCH 语义
+    update_data = (
+        post_in if isinstance(post_in, dict) else post_in.model_dump(exclude_unset=True)
+    )
 
-        # 4. 处理标签同步
-        # ⚠️ tag_crud.get_or_create 是没有事务提交的
-        for tag_name in tag_names:
-            tag_obj = tag_crud.get_or_create(db, name=tag_name)
-            db_obj.tags.append(tag_obj)
+    # 4. 分离 `tags` 字段，因为它需要特殊处理
+    tag_names = update_data.pop("tags", None)
 
-        # 5. 一次性提交事务，保证事务完整性。
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
+    # 5. 更新普通字段
+    for field, value in update_data.items():
+        setattr(post, field, value)
 
-    def update(self, db: Session, *, db_obj: Post, obj_in: PostUpdate | dict) -> Post:
-        """更新文章，同时智能处理标签同步。
+    # 6. 单独处理标签同步
+    if tag_names is not None:
+        # 将标签名列表转换为 Tag 对象列表
+        tags = [tag_crud.get_or_create(db, name=name) for name in tag_names]
+        # 直接赋值给 relationship 属性，SQLAlchemy 会自动处理差异
+        post.tags = tags
 
-        此方法会：
-        1. 将普通字段（title, content 等）直接更新到对象
-        2. 单独处理 tags 字段：
-           - 如果 tags 未在输入中提供（None），则保持原有标签不变
-           - 如果 tags 为空列表（[]），则清空所有标签
-           - 如果 tags 为新列表，则完全替换为新标签
-        3. 在一个事务中统一提交所有修改，确保原子性
+    # 7. 统一提交（一次性提交所有修改，确保事务原子性）
+    db.add(post)
+    db.commit()
+    db.refresh(post)
 
-        Args:
-            db: 数据库会话。
-            db_obj: 要更新的文章对象（从数据库查询得到）。
-            obj_in: 包含更新数据的 Pydantic schema 或字典。
+    return post
 
-        Returns:
-            更新后的文章对象，包含最新的关联数据。
 
-        Note:
-            ⚠️ 重要：整个更新过程在一个事务中完成，确保原子性。
-            如果标签处理失败，所有修改（包括普通字段）都会回滚。
+def publish_post(db: Session, *, post_id: UUID, user_id: UUID) -> Post:
+    """发布草稿文章
 
-            使用 `exclude_unset=True` 确保只更新实际提供的字段，
-            这样可以实现部分更新（PATCH 语义）而非完全替换（PUT 语义）。
+    Args:
+        db: 数据库会话
+        post_id: 文章 ID
+        user_id: 发布文章的用户 ID
 
-        Example:
-            >>> # 只更新标题，保持标签不变
-            >>> post_crud.update(db, db_obj=post, obj_in=PostUpdate(title="新标题"))
-            >>>
-            >>> # 更新标题并替换标签
-            >>> post_crud.update(
-            ...     db, db_obj=post, obj_in=PostUpdate(title="新标题", tags=["新标签"])
-            ... )
-            >>>
-            >>> # 清空所有标签
-            >>> post_crud.update(db, db_obj=post, obj_in=PostUpdate(tags=[]))
-        """
+    Returns:
+        更新后的文章对象 (status=published, published_at已设置)
+    """
+    post = get_post_by_id(db=db, post_id=post_id)
+    # 检查存在性
+    if not post:
+        raise ResourceNotFoundError(resource="文章")
 
-        # 1. 如果输入是 Pydantic 模型，先转换为字典
-        # ⚠️ exclude_unset=True 实现了 PATCH 语义
-        update_data = (
-            obj_in
-            if isinstance(obj_in, dict)
-            else obj_in.model_dump(exclude_unset=True)
+    # 检查权限：作者或管理员
+    current_user = get_user_by_id(db=db, user_id=user_id)
+
+    if post.author_id != user_id and current_user and not current_user.is_admin:
+        raise PermissionDeniedError(message="无权限发布此文章")
+
+    # 业务规则校验：只有草稿才能发布
+    if post.status != PostStatus.DRAFT:
+        raise ResourceConflictError(
+            message=f"无法发布 {post.status} 状态的文章，只有草稿状态才能发布"
         )
 
-        # 2. 分离 `tags` 字段，因为它需要特殊处理
-        tag_names = update_data.pop("tags", None)
+    post.publish()  # 调用 Post 模型的 publish() 方法
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return post
 
-        # 3. 更新普通字段（不调用父类 update，避免提前 commit）
-        for field, value in update_data.items():
-            setattr(db_obj, field, value)
 
-        # 4. 处理标签同步
-        if tag_names is not None:
-            # 将标签名列表转换为 Tag 对象列表
-            tags = [tag_crud.get_or_create(db, name=name) for name in tag_names]
-            # 直接赋值给 relationship 属性，SQLAlchemy 会自动处理差异
-            db_obj.tags = tags
+def archive_post(db: Session, *, post_id: UUID, user_id: UUID) -> Post:
+    """归档文章
 
-        # 5. 统一提交（一次性提交所有修改，确保事务原子性）
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+    Args:
+        db: 数据库会话
+        post_id: 文章 ID
+        user_id: 归档文章的用户 ID
 
-        return db_obj
+    Returns:
+        更新后的文章对象 (status=archived)
+    """
+    post = get_post_by_id(db=db, post_id=post_id)
+    # 检查存在性
+    if not post:
+        raise ResourceNotFoundError(resource="文章")
 
-    def get_paginated(
-        self,
-        db: Session,
-        *,
-        params: PaginationParams,
-        filters: PostFilters | None = None,
-    ) -> tuple[list[Post], int]:
-        """获取分页的文章列表
+    # 检查权限：只有文章作者或者管理员可以归档
+    current_user = get_user_by_id(db=db, user_id=user_id)
 
-        使用新的分页工具，支持：
-        - 分页：page/size 参数，默认分页数量 20
-        - 排序：sort/order 参数，默认按照 created_at 降序排序
-        - 安全验证：自动验证排序字段
-        - 多种过滤：按作者、标签、发布状态、标题关键词、发布时间范围过滤
+    if post.author_id != user_id and current_user and not current_user.is_admin:
+        raise PermissionDeniedError(message="无权限归档此文章")
 
-        Args:
-            db: 数据库会话
-            params: 分页参数（包含页码、每页数量、排序字段、排序方向）
-            filters: 过滤条件（PostFilters 对象）
-
-        Returns:
-            tuple: (文章列表, 总记录数)
-
-        Example:
-            >>> # 基础分页
-            >>> params = PaginationParams(page=1, size=10)
-            >>> posts, total = post_crud.get_paginated(db, params=params)
-
-            >>> # 按作者分页
-            >>> filters = PostFilters(author_id=user.id)
-            >>> posts, total = post_crud.get_paginated(
-            ...     db, params=params, filters=filters
-            ... )
-
-            >>> # 组合过滤：已发布的Python标签文章
-            >>> filters = PostFilters(
-            ...     tag_name="Python", statuses=[PostStatus.PUBLISHED]
-            ... )
-            >>> posts, total = post_crud.get_paginated(
-            ...     db, params=params, filters=filters
-            ... )
-
-            >>> # 多状态过滤：查询草稿和归档文章
-            >>> filters = PostFilters(statuses=[PostStatus.DRAFT, PostStatus.ARCHIVED])
-            >>> posts, total = post_crud.get_paginated(
-            ...     db, params=params, filters=filters
-            ... )
-        """
-        # 构建基础查询
-        query = select(Post)
-
-        # 应用过滤条件
-        if filters:
-            # 按作者过滤
-            if filters.author_id is not None:
-                query = query.where(Post.author_id == filters.author_id)
-
-            # 按标签过滤（需要 JOIN）
-            if filters.tag_name is not None:
-                from app.models.tag import Tag
-
-                query = query.join(Post.tags).where(Tag.name == filters.tag_name)
-
-            # 按发布状态过滤（支持多选）
-            if filters.statuses is not None and len(filters.statuses) > 0:
-                query = query.where(Post.status.in_(filters.statuses))
-
-            # 按标题关键词过滤（模糊匹配，不区分大小写）
-            if filters.title_contains is not None:
-                query = query.where(
-                    func.lower(Post.title).like(f"%{filters.title_contains.lower()}%")
-                )
-
-            # 按发布时间范围过滤
-            if filters.published_at_from is not None:
-                query = query.where(Post.published_at >= filters.published_at_from)
-            if filters.published_at_to is not None:
-                query = query.where(Post.published_at <= filters.published_at_to)
-
-        # 使用分页工具执行查询
-        # TODO: 分页查询不在 crud层中，应该由api层处理，重构中
-        items, total = paginate_query(db, query, params, model=Post)
-
-        return items, total
-
-    def get_user_drafts(self, db: Session, *, user_id: UUID) -> list[Post]:
-        """获取用户草稿列表
-
-        Args:
-            db: 数据库会话
-            user_id: 用户 ID
-
-        Returns:
-            list[Post]: 用户草稿列表
-
-        """
-        return (
-            db.query(Post)
-            .filter(Post.author_id == user_id, Post.status == PostStatus.DRAFT)
-            .order_by(Post.created_at.desc())
-            .all()
+    # 业务规则校验：只有已发布文章才能归档
+    if post.status != PostStatus.PUBLISHED:
+        raise ResourceConflictError(
+            message=f"无法归档 {post.status} 状态的文章，只有已发布状态才能归档"
         )
 
-    def publish(self, db: Session, *, post_id: UUID) -> Post:
-        """发布草稿
-
-        此方法会：
-        1. 查询指定的文章对象
-        2. 调用 post.publish() 业务方法更新状态和时间
-        3. 提交更改到数据库
-        4. 返回更新后的文章对象
-
-        Args:
-            db: 数据库会话
-            post_id: 文章 ID
-
-        Returns:
-            更新后的文章对象 (status=published, published_at已设置)
-            如果文章不存在返回 None
-
-        Example:
-            >>> published_post = post_crud.publish(db, post_id=post.id)
-            >>> if published_post:
-            ...     print(f"文章已发布，发布时间: {published_post.published_at}")
-        """
-        db_obj = db.query(Post).filter(Post.id == post_id).first()
-        # 检查存在性
-        if not db_obj:
-            raise ResourceNotFoundError(resource="文章")
-
-        # 业务规则校验：只有草稿才能发布
-        if db_obj.status != PostStatus.DRAFT:
-            raise ResourceConflictError(
-                message=f"无法发布 {db_obj.status} 状态的文章，只有草稿状态才能发布"
-            )
-
-        db_obj.publish()  # 调用 Post 模型的 publish() 方法
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
-
-    def archive(self, db: Session, *, post_id: UUID) -> Post:
-        """归档文章
-
-        此方法会：
-        1. 查询指定的文章对象
-        2. 调用 post.archive() 业务方法更新状态
-        3. 提交更改到数据库
-        4. 返回更新后的文章对象
-
-        Args:
-            db: 数据库会话
-            post_id: 文章 ID
-
-        Returns:
-            更新后的文章对象 (status=archived)
-            如果文章不存在返回 None
-
-        Example:
-            >>> archived_post = post_crud.archive(db, post_id=post.id)
-            >>> if archived_post:
-            ...     print(f"文章已归档")
-        """
-        db_obj = db.query(Post).filter(Post.id == post_id).first()
-        # 检查存在性
-        if not db_obj:
-            raise ResourceNotFoundError(resource="文章")
-
-        # 业务规则校验：只有已发布文章才能归档
-        if db_obj.status != PostStatus.PUBLISHED:
-            raise ResourceConflictError(
-                message=f"无法归档 {db_obj.status} 状态的文章，只有已发布状态才能归档"
-            )
-
-        db_obj.archive()  # 调用 Post 模型的 archive() 方法
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
-
-    def revert_to_draft(self, db: Session, *, post_id: UUID) -> Post:
-        """将文章恢复为草稿状态
-
-        此方法会：
-        1. 查询指定的文章对象
-        2. 调用 post.revert_to_draft() 业务方法恢复为草稿
-        3. 提交更改到数据库
-        4. 返回更新后的文章对象
-
-        Args:
-            db: 数据库会话
-            post_id: 文章 ID
-
-        Returns:
-            更新后的文章对象 (status=draft, published_at=None)
-            如果文章不存在返回 None
-
-        Example:
-            >>> draft_post = post_crud.revert_to_draft(db, post_id=post.id)
-            >>> if draft_post:
-            ...     print(f"文章已恢复为草稿")
-        """
-        db_obj = db.query(Post).filter(Post.id == post_id).first()
-        # 检查存在性
-        if not db_obj:
-            raise ResourceNotFoundError(resource="文章")
-
-        # 业务规则校验：只有已发布或已归档文章才能恢复为草稿
-        if db_obj.status == PostStatus.DRAFT:
-            raise ResourceConflictError(message="文章已是草稿状态，无需恢复")
-
-        db_obj.revert_to_draft()  # 调用 Post 模型的 revert_to_draft() 方法
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
+    post.archive()  # 调用 Post 模型的 archive() 方法
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return post
 
 
-# Singleton实例模式：为每个CRUD类创建一个全局实例
-post = CRUDPost(Post)
+def revert_post_to_draft(db: Session, *, post_id: UUID, user_id: UUID) -> Post:
+    """将文章恢复为草稿状态
+
+    Args:
+        db: 数据库会话
+        post_id: 文章 ID
+        user_id: 恢复文章为草稿的用户 ID
+
+    Returns:
+        更新后的文章对象 (status=draft, published_at=None)
+    """
+    post = get_post_by_id(db=db, post_id=post_id)
+    # 检查存在性
+    if not post:
+        raise ResourceNotFoundError(resource="文章")
+
+    # 检查权限：只有文章作者或者管理员可以恢复为草稿
+    current_user = get_user_by_id(db=db, user_id=user_id)
+
+    if post.author_id != user_id and current_user and not current_user.is_admin:
+        raise PermissionDeniedError(message="无权限恢复为草稿")
+
+    # 业务规则校验：只有已发布或已归档文章才能恢复为草稿
+    if post.status == PostStatus.DRAFT:
+        raise ResourceConflictError(message="文章已是草稿状态，无需恢复")
+
+    post.revert_to_draft()  # 调用 Post 模型的 revert_to_draft() 方法
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+def toggle_post_featured(db: Session, post_id: UUID, user_id: UUID) -> Post:
+    """切换文章置顶状态
+
+    Args:
+        db: 数据库会话
+        post_id: 文章ID
+        user_id: 操作用户ID
+
+    Returns:
+        Post: 更新后的文章对象
+
+    Raises:
+        ResourceNotFoundError: 文章不存在
+        PermissionDeniedError: 无权限操作
+    """
+    # 1. 验证文章存在性
+    post = get_post_by_id(db=db, post_id=post_id)
+    if not post:
+        raise ResourceNotFoundError(resource="文章")
+
+    # 2. 验证用户权限（必须是管理员）
+    current_user = get_user_by_id(db=db, user_id=user_id)
+    if not current_user or not current_user.is_admin:
+        raise PermissionDeniedError(message="只有管理员可以置顶文章")
+
+    # 3. 调用 post.toggle_featured()
+    post.toggle_featured()
+
+    # 4. 提交事务
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+# ============================= 文章删除函数 ===========================
+def delete_post(db: Session, *, post_id: UUID, user_id: UUID) -> None:
+    """删除文章
+    Args:
+        db: 数据库会话
+        post_id: 文章 ID
+        user_id: 删除文章的用户 ID
+
+    Returns:
+        None
+    """
+    # 1. 文章存在性检查
+    post = get_post_by_id(db=db, post_id=post_id)
+    if not post:
+        raise ResourceNotFoundError(resource="文章")
+
+    # 2. 权限检查：只有文章作者或者管理员可以删除
+    current_user = get_user_by_id(db=db, user_id=user_id)
+
+    if post.author_id != user_id and current_user and not current_user.is_admin:
+        raise PermissionDeniedError(message="无权限删除此文章")
+
+    # 3. 删除文章
+    db.delete(instance=post)
+    db.commit()
+
+    return None

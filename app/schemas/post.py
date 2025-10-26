@@ -8,6 +8,8 @@ Post Pydantic Schemas - 文章数据验证与序列化
 2. PostCreate: 创建文章时的输入数据，允许客户端提供标签名称列表。
 3. PostUpdate: 更新文章时的输入数据，所有字段可选，支持部分更新。
 4. PostResponse: 返回给客户端的数据，包含作者和标签的完整信息，并排除敏感数据。
+5. PostFilters: 文章过滤条件，支持多种过滤条件组合。
+6. PostPaginationParams：继承 PaginationParams，修改排序默认字段为 published_at。
 """
 
 from datetime import datetime
@@ -15,6 +17,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.pagination import PaginationParams
 from app.models.post import PostStatus
 
 from .tag import TagResponse
@@ -23,8 +26,7 @@ from .user import UserResponse
 
 # ============ 基础模型 (共享字段) ============
 class PostBase(BaseModel):
-    """
-    文章基础字段
+    """文章基础字段
 
     提取所有文章相关 Schema 都需要的核心业务字段。
     """
@@ -43,8 +45,7 @@ class PostBase(BaseModel):
 
 # ============ 创建模型 ============
 class PostCreate(PostBase):
-    """
-    创建文章时的输入数据
+    """创建文章时的输入数据
 
     特点：
     - 继承 PostBase 的所有字段。
@@ -116,16 +117,16 @@ class PostUpdate(BaseModel):
 
 
 # ============ 响应模型 (从数据库读取) ============
+# TODO: 待增加 ListPostResponse 模型，用于返回多个文章的列表数据
 class PostResponse(PostBase):
-    """
-    返回给客户端的文章数据
+    """返回给客户端的文章数据
 
     特点：
     - 继承 PostBase 的核心字段。
     - 包含 `author` 和 `tags` 的完整嵌套信息，使用对应的 Response Schema。
     - 包含所有系统生成的和用于展示的状态字段。
-    - 包含 `status` 字段，用于前端判断文章可见性
-    - ⚠️ 不包含任何未来可能添加的敏感字段。
+    - ⚠️ 包含 `status` 字段，用于前端判断文章可见性
+
 
     用途：所有返回单个或多个文章信息的 API 端点。
     """
@@ -139,8 +140,13 @@ class PostResponse(PostBase):
     published_at: datetime | None = Field(
         default=None, description="文章发布时间，如果未发布则为 null"
     )
-    view_count: int = Field(default=0, description="文章浏览次数")
     is_featured: bool = Field(default=False, description="是否为精选文章")
+
+    # 社交互动数据
+    view_count: int = Field(default=0, description="文章浏览次数")
+    like_count: int = Field(default=0, description="文章点赞数")
+    favorite_count: int = Field(default=0, description="文章收藏数")
+
 
     model_config = ConfigDict(
         from_attributes=True,  # 允许从 ORM 对象创建
@@ -183,8 +189,26 @@ class PostResponse(PostBase):
         },
     )
 
+class PostLikeStatusResponse(BaseModel):
+    """文章点赞状态响应"""
 
-# ============ 过滤模型 ============
+    post_id: UUID = Field(description="文章ID")
+    is_liked: bool = Field(description="是否已点赞")
+    like_count: int = Field(description="文章总点赞数")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PostFavoriteStatusResponse(BaseModel):
+    """文章收藏状态响应"""
+
+    post_id: UUID = Field(description="文章ID")
+    is_favorited: bool = Field(description="是否已收藏")
+    favorite_count: int = Field(description="文章总收藏数")
+
+    model_config = ConfigDict(from_attributes=True)
+
+# ============ post过滤模型 ============
 class PostFilters(BaseModel):
     """文章过滤条件
 
@@ -194,7 +218,7 @@ class PostFilters(BaseModel):
     - 所有字段都是可选的，支持任意组合过滤
     - 使用 Field 提供清晰的描述和示例
     - 禁止额外字段，确保类型安全
-    - statuses 支持多选，允许同时查询多种状态
+    - ⚠️ 不支持 status 字段过滤，公开接口只返回已发布
 
     用途：GET /api/v1/posts/ 的查询参数
     """
@@ -208,11 +232,6 @@ class PostFilters(BaseModel):
         default=None,
         description="按标签名称过滤文章",
         examples=["Python", "FastAPI", "Web开发"],
-    )
-    statuses: list[PostStatus] | None = Field(
-        default=None,
-        description="按文章状态过滤（支持多选）",
-        examples=[["draft", "published"], ["published"]],
     )
     title_contains: str | None = Field(
         default=None,
@@ -236,10 +255,34 @@ class PostFilters(BaseModel):
             "example": {
                 "author_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
                 "tag_name": "Python",
-                "statuses": ["published"],
                 "title_contains": "FastAPI",
                 "published_at_from": "2024-06-01T00:00:00Z",
                 "published_at_to": "2024-06-30T23:59:59Z",
+            }
+        },
+    )
+
+
+# ============ 分页参数模型 ============
+class PostPaginationParams(PaginationParams):
+    """分页参数模型，修改排序默认字段为 published_at,支持置顶优先选项
+    """
+
+    sort: str = Field(
+        default="published_at", description="排序字段（默认published_at）"
+    )
+
+    prioritize_featured: bool = Field(default=True, description="是否优先显示置顶文章")
+
+    model_config = ConfigDict(
+        extra="forbid",  # 禁止额外字段，确保类型安全
+        json_schema_extra={
+            "example": {
+                "page": 1,
+                "size": 20,
+                "sort": "published_at",
+                "order": "desc",
+                "prioritize_featured": True,
             }
         },
     )

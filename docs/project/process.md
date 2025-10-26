@@ -9,11 +9,12 @@
 
 **Phase 6 - 社交功能与内容增强**（🚀 进行中）
 
-**当前子任务**：Phase 6.1 - 草稿系统（高优先级）
+**当前子任务**：Phase 6.3 - 统计面板（中优先级）
 
 **下一步行动**：
 
-1. 开始 Phase 6.1 草稿系统开发
+1. 开始 Phase 6.3 统计面板功能开发
+2. 可选：Phase 6.4 通知系统基础版开发
 
 ---
 
@@ -57,7 +58,7 @@
     -   自定义异常基类 + 8 个业务异常类
     -   统一错误格式（支持前端国际化）
     -   4 个全局异常处理器
--   ✅ **泛型分页系统**：`app/api/pagination.py`
+-   ✅ **泛型分页系统**：`app/core/pagination.py`
     -   `PaginatedResponse[ItemType]` 泛型设计
     -   安全排序功能（防 SQL 注入）
     -   支持多种过滤条件
@@ -66,6 +67,27 @@
     -   306 个测试，100% 通过率
     -   91% 测试覆盖率（目标 85%）
     -   测试数据四象限全覆盖
+
+### Phase 6：社交功能与内容增强 ✅
+
+-   ✅ **草稿系统**：完整的文章状态管理（draft/published/archived）
+    -   数据模型：Post 模型扩展 status 和 published_at 字段
+    -   CRUD 层：get_user_drafts、publish、archive、revert_to_draft 方法
+    -   API 端点：GET /posts/drafts、PATCH /posts/{id}/publish 等
+    -   权限控制：草稿和归档文章仅作者可见
+-   ✅ **架构优化重构**：CRUD 层分页逻辑分离
+    -   分页逻辑从 CRUD 层移动到 core 层（符合行业最佳实践）
+    -   Post CRUD：get_paginated → build_published_posts_query
+    -   Comment CRUD：get_paginated_by_post → build_top_level_comments_query
+    -   业务逻辑优化：公开接口默认只返回已发布文章
+    -   代码质量：无 linting 错误，测试覆盖率保持
+-   ✅ **点赞收藏系统**：完整的用户互动功能（Phase 6.2）🎉 2025-10-26
+    -   数据模型：PostLike 和 PostFavorite 模型，支持唯一约束和级联删除
+    -   CRUD 层：幂等操作 toggle_like、toggle_favorite，状态查询方法
+    -   API 端点：8 个 RESTful 端点，支持点赞/收藏和状态查询
+    -   高级功能：文章置顶（featured posts）、查询优化
+    -   测试覆盖：27 个测试全部通过，覆盖各种边界情况
+    -   技术亮点：幂等性设计、性能优化、权限控制、RESTful 设计
 
 ---
 
@@ -78,9 +100,9 @@
 **验收标准**：
 
 -   ✅ 草稿系统（保存/发布/归档）
--   ✅ 点赞/收藏功能（幂等性设计）
--   ✅ 统计面板（作者数据看板）
--   ✅ 通知系统基础版（评论/点赞通知）
+-   ✅ 点赞/收藏功能（幂等性设计）🎉 2025-10-26
+-   [ ] 统计面板（作者数据看板）
+-   [ ] 通知系统基础版（评论/点赞通知）
 -   ✅ 测试覆盖率 ≥ 85%
 
 **设计原则**：
@@ -90,306 +112,6 @@
 -   🔒 **幂等性设计**：防止重复点赞、重复收藏
 -   🧪 **测试驱动**：继续保持 TDD 开发模式
 
----
-
-### 🎯 Phase 6.1 - 草稿系统（高优先级）⭐⭐⭐⭐⭐
-
-**目标**：实现文章草稿保存、发布、归档功能，完善内容创作流程
-
-**用户故事**：
-
--   作为作者，我希望保存未完成的文章草稿，以便稍后继续编辑
--   作为作者，我希望预览草稿效果，确认无误后再发布
--   作为作者，我希望将过时文章归档，不再公开展示
-
-**核心交付**：
-
-#### 1. 数据模型扩展
-
--   [x] 扩展 Post 模型的 `status` 字段 ✅ 2025-10-16
-    -   `draft`: 草稿（仅作者可见）
-    -   `published`: 已发布（公开可见）
-    -   `archived`: 已归档（仅作者可见）
--   [x] 添加 `published_at` 字段（发布时间） ✅ 2025-10-16
--   [x] 数据库迁移脚本 ✅ 2025-10-16
-
-#### 2. Schema 设计
-
--   [x] 更新 `PostCreate`：支持指定初始 status ✅ 2025-10-17
--   [x] 更新 `PostUpdate`：允许更新 status ✅ 2025-10-17
-
-#### 3. CRUD 层实现
-
--   [x] `post.get_user_drafts()`：获取用户草稿列表 ✅ 2025-10-17
--   [x] `post.publish()`：发布草稿（更新 status 和 published_at） ✅ 2025-10-17
--   [x] `post.archive()`：归档文章 ✅ 2025-10-17
--   [x] `post.revert_to_draft()`: 转换为草稿 ✅ 2025-10-17
--   [x] 更新 `get_paginated()`：支持 status 过滤 ✅ 2025-10-17
-
-#### 4. API 端点
-
--   [x] `GET /posts/drafts`：查看我的草稿列表 ✅ 2025-10-17
--   [x] `POST /posts/`：创建文章（默认 status=draft） ✅ 2025-10-17
--   [x] `PATCH /posts/{id}/publish`：发布草稿 ✅ 2025-10-17
--   [x] `PATCH /posts/{id}/archive`：归档文章 ✅ 2025-10-17
--   [x] 更新 `GET /posts/`：只返回已发布文章（公开访问） ✅ 2025-10-17
--   [x] 更新权限控制：草稿和归档文章仅作者可见 ✅ 2025-10-17
-
-#### 5. 测试
-
--   [x] 草稿 CRUD 测试（创建、查询、更新） ✅ 2025-10-18
--   [x] 发布流程测试（draft → published） ✅ 2025-10-18
--   [x] 归档流程测试（published → archived） ✅ 2025-10-18
--   [x] 权限控制测试（其他用户无法查看草稿） ✅ 2025-10-18
--   [x] 边界测试（空草稿、重复发布等） ✅ 2025-10-18
-
-**技术要点**：
-
--   状态机设计：draft → published → archived
--   权限控制：草稿和归档文章仅作者可访问
--   业务规则：已发布文章可以回退为草稿
-
-**预估工作量**：1-2 天
-
----
-
-### 🏗️ 架构优化任务 - CRUD 层分页逻辑重构（Phase 6.1 完成后）⭐⭐⭐⭐
-
-**背景**：当前 CRUD 层违反了分层原则，调用了 API 层的分页工具
-
-**问题**：
-
--   ❌ CRUD 层耦合了 API 层的 `paginate_query()` 方法
--   ❌ 破坏了分层独立性和单测能力
--   ❌ 使得其他服务（CLI、定时任务）难以复用 CRUD 层
--   ❌ 公开接口支持 `statuses` 多选，不符合业务逻辑
-
-**改进方案**：
-
--   重构 CRUD 层：分离 `build_query()` 方法（仅构建查询对象，不分页）
--   重命名 `get_paginated` → `get_published_posts`（语义明确）
--   API 层直接调用 `pagination.paginate_query()`
--   移除 `PostFilters` 的 `statuses` 字段（公开接口只返回已发布）
--   统一应用到 Post、Comment、Tag 等所有模型
-
-**预期效果**：
-
--   ✅ 分层独立，职责清晰
--   ✅ 提升可测试性
--   ✅ 便于跨服务复用
--   ✅ 业务逻辑更清晰
-
-**预估工作量**：2-3 天
-
----
-
-#### 📋 重构步骤详解
-
-**阶段 1：Schema 层修改**
-
--   [ ] **Step 1：修改 PostFilters 模型**
-    -   移除 `statuses` 字段（不再支持状态多选）
-    -   更新类文档注释
-    -   更新示例数据
-    -   文件：`app/schemas/post.py`
--   [ ] **Step 2：添加 AdminPostFilters 模型**
-    -   新增用于管理员接口的过滤器
-    -   支持 `statuses` 字段（多选）
-    -   文件：`app/schemas/post.py`
-
-**阶段 2：CRUD 层重构（Post）**
-
--   [ ] **Step 3：创建 `build_query()` 方法**
-    -   提取查询构建逻辑
-    -   返回 SQLAlchemy `Select` 对象
-    -   包含状态过滤逻辑：默认只返回已发布
-    -   支持其他过滤条件（作者、标签、标题等）
-    -   文件：`app/crud/post.py`
--   [ ] **Step 4：重构 `get_published_posts()` 方法**
-    -   重命名：`get_paginated` → `get_published_posts`
-    -   调用 `build_query()` 获取查询对象
-    -   应用分页逻辑（调用 `paginate_query()`）
-    -   返回 `tuple[list[Post], int]`
-    -   文件：`app/crud/post.py`
--   [ ] **Step 5：添加 `get_all_posts()` 方法**
-    -   用于管理员查询（包含所有状态）
-    -   调用 `build_query()`（无状态限制）
-    -   应用分页逻辑
-    -   需要权限检查（由 API 层负责）
-    -   文件：`app/crud/post.py`
-
-**阶段 3：API 层修改（Posts）**
-
--   [ ] **Step 6：更新 `GET /posts/` 端点**
-    -   更新调用：`post_crud.get_published_posts(...)`
-    -   更新文档注释
-    -   更新示例 URL
-    -   移除 `is_published` 相关说明
-    -   文件：`app/api/v1/endpoints/posts.py`
--   [ ] **Step 7：添加 `GET /posts/admin` 端点**
-    -   管理员专用端点
-    -   调用：`post_crud.get_all_posts(...)`
-    -   需要权限检查
-    -   支持状态多选过滤
-    -   文件：`app/api/v1/endpoints/posts.py`
-
-**阶段 4：其他 CRUD 模型重构（可选）**
-
--   [ ] **Step 8：检查并修改 Comment CRUD**
-    -   如果有类似的 `get_paginated` 方法，进行相同重构
-    -   文件：`app/crud/comment.py`、`app/api/v1/endpoints/comments.py`
--   [ ] **Step 9：检查并修改 Tag CRUD**
-    -   如果有类似的 `get_paginated` 方法，进行相同重构
-    -   文件：`app/crud/tag.py`、`app/api/v1/endpoints/tags.py`
-
-**阶段 5：测试更新**
-
--   [ ] **Step 10：更新 CRUD 层测试**
-    -   修改 `test_crud/test_post.py`
-    -   测试 `build_query()` 的查询构建
-    -   测试 `get_published_posts()` 的分页逻辑
-    -   测试 `get_all_posts()` 的管理员查询
-    -   验证默认只返回已发布
-    -   移除 `statuses` 参数相关测试
-    -   文件：`tests/test_crud/test_post.py`
--   [ ] **Step 11：更新 API 层测试**
-    -   修改 `test_api/test_posts.py`
-    -   更新 `TestGetPosts` 相关测试
-    -   添加 `TestGetPostsAdmin` 测试类
-    -   移除 `statuses` 参数相关测试
-    -   验证权限控制
-    -   文件：`tests/test_api/test_posts.py`
-
-**阶段 6：最终检查**
-
--   [ ] **Step 12：代码质量检查**
-    -   执行 `uv run ruff check app/crud/post.py --fix`
-    -   执行 `uv run mypy app/crud/post.py`
-    -   执行 `uv run pytest tests/ -v`
-    -   执行 `uv run pytest --cov=app` 验证覆盖率 ≥ 85%
-    -   移除所有 TODO 注释
--   [ ] **Step 13：文档更新**
-    -   更新方法文档字符串
-    -   更新使用示例
-    -   更新 API 文档
-    -   更新 process.md 标记完成
-
----
-
-#### ✅ 验收标准
-
-1. **代码标准**
-
-    - ✅ ruff 检查通过（0 错误）
-    - ✅ mypy 检查通过（0 错误）
-    - ✅ 所有测试通过（100% 通过率）
-    - ✅ 测试覆盖率 ≥ 85%
-
-2. **功能要求**
-
-    - ✅ 公开接口只返回已发布文章
-    - ✅ 管理员接口可以查看所有状态
-    - ✅ CRUD 层完全独立，不调用 API 层方法
-    - ✅ 分页逻辑完全在 API 层
-
-3. **架构要求**
-    - ✅ 分层清晰：CRUD 层职责专一
-    - ✅ 可测试性提升：CRUD 层方法易于单测
-    - ✅ 可复用性提升：其他服务可直接使用 CRUD 层
-    - ✅ 业务逻辑清晰：API 层负责分页、权限；CRUD 层负责数据访问
-
----
-
-### 📌 注意事项
-
-1. **方法命名变化**
-
-    - `get_paginated` → `get_published_posts`（公开接口）
-    - 新增：`get_all_posts`（管理员接口）
-
-2. **Schema 变化**
-
-    - `PostFilters` 移除 `statuses` 字段
-    - 新增：`AdminPostFilters`（包含 `statuses`）
-
-3. **API 变化**
-
-    - 新增：`GET /posts/admin` 管理员端点
-    - 公开接口默认只返回已发布
-
-4. **向后兼容性**
-    - ⚠️ API 行为改变：公开接口不再支持 `statuses` 参数
-    - ✅ 新增管理员端点支持完整过滤
-
----
-
-### 🎯 Phase 6.2 - 点赞与收藏（高优先级）⭐⭐⭐⭐
-
-**目标**：实现文章点赞和收藏功能，提升用户互动体验
-
-**用户故事**：
-
--   作为读者，我希望点赞喜欢的文章，表达认可
--   作为读者，我希望收藏文章，方便日后查阅
--   作为作者，我希望看到文章的点赞数和收藏数
-
-**核心交付**：
-
-#### 1. 数据模型设计
-
--   [ ] 创建 `PostLike` 模型（多对多关系表）
-    -   `user_id`: 点赞用户 ID
-    -   `post_id`: 文章 ID
-    -   `created_at`: 点赞时间
-    -   唯一约束：`(user_id, post_id)`
--   [ ] 创建 `PostFavorite` 模型（多对多关系表）
-    -   结构同 `PostLike`
--   [ ] 扩展 Post 模型
-    -   添加 `like_count` 字段（缓存点赞数）
-    -   添加 `favorite_count` 字段（缓存收藏数）
--   [ ] 数据库迁移脚本
-
-#### 2. Schema 设计
-
--   [ ] `PostLikeResponse`：点赞记录响应
--   [ ] `PostWithLikeStatus`：文章响应（包含当前用户是否已点赞）
--   [ ] 更新 `PostResponse`：添加 `like_count`、`favorite_count` 字段
-
-#### 3. CRUD 层实现
-
--   [ ] `post_like.toggle_like()`：切换点赞状态（幂等）
--   [ ] `post_like.get_user_liked_posts()`：获取用户点赞的文章
--   [ ] `post_like.get_post_likes()`：获取文章的点赞列表
--   [ ] `post_favorite.toggle_favorite()`：切换收藏状态
--   [ ] `post_favorite.get_user_favorites()`：获取用户收藏的文章
--   [ ] 实现计数缓存更新逻辑
-
-#### 4. API 端点
-
--   [ ] `POST /posts/{id}/like`：点赞/取消点赞（幂等）
--   [ ] `GET /posts/{id}/likes`：获取点赞列表（分页）
--   [ ] `GET /users/me/liked-posts`：我点赞的文章
--   [ ] `POST /posts/{id}/favorite`：收藏/取消收藏（幂等）
--   [ ] `GET /users/me/favorites`：我的收藏列表
--   [ ] 更新 `GET /posts/{id}`：返回当前用户的点赞/收藏状态
-
-#### 5. 测试
-
--   [ ] 点赞功能测试（点赞、取消、重复点赞）
--   [ ] 收藏功能测试（收藏、取消、重复收藏）
--   [ ] 计数缓存测试（验证 count 字段准确性）
--   [ ] 权限测试（未登录用户无法点赞）
--   [ ] 边界测试（不存在的文章、已删除的文章）
--   [ ] 性能测试（批量点赞操作）
-
-**技术要点**：
-
--   幂等性设计：多次点赞只记录一次
--   计数缓存：使用 `like_count` 字段避免频繁 COUNT 查询
--   数据一致性：点赞/取消时同步更新计数
--   性能优化：使用唯一约束防止重复插入
-
-**预估工作量**：2-3 天
 
 ---
 
@@ -525,18 +247,17 @@
 
 ## 📝 Phase 6 开发顺序
 
-**推荐顺序**：6.1 → 6.2 → 6.3 → 6.4
+**推荐顺序**：6.2 → 6.3 → 6.4
 
 **理由**：
 
-1. **草稿系统**优先：独立功能，无依赖，提升创作体验
-2. **点赞/收藏**其次：为统计面板和通知系统提供数据基础
-3. **统计面板**第三：依赖点赞/收藏数据，展示数据价值
-4. **通知系统**最后：依赖前面所有功能，构建完整闭环
+1. **点赞/收藏**优先：为统计面板和通知系统提供数据基础
+2. **统计面板**其次：依赖点赞/收藏数据，展示数据价值
+3. **通知系统**最后：依赖前面所有功能，构建完整闭环
 
 **灵活调整**：
 
--   如果时间紧张，可先完成 6.1 + 6.2，其余放到 Phase 7
--   如果想快速看到效果，可 6.1 → 6.2 → 6.4（跳过统计面板）
+-   如果时间紧张，可先完成 6.2，其余放到 Phase 7
+-   如果想快速看到效果，可 6.2 → 6.4（跳过统计面板）
 
 ---
