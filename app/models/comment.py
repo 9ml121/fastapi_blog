@@ -22,8 +22,7 @@ if TYPE_CHECKING:
 
 
 class Comment(Base):
-    """
-    评论模型 - 支持层级评论结构
+    """comments数据库表模型 - 支持层级评论结构
 
     核心特性：
     1. 自引用关系 - 评论可以回复评论
@@ -42,19 +41,16 @@ class Comment(Base):
     # ============ 外键关系 ============
     user_id: Mapped[UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
         comment="评论作者 ID",
     )
 
     post_id: Mapped[UUID] = mapped_column(
         ForeignKey("posts.id", ondelete="CASCADE"),
-        nullable=False,
         comment="所属文章 ID",
     )
 
     parent_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("comments.id", ondelete="CASCADE"),
-        nullable=True,
         comment="父评论 ID（顶级评论为 None）",
     )
 

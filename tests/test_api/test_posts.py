@@ -21,9 +21,9 @@ from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+import app.crud.post as post_crud
 from app.core.security import create_access_token
-from app.crud.post import post as post_crud
-from app.models.post import Post
+from app.models.post import Post, PostStatus
 from app.models.user import User
 from app.schemas.post import PostCreate
 
@@ -142,9 +142,7 @@ class TestCreatePost:
         """✅ 异常数据：测试创建重复 slug 的文章 - 应该返回 409"""
         # 1. 先创建一篇文章
         post_in = PostCreate(title="第一篇", content="内容", slug="duplicate-slug")
-        post_crud.create_with_author(
-            db=session, obj_in=post_in, author_id=sample_user.id
-        )
+        post_crud.create_post(db=session, post_in=post_in, author_id=sample_user.id)
 
         # 2. 尝试创建相同 slug 的文章
         post_data["slug"] = "duplicate-slug"
@@ -210,7 +208,12 @@ class TestGetPosts:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()["items"]
-        assert len(data) == len(sample_posts)
+
+        # 重构后：公开接口只返回已发布文章
+        published_posts = [
+            post for post in sample_posts if post.status == PostStatus.PUBLISHED
+        ]
+        assert len(data) == len(published_posts)
 
         # 验证每篇文章的结构
         for post in data:
@@ -224,21 +227,32 @@ class TestGetPosts:
         client: TestClient,
         sample_posts: list[Post],
     ):
-        """✅ 正常数据：测试分页功能"""
+        """✅ 正常数据：测试分页功能
+        4个published文章 + 2个draft文章 + 1个archived文章
+        """
 
-        # 测试 GET /posts?page=1&size=5 返回前 5 篇
-        response = client.get("/api/v1/posts/?page=1&size=5")
+        # 测试 GET /posts?page=1&size=3 返回 published文章前 3 篇
+        response = client.get("/api/v1/posts/?page=1&size=3")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        pprint(data)
         assert data["page"] == 1
-        assert data["size"] == 5
-        assert data["total"] == len(sample_posts)
-        assert data["pages"] == (len(sample_posts) + 5 - 1) // 5
+        assert data["size"] == 3
+
+        # 重构后：公开接口只返回已发布文章
+        published_posts = [
+            post for post in sample_posts if post.status == PostStatus.PUBLISHED
+        ]
+        # 验证返回文章都是已发布状态
+        assert all(post["status"] == PostStatus.PUBLISHED for post in data["items"])
+        assert data["total"] == len(published_posts)
+        assert data["pages"] == (len(published_posts) + 3 - 1) // 3
         assert data["has_next"] is True
         assert data["has_prev"] is False
-        # 测试默认按照 created_at 降序
-        assert data["items"][0]["created_at"] >= data["items"][1]["created_at"]
-        assert data["items"][1]["created_at"] >= data["items"][2]["created_at"]
+
+        # 验证默认按照 published_at 降序
+        assert data["items"][0]["published_at"] >= data["items"][1]["published_at"]
+        assert data["items"][1]["published_at"] >= data["items"][2]["published_at"]
 
     def test_get_posts_filter_by_title(
         self, client: TestClient, sample_posts: list[Post]
@@ -278,32 +292,6 @@ class TestGetPosts:
         for post in data["items"]:
             tag_names = [tag["name"] for tag in post["tags"]]
             assert "Tag1" in tag_names
-
-    def test_get_posts_filter_by_published_status(
-        self, client: TestClient, sample_posts: list[Post]
-    ):
-        """✅ 正常数据：测试过滤功能:按发布状态过滤"""
-        # 测试已发布文章 - 使用 statuses 参数
-        response = client.get("/api/v1/posts/?statuses=published")
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-
-        # 验证所有返回的文章都是已发布状态（有 published_at 且不为 None）
-        for post in data["items"]:
-            # 只验证状态为 published 的文章
-            if post["status"] == "published":
-                assert post["published_at"] is not None
-
-        # 测试未发布文章（草稿）- 使用 statuses 参数
-        response = client.get("/api/v1/posts/?statuses=draft")
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-
-        # 验证所有返回的文章都是未发布状态（published_at 为 None 或 status 为 draft）
-        for post in data["items"]:
-            # 只验证状态为 draft 的文章
-            if post["status"] == "draft":
-                assert post["published_at"] is None
 
     def test_get_posts_filter_combined(
         self, client: TestClient, sample_user: User, sample_posts: list[Post]
@@ -385,26 +373,27 @@ class TestGetUserDrafts:
     ):
         """✅ 正常数据：测试获取用户草稿列表"""
         # 创建一些草稿文章
-        from app.schemas.post import PostCreate
 
-        draft1 = post_crud.create_with_author(
+        draft1 = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="草稿1", content="内容1"),
+            post_in=PostCreate(title="草稿1", content="内容1"),
             author_id=sample_user.id,
         )
-        draft2 = post_crud.create_with_author(
+        draft2 = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="草稿2", content="内容2"),
+            post_in=PostCreate(title="草稿2", content="内容2"),
             author_id=sample_user.id,
         )
 
         # 发布一篇文章（不应该出现在草稿列表中）
-        published_post = post_crud.create_with_author(
+        published_post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="已发布", content="内容"),
+            post_in=PostCreate(title="已发布", content="内容"),
             author_id=sample_user.id,
         )
-        post_crud.publish(db=session, post_id=published_post.id)
+        post_crud.publish_post(
+            db=session, post_id=published_post.id, user_id=published_post.author_id
+        )
 
         response = client.get("/api/v1/posts/drafts", headers=auth_headers)
 
@@ -451,7 +440,7 @@ class TestGetPost:
     def test_get_post_success(
         self,
         client: TestClient,
-        sample_post: "Post",  # type: ignore
+        sample_post: Post,
     ):
         """✅ 正常数据：测试成功获取文章详情"""
         response = client.get(f"/api/v1/posts/{sample_post.id}")
@@ -609,11 +598,10 @@ class TestPublishPost:
     ):
         """✅ 正常数据：测试成功发布草稿"""
         # 创建草稿文章
-        from app.schemas.post import PostCreate
 
-        draft_post = post_crud.create_with_author(
+        draft_post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="草稿文章", content="内容"),
+            post_in=PostCreate(title="草稿文章", content="内容"),
             author_id=sample_user.id,
         )
 
@@ -648,14 +636,13 @@ class TestPublishPost:
     ):
         """✅ 异常数据：测试发布已发布的文章（应该返回 409）"""
         # 创建并发布文章
-        from app.schemas.post import PostCreate
 
-        post = post_crud.create_with_author(
+        post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="文章", content="内容"),
+            post_in=PostCreate(title="文章", content="内容"),
             author_id=sample_user.id,
         )
-        post_crud.publish(db=session, post_id=post.id)
+        post_crud.publish_post(db=session, post_id=post.id, user_id=post.author_id)
 
         # 尝试再次发布
         response = client.patch(
@@ -673,11 +660,10 @@ class TestPublishPost:
     ):
         """✅ 异常数据：测试非作者发布文章（应该返回 403）"""
         # 创建草稿文章
-        from app.schemas.post import PostCreate
 
-        draft_post = post_crud.create_with_author(
+        draft_post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="草稿", content="内容"),
+            post_in=PostCreate(title="草稿", content="内容"),
             author_id=sample_user.id,
         )
 
@@ -696,11 +682,10 @@ class TestPublishPost:
     ):
         """✅ 异常数据：测试未登录发布文章（应该返回 401）"""
         # 创建草稿文章
-        from app.schemas.post import PostCreate
 
-        draft_post = post_crud.create_with_author(
+        draft_post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="草稿", content="内容"),
+            post_in=PostCreate(title="草稿", content="内容"),
             author_id=sample_user.id,
         )
 
@@ -726,14 +711,13 @@ class TestArchivePost:
     ):
         """✅ 正常数据：测试成功归档已发布文章"""
         # 创建并发布文章
-        from app.schemas.post import PostCreate
 
-        post = post_crud.create_with_author(
+        post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="文章", content="内容"),
+            post_in=PostCreate(title="文章", content="内容"),
             author_id=sample_user.id,
         )
-        post_crud.publish(db=session, post_id=post.id)
+        post_crud.publish_post(db=session, post_id=post.id, user_id=post.author_id)
 
         response = client.patch(
             f"/api/v1/posts/{post.id}/archive", headers=auth_headers
@@ -765,11 +749,10 @@ class TestArchivePost:
     ):
         """✅ 异常数据：测试归档草稿文章（应该返回 409）"""
         # 创建草稿文章
-        from app.schemas.post import PostCreate
 
-        draft_post = post_crud.create_with_author(
+        draft_post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="草稿", content="内容"),
+            post_in=PostCreate(title="草稿", content="内容"),
             author_id=sample_user.id,
         )
 
@@ -788,14 +771,13 @@ class TestArchivePost:
     ):
         """✅ 异常数据：测试非作者归档文章（应该返回 403）"""
         # 创建并发布文章
-        from app.schemas.post import PostCreate
 
-        post = post_crud.create_with_author(
+        post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="文章", content="内容"),
+            post_in=PostCreate(title="文章", content="内容"),
             author_id=sample_user.id,
         )
-        post_crud.publish(db=session, post_id=post.id)
+        post_crud.publish_post(db=session, post_id=post.id, user_id=post.author_id)
 
         # 其他用户尝试归档
         response = client.patch(
@@ -822,14 +804,13 @@ class TestRevertToDraft:
     ):
         """✅ 正常数据：测试成功将已发布文章回退为草稿"""
         # 创建并发布文章
-        from app.schemas.post import PostCreate
 
-        post = post_crud.create_with_author(
+        post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="文章", content="内容"),
+            post_in=PostCreate(title="文章", content="内容"),
             author_id=sample_user.id,
         )
-        post_crud.publish(db=session, post_id=post.id)
+        post_crud.publish_post(db=session, post_id=post.id, user_id=post.author_id)
 
         response = client.patch(
             f"/api/v1/posts/{post.id}/revert-to-draft", headers=auth_headers
@@ -849,15 +830,14 @@ class TestRevertToDraft:
     ):
         """✅ 正常数据：测试成功将已归档文章回退为草稿"""
         # 创建、发布并归档文章
-        from app.schemas.post import PostCreate
 
-        post = post_crud.create_with_author(
+        post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="文章", content="内容"),
+            post_in=PostCreate(title="文章", content="内容"),
             author_id=sample_user.id,
         )
-        post_crud.publish(db=session, post_id=post.id)
-        post_crud.archive(db=session, post_id=post.id)
+        post_crud.publish_post(db=session, post_id=post.id, user_id=post.author_id)
+        post_crud.archive_post(db=session, post_id=post.id, user_id=post.author_id)
 
         response = client.patch(
             f"/api/v1/posts/{post.id}/revert-to-draft", headers=auth_headers
@@ -890,11 +870,10 @@ class TestRevertToDraft:
     ):
         """✅ 异常数据：测试回退已是草稿的文章（应该返回 409）"""
         # 创建草稿文章
-        from app.schemas.post import PostCreate
 
-        draft_post = post_crud.create_with_author(
+        draft_post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="草稿", content="内容"),
+            post_in=PostCreate(title="草稿", content="内容"),
             author_id=sample_user.id,
         )
 
@@ -913,14 +892,13 @@ class TestRevertToDraft:
     ):
         """✅ 异常数据：测试非作者回退文章（应该返回 403）"""
         # 创建并发布文章
-        from app.schemas.post import PostCreate
 
-        post = post_crud.create_with_author(
+        post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(title="文章", content="内容"),
+            post_in=PostCreate(title="文章", content="内容"),
             author_id=sample_user.id,
         )
-        post_crud.publish(db=session, post_id=post.id)
+        post_crud.publish_post(db=session, post_id=post.id, user_id=post.author_id)
 
         # 其他用户尝试回退
         response = client.patch(

@@ -12,12 +12,10 @@
 
 from uuid import UUID
 
-import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
-import app.crud.post as post_crud
-from app.models.post import Post, PostStatus
+from app.models.post import Post
 from app.models.user import User
 
 # ============================================

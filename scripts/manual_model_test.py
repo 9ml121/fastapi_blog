@@ -5,9 +5,8 @@
 这是在真实数据库上进行的集成测试。
 
 使用方法：
-    uv run python scripts/manual_model_test.py
+PYTHONPATH=. uv run python scripts/manual_model_test.py
 """
-
 
 from typing import Any, TypeVar
 
@@ -45,8 +44,8 @@ def test_user_crud() -> User:
     with Session(engine) as session:
         # Create
         user = User(
-            username="testuser",
-            email="test@example.com",
+            username="testuser123",
+            email="test123@example.com",
             password_hash="hashed_password_123",
             nickname="测试用户",
             role=UserRole.USER,

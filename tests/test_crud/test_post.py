@@ -5,7 +5,7 @@ tests/test_crud/test_post.py
 
 测试覆盖：
 - 基础 CRUD 操作（继承自 CRUDBase）
-- 自定义业务方法（create_with_author, get_by_slug）
+- 自定义业务方法（create_post, get_by_slug）
 - Phase 6.1 新增方法（get_user_drafts, publish, archive, revert_to_draft）
 - 边界情况和异常处理
 """
@@ -15,8 +15,8 @@ import uuid
 import pytest
 from sqlalchemy.orm import Session
 
+import app.crud.post as post_crud
 from app.core.exceptions import ResourceConflictError, ResourceNotFoundError
-from app.crud.post import post as post_crud
 from app.models.post import Post, PostStatus
 from app.models.tag import Tag
 from app.models.user import User
@@ -26,10 +26,10 @@ from app.schemas.post import PostCreate, PostUpdate
 class TestCRUDPost:
     """测试 Post CRUD 的所有方法"""
 
-    # ============ 创建测试：create_with_author ============
+    # ============ 创建测试：create_post ============
 
     def test_create_post_with_author_success(self, session: Session, sample_user: User):
-        """✅ 正常数据：测试 create_with_author 方法成功创建文章
+        """✅ 正常数据：测试 create_post 方法成功创建文章
 
         测试场景：
         1. 创建包含标签的文章
@@ -50,8 +50,8 @@ class TestCRUDPost:
         )
 
         # 3. 调用被测试的函数
-        created_post = post_crud.create_with_author(
-            db=session, obj_in=post_in, author_id=sample_user.id
+        created_post = post_crud.create_post(
+            db=session, post_in=post_in, author_id=sample_user.id
         )
 
         # 4. 断言
@@ -76,8 +76,8 @@ class TestCRUDPost:
             tags=[],
         )
 
-        created_post = post_crud.create_with_author(
-            db=session, obj_in=post_in, author_id=sample_user.id
+        created_post = post_crud.create_post(
+            db=session, post_in=post_in, author_id=sample_user.id
         )
 
         assert created_post.title == "Test Post Empty Tags"
@@ -91,8 +91,8 @@ class TestCRUDPost:
             tags=None,
         )
 
-        created_post = post_crud.create_with_author(
-            db=session, obj_in=post_in, author_id=sample_user.id
+        created_post = post_crud.create_post(
+            db=session, post_in=post_in, author_id=sample_user.id
         )
 
         assert created_post.title == "Test Post None Tags"
@@ -106,8 +106,8 @@ class TestCRUDPost:
             # 不提供 slug
         )
 
-        created_post = post_crud.create_with_author(
-            db=session, obj_in=post_in, author_id=sample_user.id
+        created_post = post_crud.create_post(
+            db=session, post_in=post_in, author_id=sample_user.id
         )
 
         assert created_post.slug is not None
@@ -123,8 +123,8 @@ class TestCRUDPost:
             slug=custom_slug,
         )
 
-        created_post = post_crud.create_with_author(
-            db=session, obj_in=post_in, author_id=sample_user.id
+        created_post = post_crud.create_post(
+            db=session, post_in=post_in, author_id=sample_user.id
         )
 
         assert created_post.slug == custom_slug
@@ -134,9 +134,9 @@ class TestCRUDPost:
         duplicate_slug = "duplicate-slug"
 
         # 创建第一篇文章
-        post_crud.create_with_author(
+        post_crud.create_post(
             db=session,
-            obj_in=PostCreate(
+            post_in=PostCreate(
                 title="First Post", content="Content", slug=duplicate_slug
             ),
             author_id=sample_user.id,
@@ -146,9 +146,9 @@ class TestCRUDPost:
         from sqlalchemy.exc import IntegrityError
 
         with pytest.raises(IntegrityError):
-            post_crud.create_with_author(
+            post_crud.create_post(
                 db=session,
-                obj_in=PostCreate(
+                post_in=PostCreate(
                     title="Second Post", content="Content", slug=duplicate_slug
                 ),
                 author_id=sample_user.id,
@@ -171,13 +171,13 @@ class TestCRUDPost:
         # 而通用 create 方法不知道如何提供它，
         # 因此在 commit 阶段一定会触发数据库的 IntegrityError。
         with pytest.raises(IntegrityError):
-            post_crud.create(db=session, obj_in=post_in)
+            post_crud.create_post(db=session, post_in=post_in, author_id=uuid.uuid4())
 
     # ============ 查询测试：get ============
 
     def test_get_post_by_id_success(self, session: Session, sample_post: Post):
         """✅ 正常数据：测试通过 ID 获取文章"""
-        retrieved_post = post_crud.get(db=session, id=sample_post.id)
+        retrieved_post = post_crud.get_post_by_id(db=session, post_id=sample_post.id)
 
         assert retrieved_post is not None
         assert retrieved_post.id == sample_post.id
@@ -186,7 +186,7 @@ class TestCRUDPost:
     def test_get_post_by_id_not_found(self, session: Session):
         """✅ 异常数据：测试获取不存在的文章"""
         non_existent_id = uuid.uuid4()
-        retrieved_post = post_crud.get(db=session, id=non_existent_id)
+        retrieved_post = post_crud.get_post_by_id(db=session, post_id=non_existent_id)
 
         assert retrieved_post is None
 
@@ -194,7 +194,7 @@ class TestCRUDPost:
 
     def test_get_by_slug_success(self, session: Session, sample_post: Post):
         """✅ 正常数据：测试通过 slug 获取文章"""
-        retrieved_post = post_crud.get_by_slug(db=session, slug=sample_post.slug)
+        retrieved_post = post_crud.get_post_by_slug(db=session, slug=sample_post.slug)
 
         assert retrieved_post is not None
         assert retrieved_post.id == sample_post.id
@@ -203,42 +203,9 @@ class TestCRUDPost:
     def test_get_by_slug_not_found(self, session: Session):
         """✅ 异常数据：测试通过不存在的 slug 获取文章"""
         non_existent_slug = "non-existent-slug"
-        retrieved_post = post_crud.get_by_slug(db=session, slug=non_existent_slug)
+        retrieved_post = post_crud.get_post_by_slug(db=session, slug=non_existent_slug)
 
         assert retrieved_post is None
-
-    # ============ 查询测试：get_multi ============
-
-    def test_get_multi_posts_success(self, session: Session, sample_user: User):
-        """✅ 正常数据：测试获取多篇文章"""
-        # 创建多篇文章
-        for i in range(5):
-            post_in = PostCreate(title=f"Post {i}", content=f"Content {i}")
-            post_crud.create_with_author(
-                db=session, obj_in=post_in, author_id=sample_user.id
-            )
-
-        posts = post_crud.get_multi(db=session)
-        assert len(posts) == 5
-
-    def test_get_multi_posts_with_pagination(self, session: Session, sample_user: User):
-        """✅ 正常数据：测试分页获取文章"""
-        # 创建多篇文章
-        for i in range(5):
-            post_in = PostCreate(title=f"Post {i}", content=f"Content {i}")
-            post_crud.create_with_author(
-                db=session, obj_in=post_in, author_id=sample_user.id
-            )
-
-        # 测试分页
-        paginated_posts = post_crud.get_multi(db=session, skip=2, limit=2)
-        assert len(paginated_posts) == 2
-        assert paginated_posts[0].title == "Post 2"
-
-    def test_get_multi_posts_empty(self, session: Session):
-        """✅ 边界数据：测试获取文章时数据库为空"""
-        posts = post_crud.get_multi(db=session)
-        assert posts == []
 
     # ============ 查询测试：get_user_drafts ============
     def test_get_user_drafts_success(
@@ -267,8 +234,11 @@ class TestCRUDPost:
     def test_update_post_success(self, session: Session, sample_post: Post):
         """✅ 正常数据：测试更新文章基本信息"""
         update_data = PostUpdate(title="Updated Title", summary="Updated summary")
-        updated_post = post_crud.update(
-            db=session, db_obj=sample_post, obj_in=update_data
+        updated_post = post_crud.update_post(
+            db=session,
+            post_id=sample_post.id,
+            user_id=sample_post.author_id,
+            post_in=update_data,
         )
 
         assert updated_post.title == "Updated Title"
@@ -284,16 +254,19 @@ class TestCRUDPost:
             content="Content here...",
             tags=["tag1", "tag2"],
         )
-        sample_post = post_crud.create_with_author(
-            session, obj_in=post_in, author_id=sample_user.id
+        sample_post = post_crud.create_post(
+            session, post_in=post_in, author_id=sample_user.id
         )
 
         # 2. 更新标签
         update_data = PostUpdate(tags=["tag2", "tag3"])
 
         # 3. 调用 update 方法
-        updated_post = post_crud.update(
-            db=session, db_obj=sample_post, obj_in=update_data
+        updated_post = post_crud.update_post(
+            db=session,
+            post_id=sample_post.id,
+            user_id=sample_post.author_id,
+            post_in=update_data,
         )
 
         # 4. 断言更新后的文章，其关联的标签名只包含 ["tag2", "tag3"]
@@ -308,14 +281,17 @@ class TestCRUDPost:
             content="Content",
             tags=["tag1", "tag2"],
         )
-        sample_post = post_crud.create_with_author(
-            session, obj_in=post_in, author_id=sample_user.id
+        sample_post = post_crud.create_post(
+            session, post_in=post_in, author_id=sample_user.id
         )
 
         # 清空标签
         update_data = PostUpdate(tags=[])
-        updated_post = post_crud.update(
-            db=session, db_obj=sample_post, obj_in=update_data
+        updated_post = post_crud.update_post(
+            db=session,
+            post_id=sample_post.id,
+            user_id=sample_post.author_id,
+            post_in=update_data,
         )
 
         assert len(updated_post.tags) == 0
@@ -327,8 +303,11 @@ class TestCRUDPost:
 
         # 只更新标题
         update_data = PostUpdate(title="Only Title Updated")
-        updated_post = post_crud.update(
-            db=session, db_obj=sample_post, obj_in=update_data
+        updated_post = post_crud.update_post(
+            db=session,
+            post_id=sample_post.id,
+            user_id=sample_post.author_id,
+            post_in=update_data,
         )
 
         assert updated_post.title == "Only Title Updated"
@@ -343,7 +322,9 @@ class TestCRUDPost:
         assert sample_post.status == PostStatus.DRAFT
         assert sample_post.published_at is None
         # 调用 publish 方法
-        published_post = post_crud.publish(db=session, post_id=sample_post.id)
+        published_post = post_crud.publish_post(
+            db=session, post_id=sample_post.id, user_id=sample_post.author_id
+        )
         # 断言文章状态变为已发布
         assert published_post.status == PostStatus.PUBLISHED
         # 断言 published_at 已设置
@@ -353,18 +334,24 @@ class TestCRUDPost:
         """✅ 异常数据：测试发布不存在的文章"""
         non_existent_id = uuid.uuid4()
         with pytest.raises(ResourceNotFoundError):
-            post_crud.publish(db=session, post_id=non_existent_id)
+            post_crud.publish_post(
+                db=session, post_id=non_existent_id, user_id=uuid.uuid4()
+            )
 
     def test_publish_already_published(self, session: Session, sample_post: Post):
         """✅ 异常数据：测试重复发布（幂等性）"""
         # 第一次发布， 验证成功发布
-        published_post = post_crud.publish(db=session, post_id=sample_post.id)
+        published_post = post_crud.publish_post(
+            db=session, post_id=sample_post.id, user_id=sample_post.author_id
+        )
         assert published_post.status == PostStatus.PUBLISHED
         assert published_post.published_at is not None
 
         # 将published_post再次发布，应该抛出 ResourceConflictError 异常
         with pytest.raises(ResourceConflictError):
-            post_crud.publish(db=session, post_id=published_post.id)
+            post_crud.publish_post(
+                db=session, post_id=published_post.id, user_id=published_post.author_id
+            )
 
         # 断言文章状态和 published_at 不变
         assert published_post.status == PostStatus.PUBLISHED
@@ -381,7 +368,9 @@ class TestCRUDPost:
 
         # 调用 publish 方法，应该抛出 ResourceConflictError 异常
         with pytest.raises(ResourceConflictError):
-            post_crud.publish(db=session, post_id=sample_post.id)
+            post_crud.publish_post(
+                db=session, post_id=sample_post.id, user_id=sample_post.author_id
+            )
 
         # 断言文章状态不变
         assert sample_post.status == PostStatus.ARCHIVED
@@ -391,12 +380,16 @@ class TestCRUDPost:
     def test_archive_published_success(self, session: Session, sample_post: Post):
         """✅ 正常数据：测试归档已发布文章成功"""
         # 将 sample_post 发布
-        published_post = post_crud.publish(db=session, post_id=sample_post.id)
+        published_post = post_crud.publish_post(
+            db=session, post_id=sample_post.id, user_id=sample_post.author_id
+        )
         assert published_post.status == PostStatus.PUBLISHED
         assert published_post.published_at is not None
 
         # published_post 调用 archive 方法
-        archived_post = post_crud.archive(db=session, post_id=published_post.id)
+        archived_post = post_crud.archive_post(
+            db=session, post_id=published_post.id, user_id=published_post.author_id
+        )
         # 断言文章状态变为归档
         assert archived_post.status == PostStatus.ARCHIVED
         # 断言 published_at 不变
@@ -407,24 +400,32 @@ class TestCRUDPost:
     def test_archive_post_not_found(self, session: Session):
         """✅ 异常数据：测试归档不存在的文章"""
         with pytest.raises(ResourceNotFoundError):
-            post_crud.archive(db=session, post_id=uuid.uuid4())
+            post_crud.archive_post(
+                db=session, post_id=uuid.uuid4(), user_id=uuid.uuid4()
+            )
 
     def test_archive_draft_post(self, session: Session, sample_post: Post):
         """✅ 异常数据：测试归档草稿文章（业务规则）"""
         with pytest.raises(ResourceConflictError):
-            post_crud.archive(db=session, post_id=sample_post.id)
+            post_crud.archive_post(
+                db=session, post_id=sample_post.id, user_id=sample_post.author_id
+            )
 
     # ============ 状态转换测试：revert_to_draft ============
 
     def test_revert_published_to_draft(self, session: Session, sample_post: Post):
         """✅ 正常数据：测试将已发布文章回退为草稿"""
         # 先将 sample_post 发布
-        published_post = post_crud.publish(db=session, post_id=sample_post.id)
+        published_post = post_crud.publish_post(
+            db=session, post_id=sample_post.id, user_id=sample_post.author_id
+        )
         assert published_post.status == PostStatus.PUBLISHED
         assert published_post.published_at is not None
 
         # published_post 调用 revert_to_draft 方法
-        reverted_post = post_crud.revert_to_draft(db=session, post_id=published_post.id)
+        reverted_post = post_crud.revert_post_to_draft(
+            db=session, post_id=published_post.id, user_id=published_post.author_id
+        )
         # 断言文章状态变为草稿
         assert reverted_post.status == PostStatus.DRAFT
         # 断言 published_at 变为 None
@@ -440,41 +441,47 @@ class TestCRUDPost:
         session.commit()
         assert sample_post.status == PostStatus.ARCHIVED
         # 调用 revert_to_draft 方法
-        reverted_post = post_crud.revert_to_draft(db=session, post_id=sample_post.id)
+        reverted_post = post_crud.revert_post_to_draft(
+            db=session, post_id=sample_post.id, user_id=sample_post.author_id
+        )
         # 断言文章状态变为草稿
         assert reverted_post.status == PostStatus.DRAFT
 
     def test_revert_post_not_found(self, session: Session):
         """✅ 异常数据：测试回退不存在的文章"""
         with pytest.raises(ResourceNotFoundError):
-            post_crud.revert_to_draft(db=session, post_id=uuid.uuid4())
+            post_crud.revert_post_to_draft(
+                db=session, post_id=uuid.uuid4(), user_id=uuid.uuid4()
+            )
 
     def test_revert_already_draft(self, session: Session, sample_post: Post):
         """✅ 异常数据：测试回退已是草稿的文章"""
         with pytest.raises(ResourceConflictError):
-            post_crud.revert_to_draft(db=session, post_id=sample_post.id)
+            post_crud.revert_post_to_draft(
+                db=session, post_id=sample_post.id, user_id=sample_post.author_id
+            )
 
     # ============ 删除测试：remove ============
 
     def test_remove_post_success(self, session: Session, sample_post: Post):
         """✅ 正常数据：测试删除文章成功"""
         post_id = sample_post.id
-        removed_post = post_crud.remove(db=session, id=post_id)
+        post_crud.delete_post(
+            db=session, post_id=post_id, user_id=sample_post.author_id
+        )
 
-        assert removed_post is not None
-        assert removed_post.id == post_id
+        # delete_post returns None, so we just verify the deletion worked
 
         # 验证文章确实已被删除
-        post_in_db = post_crud.get(db=session, id=post_id)
+        post_in_db = post_crud.get_post_by_id(db=session, post_id=post_id)
         assert post_in_db is None
 
     def test_remove_post_not_found(self, session: Session):
         """✅ 异常数据：测试删除不存在的文章"""
         non_existent_id = uuid.uuid4()
-        removed_post = post_crud.remove(db=session, id=non_existent_id)
 
-        assert removed_post is None
-
-    # ============ 分页查询测试：get_paginated ============
-
-    # ⚠️ 分页逻辑会重构到 api层，暂时不用测试
+        # delete_post returns None and raises exception for non-existent post
+        with pytest.raises(ResourceNotFoundError):
+            post_crud.delete_post(
+                db=session, post_id=non_existent_id, user_id=uuid.uuid4()
+            )

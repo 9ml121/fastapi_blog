@@ -21,10 +21,11 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import func, select
 
-from app.api.pagination import (
+from app.core.exceptions import InvalidParametersError
+from app.core.pagination import (
     PaginatedResponse,
     PaginationParams,
-    get_sortable_columns,
+    _get_sortable_columns,
     paginate_query,
 )
 from app.models.post import Post
@@ -212,7 +213,7 @@ class TestGetSortableColumns:
         """✅ 正常数据：获取Post模型的可排序字段"""
         from app.models.post import Post
 
-        sortable_fields = get_sortable_columns(Post)
+        sortable_fields = _get_sortable_columns(Post)
         # pprint(sortable_fields)
 
         # 验证返回的是字典
@@ -234,7 +235,7 @@ class TestGetSortableColumns:
         """✅ 正常数据：获取User模型的可排序字段"""
         from app.models.user import User
 
-        sortable_fields = get_sortable_columns(User)
+        sortable_fields = _get_sortable_columns(User)
         expected_user_fields = {"id", "username", "email", "created_at"}
         assert expected_user_fields.issubset(sortable_fields.keys())
 
@@ -242,7 +243,7 @@ class TestGetSortableColumns:
         """✅ 边界数据：排除关系字段"""
         from app.models.post import Post
 
-        sortable_fields = get_sortable_columns(Post)
+        sortable_fields = _get_sortable_columns(Post)
         assert "author" not in sortable_fields
         assert "tags" not in sortable_fields
         assert "comments" not in sortable_fields
@@ -347,7 +348,7 @@ class TestPaginateQuery:
         query = select(Post)
         params = PaginationParams(sort="invalid_field")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidParametersError):
             paginate_query(session, query, params, model=Post)
 
     def test_paginate_query_asc_order(self, session, post_datas):
@@ -370,7 +371,7 @@ class TestPaginateQuery:
         # 尝试通过排序字段进行SQL注入
         params = PaginationParams(sort="id; DROP TABLE posts; --")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidParametersError):
             paginate_query(session, query, params, model=Post)
 
 

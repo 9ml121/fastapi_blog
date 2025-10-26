@@ -120,10 +120,9 @@ class PostView(Base):
         lazy="joined",  # 查询浏览记录时通常需要用户信息
     )
 
-    # PostView → Post: 多对一
+    # PostView → Post: 多对一(不指定 lazy策略，由应用层在需要时显式加载)
     post: Mapped["Post"] = relationship(
         back_populates="post_views",
-        lazy="joined",  # 查询浏览记录时通常需要文章信息
     )
 
     # ============ 属性方法 ============

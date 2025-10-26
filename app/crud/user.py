@@ -15,14 +15,20 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import (
+    EmailAlreadyExistsError,
+    InvalidPasswordError,
+    ResourceNotFoundError,
+    UsernameAlreadyExistsError,
+)
 from app.core.security import hash_password, verify_password
 from app.models.user import User
 from app.schemas.user import UserCreate, UserProfileUpdate, UserUpdate
 
 
+#  =================================== 用户查询 ===================================
 def get_user_by_id(db: Session, *, user_id: UUID) -> User | None:
-    """
-    通过用户 ID 查询用户（主键查询）
+    """通过用户 ID 查询用户（主键查询）
 
     设计要点：
     - 主键查询性能最优（数据库索引）
@@ -47,8 +53,7 @@ def get_user_by_id(db: Session, *, user_id: UUID) -> User | None:
 
 
 def get_user_by_email(db: Session, *, email: str) -> User | None:
-    """
-    通过邮箱地址查询用户
+    """通过邮箱地址查询用户
 
     设计要点：
     - 邮箱有唯一约束和索引，查询性能好
@@ -73,8 +78,7 @@ def get_user_by_email(db: Session, *, email: str) -> User | None:
 
 
 def get_user_by_username(db: Session, *, username: str) -> User | None:
-    """
-    通过用户名查询用户
+    """通过用户名查询用户
 
     设计要点：
     - 用户名有唯一约束和索引
@@ -98,9 +102,9 @@ def get_user_by_username(db: Session, *, username: str) -> User | None:
     )
 
 
+#  =================================== 用户创建 ===================================
 def create_user(db: Session, *, user_in: UserCreate) -> User:
-    """
-    创建新用户
+    """创建新用户（用户注册）
 
     Args:
         db: 数据库会话对象
@@ -109,16 +113,28 @@ def create_user(db: Session, *, user_in: UserCreate) -> User:
     Returns:
         新创建的 User 模型对象
     """
-    # 1. 从输入的 schema 中提取不含密码的数据
+    # 1.检查邮箱是否已存在
+    if user_in.email:
+        existing_user = get_user_by_email(db, email=user_in.email)
+        if existing_user:
+            raise EmailAlreadyExistsError(email=user_in.email)
+
+    # 2.检查用户名是否已存在
+    if user_in.username:
+        existing_user = get_user_by_username(db, username=user_in.username)
+        if existing_user:
+            raise UsernameAlreadyExistsError(username=user_in.username)
+
+    # 3. 从输入的 schema 中提取不含密码的数据
     user_data = user_in.model_dump(exclude={"password"})
 
-    # 2. 对密码进行哈希处理
+    # 4. 对密码进行哈希处理
     hashed_password = hash_password(user_in.password)
 
-    # 3. 创建 SQLAlchemy User 模型实例
+    # 5. 创建 SQLAlchemy User 模型实例
     db_user = User(**user_data, password_hash=hashed_password)
 
-    # 4. 将实例添加到数据库会话、提交事务、刷新实例
+    # 6. 将实例添加到数据库会话、提交事务、刷新实例
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -126,81 +142,7 @@ def create_user(db: Session, *, user_in: UserCreate) -> User:
     return db_user
 
 
-def update_user(db: Session, *, user_id: UUID, user_in: UserUpdate) -> User | None:
-    """更新用户信息（部分更新,不包含密码）
-
-    设计要点：
-    1. 使用 model_dump(exclude_unset=True) 只更新提供的字段
-    2. 密码更新需要单独处理（哈希）
-    3. 某些字段（如 is_superuser）不应允许通过此接口更新
-    4. updated_at 由数据库自动更新（onupdate=func.now()）
-
-    Args:
-        db: 数据库会话对象
-        user_id: 要更新的用户 ID
-        user_in: Pydantic UserUpdate schema，包含要更新的字段
-
-    Returns:
-        更新后的 User 模型对象或 None（用户不存在）
-    """
-    # 1. 查询用户（排除软删除）
-    user = get_user_by_id(db, user_id=user_id)
-    if not user:
-        return None
-
-    # 2. 只提取实际提供的字段（exclude_unset=True）
-    update_data = user_in.model_dump(exclude_unset=True)
-
-    # TODO:  1.处理密码,待删除； 2.待增加邮箱验证； 3.处理跟 update_profile 的重复代码；
-    # 3. 处理密码更新（如果提供了密码）
-    if "password" in update_data:
-        hashed_password = hash_password(update_data.pop("password"))
-        update_data["password_hash"] = hashed_password
-
-    # 4. 逐个更新字段
-    for field, value in update_data.items():
-        setattr(user, field, value)
-
-    # 5. 提交更新
-    db.commit()
-    db.refresh(user)
-
-    return user
-
-
-def delete_user(db: Session, *, user_id: UUID) -> User | None:
-    """
-    软删除用户（设置 deleted_at 时间戳）
-
-    设计要点：
-    1. 软删除：设置 deleted_at = 当前时间，数据不会真正删除
-    2. 优势：可以恢复账号（30天内）、保留数据完整性、审计追溯
-    3. 与 is_active 区分：
-       - is_active=False → 管理员临时禁用
-       - deleted_at != None → 用户主动删除账号
-
-    Args:
-        db: 数据库会话对象
-        user_id: 要删除的用户 ID
-
-    Returns:
-        被删除的 User 模型对象或 None（用户不存在）
-    """
-    # 1. 查询用户（排除已删除）
-    user = get_user_by_id(db, user_id=user_id)
-    if not user:
-        return None
-
-    # 2. 设置软删除时间戳
-    user.deleted_at = datetime.now()
-
-    # 3. 提交更新
-    db.commit()
-    db.refresh(user)
-
-    return user
-
-
+#  =================================== 用户登录验证 ===================================
 def authenticate_user(db: Session, *, identifier: str, password: str) -> User | None:
     """用户登录验证（支持邮箱或用户名 + 密码）
 
@@ -245,23 +187,79 @@ def authenticate_user(db: Session, *, identifier: str, password: str) -> User | 
         return None
 
     # 4. 可选：检查用户是否被禁用（根据业务需求）
-    # if not user.is_active:
-    #     return None
+    if not user.is_active:
+        return None
 
     # 5. 验证成功，返回用户对象
+    return user
+
+
+#  =================================== 用户更新 ===================================
+def update_user(db: Session, *, user_id: UUID, user_in: UserUpdate) -> User | None:
+    """更新用户信息（管理员更新,包含用户管理，密码重置，账户激活/停用）
+
+    设计要点：
+    ✅ 管理员权限：可以更新任意用户
+    ✅ 完整权限：可以更新所有字段包括 is_active
+    ✅ 包含密码：可以重置用户密码
+    ✅ 用户名更新：可以修改用户名
+
+    Args:
+        db: 数据库会话对象
+        user_id: 要更新的用户 ID
+        user_in: Pydantic UserUpdate schema，包含要更新的字段
+
+    Returns:
+        更新后的 User 模型对象或 None（用户不存在）
+    """
+    # 1. 查询用户（排除软删除）
+    user = get_user_by_id(db, user_id=user_id)
+    if not user:
+        raise ResourceNotFoundError(resource="用户")
+
+    # 2. 如果更新邮箱，检查新邮箱是否已被占用（排除自己）
+    if user_in.email and user_in.email != user.email:
+        existing_user = get_user_by_email(db, email=user_in.email)
+        if existing_user and existing_user.id != user.id:
+            raise EmailAlreadyExistsError(email=user_in.email)
+
+    # 3. 如果更新用户名，检查新用户名是否已被占用（排除自己）
+    if user_in.username and user_in.username != user.username:
+        existing_user = get_user_by_username(db, username=user_in.username)
+        if existing_user and existing_user.id != user.id:
+            raise UsernameAlreadyExistsError(username=user_in.username)
+
+    # 4. 提取实际提供的字段（exclude_unset=True）
+    update_data = user_in.model_dump(exclude_unset=True)
+
+    # 5. 处理密码更新（如果提供了密码）
+    if "password" in update_data:
+        hashed_password = hash_password(update_data.pop("password"))
+        update_data["password_hash"] = hashed_password
+
+    # 6. 逐个更新字段
+    for field, value in update_data.items():
+        setattr(user, field, value)
+
+    # 7. 提交更新
+    db.commit()
+    db.refresh(user)
+
     return user
 
 
 def update_profile(
     db: Session, *, user: User, profile_update: UserProfileUpdate
 ) -> User:
-    """更新用户个人资料（用户自主更新）
+    """用户自主更新个人资料（个人资料管理、邮箱更换等）
 
     设计要点：
     1. 只更新用户自己的资料，不允许修改他人资料
     2. 邮箱去重检查（排除用户自己的邮箱）
     3. 只更新实际提供的字段（exclude_unset=True）
-    4. 不包含权限相关字段（is_active 等）
+    4. 不包含权限相关字段（is_active，role）
+    5. 不包含密码更新（使用单独端点）
+    6. 不包含用户名更新
 
     Args:
         db: 数据库会话对象
@@ -278,7 +276,7 @@ def update_profile(
     if profile_update.email and profile_update.email != user.email:
         existing_user = get_user_by_email(db, email=profile_update.email)
         if existing_user and existing_user.id != user.id:
-            raise ValueError("Email already registered")
+            raise EmailAlreadyExistsError(email=profile_update.email)
 
     # 2. 只提取实际提供的字段（exclude_unset=True 实现 PATCH 语义）
     update_data = profile_update.model_dump(exclude_unset=True)
@@ -319,13 +317,48 @@ def update_password(
     """
     # 1. 验证旧密码是否正确
     if not verify_password(old_password, user.password_hash):
-        raise ValueError("旧密码错误")
+        raise InvalidPasswordError()
 
     # 2. 哈希新密码
     user.password_hash = hash_password(new_password)
 
     # 3. 提交更新（updated_at 由数据库自动更新）
     db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return user
+
+
+#  =================================== 用户删除 ===================================
+
+
+def delete_user(db: Session, *, user_id: UUID) -> User | None:
+    """软删除用户（设置 deleted_at 时间戳）
+
+    设计要点：
+    1. 软删除：设置 deleted_at = 当前时间，数据不会真正删除
+    2. 优势：可以恢复账号（30天内）、保留数据完整性、审计追溯
+    3. 与 is_active 区分：
+       - is_active=False → 管理员临时禁用
+       - deleted_at != None → 用户主动删除账号
+
+    Args:
+        db: 数据库会话对象
+        user_id: 要删除的用户 ID
+
+    Returns:
+        被删除的 User 模型对象或 None（用户不存在）
+    """
+    # 1. 查询用户（排除已删除）
+    user = get_user_by_id(db, user_id=user_id)
+    if not user:
+        raise ResourceNotFoundError(resource="用户")
+
+    # 2. 设置软删除时间戳
+    user.deleted_at = datetime.now()
+
+    # 3. 提交更新
     db.commit()
     db.refresh(user)
 

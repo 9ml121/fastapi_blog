@@ -19,7 +19,7 @@ class CommentBase(BaseModel):
 
 # 创建模型 (输入)
 class CommentCreate(CommentBase):
-    parent_id: UUID | None = Field(default=None, description="父评论ID，用于回复")
+    parent_id: UUID | None = Field(default=None, description="父评论ID，顶级评论为None")
 
     model_config = ConfigDict(
         extra="forbid",  # 禁止额外字段，确保类型安全
@@ -56,7 +56,9 @@ class CommentResponse(CommentBase):
     """
 
     id: UUID
+    # TODO: author可以改为更轻量级的
     author: UserResponse  # 嵌套作者信息
+    parent_id: UUID | None = Field(default=None, description="父评论ID，顶级评论为None")
     created_at: datetime
     replies: list["CommentResponse"] = []  # 递归模型：一个评论可以包含一组评论作为回复
 

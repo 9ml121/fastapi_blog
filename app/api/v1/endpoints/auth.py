@@ -20,19 +20,17 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.core.exceptions import (
-    EmailAlreadyExistsError,
     InvalidCredentialsError,
-    UsernameAlreadyExistsError,
 )
 from app.core.security import create_access_token
 from app.crud import user as crud_user
-from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
 
 # 创建路由器
 router = APIRouter()
 
 
+# ============================= 用户注册 ===========================
 @router.post(
     "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
@@ -61,24 +59,10 @@ async def register(
             "nickname": "John Doe"
         }
     """
-    # 检查邮箱是否已存在
-    existing_user = crud_user.get_user_by_email(db, email=user_data.email)
-    if existing_user:
-        raise EmailAlreadyExistsError(email=user_data.email)
-
-    # 检查用户名是否已存在
-    existing_username: User | None = crud_user.get_user_by_username(
-        db, username=user_data.username
-    )
-    if existing_username:
-        raise UsernameAlreadyExistsError(username=user_data.username)
-
-    # 创建用户(密码会在 CRUD 层自动哈希)
-    new_user: User = crud_user.create_user(db, user_in=user_data)
-
-    return new_user  # type: ignore
+    return crud_user.create_user(db, user_in=user_data)  # type: ignore
 
 
+# ============================= 用户登录 ===========================
 @router.post("/login")
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),

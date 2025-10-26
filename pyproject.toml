@@ -118,7 +118,7 @@ select = [
     "C4",  # flake8-comprehensions (推荐更优雅的推导式写法)
     "SIM", # flake8-simplify (代码简化建议)
 ]
-ignore = ["B008"]
+ignore = ["B008"] # 不要在参数默认值中执行函数调用
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

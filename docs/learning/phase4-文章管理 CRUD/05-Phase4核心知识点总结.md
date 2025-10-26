@@ -193,7 +193,7 @@ async def create_post(
     post_in: PostCreate,
 ) -> Any:
     try:
-        post = await crud_post.create_with_author(
+        post = await crud_post.create_post(
             db, obj_in=post_in, author_id=current_user.id
         )
         return post

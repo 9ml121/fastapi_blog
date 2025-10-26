@@ -8,8 +8,10 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select
 
-from app.api.pagination import PaginationParams, paginate_query
+import app.crud.post as post_crud
+from app.core.exceptions import ResourceConflictError, ResourceNotFoundError
 from app.crud.base import CRUDBase
 from app.models.comment import Comment
 from app.schemas.comment import CommentCreate, CommentUpdate
@@ -21,7 +23,7 @@ class CRUDComment(CRUDBase[Comment, CommentCreate, CommentUpdate]):
     提供评论的创建、查询、更新、删除等操作。
     """
 
-    def create_with_author(
+    def create_comment(
         self,
         db: Session,
         *,
@@ -34,6 +36,7 @@ class CRUDComment(CRUDBase[Comment, CommentCreate, CommentUpdate]):
         与 CRUDBase.create() 的区别：
         - 自动设置 author_id 和 post_id
         - 封装业务逻辑，避免 API 层手动设置关联
+        - 验证文章和父评论存在且属于该文章
 
         Args:
             db: 数据库会话。
@@ -42,16 +45,34 @@ class CRUDComment(CRUDBase[Comment, CommentCreate, CommentUpdate]):
             post_id: 所属文章的 ID。
 
         Returns:
-            创建成功的评论对象。
+            201: 创建成功的评论对象。
+            404: 文章不存在
+            404: 父评论不存在
+            409: 父评论不属于该文章
 
         示例:
-            >>> comment = crud.comment.create_with_author(
+            >>> comment = crud.comment.create_comment(
             ...     db,
             ...     obj_in=CommentCreate(content="很棒的文章！"),
             ...     author_id=user.id,
             ...     post_id=post.id,
             ... )
         """
+        # 1. 验证文章存在
+        post = post_crud.get_post_by_id(db=db, post_id=post_id)
+        if not post:
+            raise ResourceNotFoundError(resource="文章")
+
+        # 2. 如果是回复评论，验证父评论存在且属于该文章
+        if obj_in.parent_id:
+            parent_comment = self.get(db, id=obj_in.parent_id)
+            if not parent_comment:
+                raise ResourceNotFoundError(resource="父评论")
+
+            # 验证父评论属于同一文章（防止跨文章回复）
+            if parent_comment.post_id != post_id:
+                raise ResourceConflictError(message="父评论不属于该文章")
+
         # 使用 CRUDBase.create() 的 **kwargs 功能传入额外字段
         comment = self.create(
             db,
@@ -69,14 +90,7 @@ class CRUDComment(CRUDBase[Comment, CommentCreate, CommentUpdate]):
     ) -> list[Comment]:
         """获取文章的所有顶级评论（树形结构）
 
-        设计要点：
-        1. 只返回顶级评论（parent_id=None）
-        2. 子评论通过 Comment.replies 关系自动加载（lazy="selectin"）
-        3. 按创建时间倒序排列（最新评论在前）
-
-        性能优化：
-        - 使用 lazy="selectin" 避免 N+1 查询
-        - 总查询次数：2 次（1 次顶级评论 + 1 次所有子评论）
+        ⚠️ 过时方法，请使用 build_top_level_comments_query 代替
 
         Args:
             db: 数据库会话。
@@ -100,39 +114,33 @@ class CRUDComment(CRUDBase[Comment, CommentCreate, CommentUpdate]):
             .all()
         )
 
-    def get_paginated_by_post(
+    def build_top_level_comments_query(
         self,
         db: Session,
         *,
         post_id: UUID,
-        params: PaginationParams,
-    ) -> tuple[list[Comment], int]:
-        """获取文章的分页评论列表
-
-        使用新的分页工具，支持：
-        - 分页：page/size 参数
-        - 排序：sort/order 参数（默认按 created_at desc）
-        - 安全验证：自动验证排序字段
-        - 只返回顶级评论（parent_id=None），子评论通过 replies 字段递归获取
+    ) -> Select[tuple[Comment]]:
+        """构建顶级评论的查询对象，包含业务规则验证
 
         Args:
-            db: 数据库会话
+            db: 数据库会话。
             post_id: 文章ID
-            params: 分页参数
 
         Returns:
-            tuple: (顶级评论列表, 总记录数)
+            Select[tuple[Comment]]: SQLAlchemy 查询对象（未执行）
         """
+        # 业务规则：文章必须存在才能查询评论
+        post = post_crud.get_post_by_id(db, post_id=post_id)
+        if not post:
+            raise ResourceNotFoundError(resource="文章")
+
         # SQLAlchemy 现代语法（Modern）构建查询
         query = select(Comment)
 
         # 添加过滤条件：post_id 和 parent_id.is_(None)
         query = query.where(Comment.post_id == post_id, Comment.parent_id.is_(None))
 
-        # 调用分页工具执行查询
-        items, total = paginate_query(db, query, params, model=Comment)
-
-        return items, total
+        return query
 
 
 # 创建单例实例

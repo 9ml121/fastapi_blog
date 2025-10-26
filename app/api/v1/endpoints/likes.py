@@ -15,7 +15,6 @@ from app.schemas.user import UserResponse
 router = APIRouter()
 
 
-
 # ============================= 查询文章点赞用户列表 ===========================
 @router.get("/{post_id}/liked-users", response_model=list[UserResponse])
 async def get_post_liked_users(
@@ -130,8 +129,3 @@ async def get_like_status(
     return PostLikeStatusResponse(
         post_id=post_id, is_liked=is_liked, like_count=post.like_count
     )
-
-
-
-
-

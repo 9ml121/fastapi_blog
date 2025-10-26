@@ -13,10 +13,11 @@
 **问题：** 数据库密码等敏感信息不应硬编码或提交到 Git
 
 **解决方案：**
-- ✅ 使用 `.env` 文件存储敏感配置
-- ✅ `.env` 已加入 `.gitignore`
-- ✅ 提供 `.env.example` 作为配置模板
-- ✅ `config.py` 中使用占位符作为默认值
+
+-   ✅ 使用 `.env` 文件存储敏感配置
+-   ✅ `.env` 已加入 `.gitignore`
+-   ✅ 提供 `.env.example` 作为配置模板
+-   ✅ `config.py` 中使用占位符作为默认值
 
 ```python
 # app/core/config.py
@@ -35,6 +36,7 @@ class Settings(BaseSettings):
 **问题：** Alembic autogenerate 需要 import 所有模型才能检测
 
 **解决方案：**
+
 ```python
 # alembic/env.py
 from app.db.database import Base
@@ -44,8 +46,9 @@ target_metadata = Base.metadata  # 包含所有表定义
 ```
 
 **关键点：**
-- 必须显式导入所有模型类
-- 如果模型很多，考虑在 `app/models/__init__.py` 中统一导出
+
+-   必须显式导入所有模型类
+-   如果模型很多，考虑在 `app/models/__init__.py` 中统一导出
 
 ---
 
@@ -54,6 +57,7 @@ target_metadata = Base.metadata  # 包含所有表定义
 **问题：** 默认 autogenerate 可能错过列类型或默认值的变化
 
 **解决方案：**
+
 ```python
 # alembic/env.py - context.configure()
 compare_type=True,              # 检测列类型变化
@@ -61,8 +65,9 @@ compare_server_default=True,    # 检测服务端默认值变化
 ```
 
 **作用：**
-- 检测 `VARCHAR(50)` → `VARCHAR(100)` 的变化
-- 检测 `server_default=func.now()` 的变化
+
+-   检测 `VARCHAR(50)` → `VARCHAR(100)` 的变化
+-   检测 `server_default=func.now()` 的变化
 
 ---
 
@@ -71,14 +76,16 @@ compare_server_default=True,    # 检测服务端默认值变化
 **问题：** 迁移失败时如何回滚？
 
 **解决方案：**
+
 ```python
 # alembic/env.py - context.configure()
 transaction_per_migration=True  # 每个迁移一个事务
 ```
 
 **PostgreSQL 优势：**
-- ✅ 支持 DDL 事务（CREATE TABLE 等可以回滚）
-- ✅ 迁移失败自动回滚，数据库保持一致状态
+
+-   ✅ 支持 DDL 事务（CREATE TABLE 等可以回滚）
+-   ✅ 迁移失败自动回滚，数据库保持一致状态
 
 **注意：** MySQL 不支持 DDL 事务，迁移失败可能导致不一致
 
@@ -89,6 +96,7 @@ transaction_per_migration=True  # 每个迁移一个事务
 **问题：** 迁移时使用连接池可能导致连接泄漏
 
 **解决方案：**
+
 ```python
 # alembic/env.py
 connectable = engine_from_config(
@@ -98,8 +106,9 @@ connectable = engine_from_config(
 ```
 
 **原因：**
-- 迁移脚本是一次性执行，不需要连接池
-- NullPool 确保连接用完立即关闭
+
+-   迁移脚本是一次性执行，不需要连接池
+-   NullPool 确保连接用完立即关闭
 
 ---
 
@@ -108,21 +117,24 @@ connectable = engine_from_config(
 **问题：** 默认文件名 `ae1027a6acf_add_email.py` 难以识别时间顺序
 
 **解决方案：**
+
 ```ini
 # alembic.ini
 file_template = %%(year)d%%(month).2d%%(day).2d_%%(hour).2d%%(minute).2d_%%(rev)s_%%(slug)s
 ```
 
 **效果：**
+
 ```
 默认：ae1027a6acf_add_email_field.py
 改进：20251004_1430_ae1027a6acf_add_email_field.py
 ```
 
 **优势：**
-- 按时间排序
-- 便于识别创建时间
-- 便于查找特定时期的迁移
+
+-   按时间排序
+-   便于识别创建时间
+-   便于查找特定时期的迁移
 
 ---
 
@@ -185,12 +197,12 @@ def run_migrations_online() -> None:
 
 ### 部署前
 
-- [ ] 在开发环境测试迁移脚本
-- [ ] 在测试环境运行完整迁移
-- [ ] 生成 SQL 审查：`alembic upgrade head --sql`
-- [ ] 检查 SQL 是否有风险操作（DROP、ALTER、大表操作）
-- [ ] 估算迁移执行时间（大表可能需要维护窗口）
-- [ ] 准备回滚计划：`alembic downgrade -1 --sql`
+-   [ ] 在开发环境测试迁移脚本
+-   [ ] 在测试环境运行完整迁移
+-   [ ] 生成 SQL 审查：`alembic upgrade head --sql`
+-   [ ] 检查 SQL 是否有风险操作（DROP、ALTER、大表操作）
+-   [ ] 估算迁移执行时间（大表可能需要维护窗口）
+-   [ ] 准备回滚计划：`alembic downgrade -1 --sql`
 
 ### 部署时
 
@@ -216,10 +228,123 @@ psql -U user -d blogdb -c "\d tablename"
 
 ### 部署后
 
-- [ ] 验证应用启动正常
-- [ ] 验证关键功能正常
-- [ ] 监控数据库性能指标
-- [ ] 保留备份文件至少 7 天
+-   [ ] 验证应用启动正常
+-   [ ] 验证关键功能正常
+-   [ ] 监控数据库性能指标
+-   [ ] 保留备份文件至少 7 天
+
+---
+
+完美！现在更新 TODO 列表，开始下一步：
+
+[1 tool called]
+
+完美！现在进入 **Step 2: 创建数据库迁移脚本**
+
+---
+
+## 📋 迁移步骤
+
+### 📌 实现指南
+
+#### **背景知识**
+
+项目使用 Alembic 进行数据库迁移。你需要：
+
+1. 使用 `alembic revision --autogenerate` 自动生成迁移脚本
+2. 检查生成的脚本是否正确
+3. 执行迁移测试
+
+#### **具体步骤**
+
+**Step 2.1：生成迁移脚本**
+
+```bash
+# 进入项目根目录
+cd /Users/limq/00-app/fastapi_blog
+
+# 使用 Alembic 自动生成迁移脚本
+uv run alembic revision --autogenerate -m "add_post_like_and_favorite_tables"
+```
+
+这会在 `alembic/versions/` 目录下创建一个新的迁移文件。
+
+**Step 2.2：检查迁移脚本**
+
+生成的迁移脚本会自动检测你的模型变化，并生成相应的 SQL。你需要：
+
+1. 打开生成的迁移文件（通常是最新的文件）
+2. 检查 `upgrade()` 和 `downgrade()` 函数
+3. 验证表结构、字段、约束是否正确
+
+**预期内容**：
+
+```python
+def upgrade() -> None:
+    # 添加新的计数字段到 posts 表
+    op.add_column('posts', sa.Column('like_count', sa.Integer(), nullable=False, server_default='0'))
+    op.add_column('posts', sa.Column('favorite_count', sa.Integer(), nullable=False, server_default='0'))
+
+    # 创建 post_likes 表
+    op.create_table('post_likes',
+        sa.Column('id', sa.UUID(), nullable=False),
+        sa.Column('user_id', sa.UUID(), nullable=True),
+        sa.Column('post_id', sa.UUID(), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='SET NULL'),
+        sa.ForeignKeyConstraint(['post_id'], ['posts.id'], ondelete='CASCADE'),
+        sa.UniqueConstraint('user_id', 'post_id', name='uix_user_post')
+    )
+
+    # 创建索引
+    op.create_index('ix_post_likes_user_id', 'post_likes', ['user_id'])
+    op.create_index('ix_post_likes_post_id', 'post_likes', ['post_id'])
+
+    # 创建 post_favorites 表（类似）
+    op.create_table('post_favorites', ...)
+```
+
+**Step 2.3：执行迁移**
+
+```bash
+# 应用迁移
+uv run alembic upgrade head
+
+# 验证迁移是否成功（检查数据库表）
+uv run alembic current  # 显示当前版本
+```
+
+**Step 2.4：验证迁移结果**
+
+你可以用 SQL 查询验证表是否创建成功：
+
+```bash
+# 进入 PostgreSQL
+psql -U root -d blogdb -h localhost
+
+# 查看表结构
+\d post_likes
+\d post_favorites
+
+# 查看 posts 表新增字段
+\d posts
+```
+
+---
+
+#### 注意事项
+
+**重要**：在执行迁移前，需要确保：
+
+1. ✅ 所有模型文件已经保存并导入正确
+2. ✅ PostgreSQL 数据库容器已启动
+3. ✅ 数据库连接配置正确（见 `alembic/env.py`）
+
+**如果出现问题**：
+
+-   如果自动生成的迁移不完整，可以手动编辑迁移文件
+-   如果需要回滚，使用 `uv run alembic downgrade -1` 回到上一个版本
 
 ---
 
@@ -232,8 +357,9 @@ psql -U user -d blogdb -c "\d tablename"
 **症状：** `alembic revision --autogenerate` 检测不到新表
 
 **解决：**
-- 在 `app/models/__init__.py` 中统一导出所有模型
-- 在 `env.py` 中 `from app.models import *`
+
+-   在 `app/models/__init__.py` 中统一导出所有模型
+-   在 `env.py` 中 `from app.models import *`
 
 ---
 
@@ -242,12 +368,14 @@ psql -U user -d blogdb -c "\d tablename"
 **问题：** 修改已经 `upgrade` 的迁移脚本
 
 **后果：**
-- 团队成员的数据库状态不一致
-- 可能导致迁移失败
+
+-   团队成员的数据库状态不一致
+-   可能导致迁移失败
 
 **正确做法：**
-- 创建新的迁移脚本修正错误
-- 或者使用 `alembic downgrade` 回滚后重新生成
+
+-   创建新的迁移脚本修正错误
+-   或者使用 `alembic downgrade` 回滚后重新生成
 
 ---
 
@@ -256,11 +384,13 @@ psql -U user -d blogdb -c "\d tablename"
 **问题：** autogenerate 生成的脚本可能不完美
 
 **必须审查：**
-- 列的 `nullable` 变化（需要先填充默认值）
-- 列类型变化（可能需要数据转换）
-- 索引和约束的变化
+
+-   列的 `nullable` 变化（需要先填充默认值）
+-   列类型变化（可能需要数据转换）
+-   索引和约束的变化
 
 **示例：**
+
 ```python
 # ❌ 错误：直接添加 NOT NULL 列
 op.add_column('users', sa.Column('email', sa.String(100), nullable=False))
@@ -283,9 +413,10 @@ op.alter_column('users', 'email', nullable=False)
 **风险：** 生产环境服务不可用
 
 **解决方案：**
-- 使用 PostgreSQL 的 `CONCURRENTLY` 选项（索引）
-- 分批处理数据迁移
-- 在维护窗口执行
+
+-   使用 PostgreSQL 的 `CONCURRENTLY` 选项（索引）
+-   分批处理数据迁移
+-   在维护窗口执行
 
 ```python
 # 创建索引时避免锁表
@@ -306,12 +437,75 @@ op.create_index(
 **后果：** 回滚时发现 `downgrade` 脚本有错误
 
 **最佳实践：**
+
 ```bash
 # 完整测试流程
 alembic upgrade head    # 升级
 alembic downgrade -1    # 降级一步
 alembic upgrade head    # 再次升级
 ```
+
+---
+
+### 6. **`default` 与 `server_default` 混淆**
+
+**问题：** Alembic 无法正确检测 Python 层面的 `default` 参数
+
+**症状：** 在已有数据的表上添加 NOT NULL 列时出现 `NotNullViolation` 错误
+
+**错误示例：**
+
+```python
+# 模型定义
+like_count: Mapped[int] = mapped_column(Integer, default=0, comment="点赞次数统计")
+
+# Alembic 生成的迁移（错误）
+op.add_column(
+    "posts",
+    sa.Column("like_count", sa.Integer(), nullable=False, comment="点赞次数统计"),
+)
+# 缺少 server_default，导致现有数据行无法满足 NOT NULL 约束
+```
+
+**原因分析：**
+
+-   `default=0`：Python/ORM 层面的默认值，只在创建新实例时生效
+-   `server_default=text('0')`：数据库层面的默认值，在数据库操作时生效
+-   Alembic 的 `compare_server_default=True` **只检测 `server_default`，不检测 `default`**
+
+**解决方案：**
+
+**方案 A：在模型中同时使用两种默认值**
+
+```python
+like_count: Mapped[int] = mapped_column(
+    Integer,
+    default=0,                    # Python 层面默认值
+    server_default=text('0'),     # 数据库层面默认值，必须明确指定为 SQL 文本，不能用 0
+    comment="点赞次数统计"
+)
+```
+
+**方案 B：手动修复迁移文件**
+
+```python
+op.add_column(
+    "posts",
+    sa.Column(
+        "like_count",
+        sa.Integer(),
+        nullable=False,
+        server_default=text('0'),  # 添加数据库默认值
+        comment="点赞次数统计"
+    ),
+)
+```
+
+**最佳实践：**
+
+-   对于需要在数据库层面有默认值的列，**必须同时使用 `server_default`**
+-   这是 Alembic 的已知限制，不是配置问题
+-   建议在模型定义时就同时设置两种默认值，避免后续问题
 
 ---
 
@@ -324,6 +518,7 @@ alembic upgrade head    # 再次升级
 **问题：** 两个分支都有 `down_revision=xxx` 指向同一版本
 
 **解决：**
+
 ```bash
 # 开发者 A 先合并
 git checkout main
@@ -339,11 +534,13 @@ alembic merge heads -m "Merge migrations"  # 合并迁移分支
 ### 2. **迁移脚本命名规范**
 
 **规范：**
-- 使用有意义的 slug：`add_email_verification` 而不是 `update`
-- 英文命名，使用下划线分隔
-- 简洁但清晰
+
+-   使用有意义的 slug：`add_email_verification` 而不是 `update`
+-   英文命名，使用下划线分隔
+-   简洁但清晰
 
 **示例：**
+
 ```bash
 # ✅ 好的命名
 alembic revision --autogenerate -m "add_email_verification_to_users"
@@ -360,9 +557,10 @@ alembic revision --autogenerate -m "fix_bug"  # 不够具体
 
 ## 📚 扩展阅读
 
-- [Alembic 官方文档](https://alembic.sqlalchemy.org/)
-- [SQLAlchemy 迁移最佳实践](https://docs.sqlalchemy.org/en/20/core/migration.html)
-- [PostgreSQL DDL 事务支持](https://www.postgresql.org/docs/current/ddl.html)
+-   [Alembic 官方文档](https://alembic.sqlalchemy.org/)
+-   [SQLAlchemy 迁移最佳实践](https://docs.sqlalchemy.org/en/20/core/migration.html)
+-   [PostgreSQL DDL 事务支持](https://www.postgresql.org/docs/current/ddl.html)
+-   [[02-Alembic数据库迁移详解]] ⭐️
 
 ---
 

@@ -21,9 +21,9 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from app import crud
 from app.core.exceptions import UnauthorizedError
 from app.core.security import decode_access_token
+from app.crud import user as crud_user
 from app.db.database import get_db
 from app.models.user import User
 
@@ -91,7 +91,7 @@ def get_current_user(
         raise UnauthorizedError("Invalid user ID format") from err
 
     # 4. 从数据库查询用户
-    user = crud.user.get_user_by_id(db, user_id=user_id)
+    user = crud_user.get_user_by_id(db, user_id=user_id)
     if not user:
         raise UnauthorizedError("User not found")
 

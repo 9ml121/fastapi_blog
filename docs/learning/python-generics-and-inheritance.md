@@ -943,5 +943,5 @@ class PaginatedResponse(BaseModel, Generic[ItemType]):
 **下一步学习**：
 
 -   [SQLAlchemy ORM 模型定义](./sqlalchemy教程/03-SQLAlchemy-ORM模型定义实战详解.md)
--   [Pydantic 数据验证](./phase3-管理员认证系统/01-Pydantic数据验证与Schema设计.md)
+-   [Pydantic 数据验证](Phase3-Pydantic数据验证与Schema设计.md)
 -   [FastAPI 依赖注入](./phase3-管理员认证系统/05-FastAPI依赖注入与认证依赖.md)

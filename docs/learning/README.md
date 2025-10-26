@@ -18,7 +18,7 @@
 - **[SQLAlchemy 语法对比](02-SQLAlchemy语法对比分析.md)** - 传统 vs 现代语法
 
 #### [Phase 3 - API 开发](./phase3-api/)
-- **[Pydantic 数据验证与 Schema 设计](01-Pydantic数据验证与Schema设计.md)**
+- **[Pydantic 数据验证与 Schema 设计](Phase3-Pydantic数据验证与Schema设计.md)**
 - **[密码安全与哈希机制](02-密码安全与哈希机制.md)**
 - **[仓储模式与 CRUD 设计](03-仓储模式与CRUD设计.md)**
 - **[JWT 认证机制详解](04-JWT认证机制详解.md)**

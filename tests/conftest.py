@@ -15,13 +15,15 @@ from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import ConnectionPoolEntry
 
+import app.crud.post as post_crud
 from app.core.security import create_access_token
-from app.crud.post import post as post_crud
+from app.crud.comment import comment as comment_crud
 from app.db.database import Base
 
 # 导入所有模型，确保它们注册到 Base.metadata,这样 create_all() 才能创建所有表
 from app.models import Comment, Post, PostView, Tag, User  # noqa: F401
 from app.models.post import PostStatus
+from app.schemas.comment import CommentCreate
 from app.schemas.post import PostCreate
 
 # ============================================
@@ -164,7 +166,7 @@ def sample_user_with_password(session: Session) -> tuple[User, str]:
 
 @pytest.fixture
 def sample_post(session: Session, sample_user: User) -> Post:
-    """创建测试文章
+    """创建测试文章,默认是草稿状态
 
     配置：
     - 自动关联 sample_user 作为作者
@@ -188,6 +190,36 @@ def sample_post(session: Session, sample_user: User) -> Post:
     session.commit()
     session.refresh(post)
     return post
+
+
+@pytest.fixture
+def published_post(session: Session, sample_user: User) -> Post:
+    """创建一篇已发布文章"""
+    # ✅ 使用 CRUD 层创建，自动处理标签字符串转 Tag 对象
+    return post_crud.create_post(
+        db=session,
+        post_in=PostCreate(
+            title="测试已发布文章",
+            content="这是一篇已发布文章",
+            tags=["FastAPI", "测试"],
+            status=PostStatus.PUBLISHED,
+        ),
+        author_id=sample_user.id,
+    )
+
+
+@pytest.fixture
+def draft_post(session: Session, sample_user: User) -> Post:
+    """创建一篇草稿文章"""
+    return post_crud.create_post(
+        db=session,
+        post_in=PostCreate(
+            title="草稿文章",
+            content="这是一篇草稿文章",
+            status=PostStatus.DRAFT,
+        ),
+        author_id=sample_user.id,
+    )
 
 
 # ============================================
@@ -293,7 +325,7 @@ def auth_headers(sample_user: User) -> dict:
 
 
 # ============================================
-# 多个用户和文章数据 Fixture
+# 多个user、post、comment数据 Fixture
 # ============================================
 @pytest.fixture
 def sample_users(session: Session, sample_user: User) -> list[User]:
@@ -333,6 +365,7 @@ def sample_users(session: Session, sample_user: User) -> list[User]:
 def sample_posts(session: Session, sample_user: User) -> list[Post]:
     """创建多样化的测试文章数据
 
+    - 4个published文章 + 2个draft文章 + 1个archived文章
     - 使用 sample_user 作为作者
     - 不同标签（Python, FastAPI, Web开发, 教程, 实战）
     - 不同发布状态（已发布、草稿、 归档）
@@ -415,8 +448,8 @@ def sample_posts(session: Session, sample_user: User) -> list[Post]:
             tags=template["tags"],
         )
 
-        post = post_crud.create_with_author(
-            db=session, obj_in=post_in, author_id=sample_user.id
+        post = post_crud.create_post(
+            db=session, post_in=post_in, author_id=sample_user.id
         )
 
         # 手动设置发布状态和发布时间
@@ -431,3 +464,77 @@ def sample_posts(session: Session, sample_user: User) -> list[Post]:
 
     session.commit()
     return posts
+
+
+@pytest.fixture
+def sample_comments(
+    session: Session, sample_post: Post, sample_user: User
+) -> list[Comment]:
+    """创建sample_post多样化评论数据
+
+    结构:
+    - 评论1 (顶级)
+      - 评论2 (回复评论1)
+      - 评论3 (回复评论1)
+    - 评论4 (顶级)
+    - 评论5 (顶级)
+    """
+    # 定义5 条 评论数据模板
+    comment_templates = [
+        {
+            "content": "这篇文章写得很好，学到了很多！",
+            "parent_id": None,  # 顶级评论
+            "time_offset": -6,
+        },
+        {
+            "content": "回复楼上1",
+            "parent_id": "dynamic",  # 回复第1条评论,
+            "time_offset": -5,
+        },
+        {
+            "content": "回复楼上2",
+            "parent_id": "dynamic",  # 回复第 1条评论,
+            "time_offset": -4,
+        },
+        {
+            "content": "FastAPI 确实比 Django 更现代",
+            "parent_id": None,
+            "time_offset": -5,
+        },
+        {
+            "content": "同意，性能也更好",
+            "parent_id": None,
+            "time_offset": -4,
+        },
+    ]
+
+    comments = []
+    base_time = datetime.now()
+
+    for i, template in enumerate(comment_templates):
+        # 处理动态 parent_id 引用
+        parent_id = template["parent_id"]
+        if parent_id == "dynamic":
+            parent_id = comments[0].id if i == 1 or i == 2 else None
+
+        # 创建评论
+        comment_in = CommentCreate(
+            content=template["content"],
+            parent_id=parent_id,
+        )
+
+        comment = comment_crud.create_comment(
+            db=session,
+            obj_in=comment_in,
+            author_id=sample_user.id,
+            post_id=sample_post.id,
+        )
+
+        # 手动设置发布时间
+        comment.created_at = base_time + timedelta(days=template["time_offset"])
+
+        session.add(comment)
+        comments.append(comment)
+
+    session.commit()
+    return comments

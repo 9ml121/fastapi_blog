@@ -33,11 +33,10 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-# 创建声明式基类
-# 所有数据库模型都将继承这个基类
-# ⚠️ 20251003：可以新增 继承MappedAsDataclass， 帮助 ide 做智能提示。
-# 但是目前不是很完善，TODO:后续可以考虑采用 sqlmode 框架
+# 创建声明式基类,所有数据库模型都将继承这个基类
+# ⚠️ 20251003：可以新增 继承MappedAsDataclass，帮助 ide 做参数提示，但是目前不完善。
 # 参考：https://docs.sqlalchemy.org/en/20/orm/dataclasses.html#declarative-dataclass-mapping
+# TODO:后续可以考虑采用 sqlmodel 框架，参考：https://sqlmodel.tiangolo.com/zh/stable/
 class Base(DeclarativeBase):
     pass
 

@@ -23,8 +23,7 @@ PASSWORD_DESCRIPTION = f"密码，至少{MIN_PASSWORD_LENGTH}个字符且必须�
 
 
 def validate_password_complexity(password: str) -> str:
-    """
-    公共密码复杂度验证
+    """公共密码复杂度验证
 
     统一密码验证规则，避免代码重复，遵循 DRY 原则。
 
@@ -42,19 +41,35 @@ def validate_password_complexity(password: str) -> str:
     Raises:
         ValueError: 当密码不符合复杂度要求时
     """
+    # 快速检查长度
     if len(password) < MIN_PASSWORD_LENGTH:
         raise ValueError(f"密码必须至少{MIN_PASSWORD_LENGTH}个字符")
-    if not any(char.isdigit() for char in password):
+
+    # 单次遍历检查数字和字母（性能优化）
+    has_digit = False
+    has_alpha = False
+
+    for char in password:
+        if char.isdigit():
+            has_digit = True
+        elif char.isalpha():
+            has_alpha = True
+
+        # 早期退出：如果条件都已满足
+        if has_digit and has_alpha:
+            break
+
+    if not has_digit:
         raise ValueError("密码必须包含至少一个数字")
-    if not any(char.isalpha() for char in password):
+    if not has_alpha:
         raise ValueError("密码必须包含至少一个字母")
+
     return password
 
 
 # ============ 基类 ============
 class UserBase(BaseModel):
-    """
-    用户基础字段
+    """用户基础字段
 
     提取公共字段供其他 Schema 继承，遵循 DRY 原则
     """
@@ -168,9 +183,9 @@ class UserUpdate(BaseModel):
     - 所有字段都是可选的（支持部分更新）
     - 管理员可以更新用户的所有基本信息
     - 包含权限相关字段（is_active）
-    - 不包含密码修改（使用单独端点）
+    - 包含密码重制功能
 
-    用途：PATCH /api/v1/users/{user_id}（管理员更新，Phase 6 实现）
+    用途：PATCH /api/v1/users/{user_id}
     """
 
     username: str | None = Field(
@@ -194,6 +209,20 @@ class UserUpdate(BaseModel):
         default=None,
         description="用户是否激活（管理员功能）",
     )
+
+    password: str | None = Field(
+        default=None,
+        min_length=MIN_PASSWORD_LENGTH,
+        max_length=100,
+        description=PASSWORD_DESCRIPTION,
+        examples=["NewPassword456!"],
+    )
+
+    @field_validator("password")
+    @classmethod
+    def password_complexity(cls, v: str) -> str:
+        """自定义密码复杂度验证"""
+        return validate_password_complexity(v)
 
     model_config = ConfigDict(
         extra="forbid",  # 禁止额外字段，确保类型安全

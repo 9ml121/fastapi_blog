@@ -13,10 +13,14 @@ Test User CRUD - 用户数据操作层测试
 from uuid import uuid4
 
 import pytest
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app import crud
+from app.core.exceptions import (
+    EmailAlreadyExistsError,
+    ResourceNotFoundError,
+    UsernameAlreadyExistsError,
+)
 from app.core.security import verify_password
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
@@ -76,8 +80,8 @@ def test_create_user_with_duplicate_email(session: Session) -> None:
     # 尝试使用相同的邮箱创建第二个用户
     user_in_2 = UserCreate(email=email, password=password, username="user2")
 
-    # 断言这会因为唯一性约束而抛出 IntegrityError
-    with pytest.raises(IntegrityError):
+    # 断言这会抛出邮箱重复错误
+    with pytest.raises(EmailAlreadyExistsError):
         crud.user.create_user(db=session, user_in=user_in_2)
 
 
@@ -93,7 +97,7 @@ def test_create_user_with_duplicate_username(session: Session) -> None:
         email="user2@example.com", password="TestPassword123", username=username
     )
 
-    with pytest.raises(IntegrityError):
+    with pytest.raises(UsernameAlreadyExistsError):
         crud.user.create_user(db=session, user_in=user_in_2)
 
 
@@ -196,12 +200,10 @@ def test_update_user_password(session: Session) -> None:
 
 
 def test_update_non_existent_user(session: Session) -> None:
-    """测试：更新不存在的用户应该返回 None"""
+    """测试：更新不存在的用户应该抛出 ResourceNotFoundError"""
     user_update = UserUpdate(nickname="新昵称")
-    result: User | None = crud.user.update_user(
-        db=session, user_id=uuid4(), user_in=user_update
-    )
-    assert result is None
+    with pytest.raises(ResourceNotFoundError):
+        crud.user.update_user(db=session, user_id=uuid4(), user_in=user_update)
 
 
 # ============ 删除测试：delete_user（软删除）============
@@ -224,9 +226,9 @@ def test_delete_user(session: Session) -> None:
 
 
 def test_delete_non_existent_user(session: Session) -> None:
-    """测试：删除不存在的用户应该返回 None"""
-    result = crud.user.delete_user(db=session, user_id=uuid4())
-    assert result is None
+    """测试：删除不存在的用户应该抛出 ResourceNotFoundError"""
+    with pytest.raises(ResourceNotFoundError):
+        crud.user.delete_user(db=session, user_id=uuid4())
 
 
 def test_soft_deleted_user_not_queryable(session: Session) -> None:

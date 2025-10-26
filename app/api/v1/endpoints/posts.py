@@ -115,6 +115,7 @@ async def get_published_posts(
     )
     return response  # type: ignore
 
+
 # ============================= 查询置顶文章列表 ===========================
 @router.get("/featured", response_model=PaginatedResponse[PostResponse])
 async def get_featured_posts(
@@ -174,8 +175,6 @@ async def get_post_detail(
     if not post:
         raise ResourceNotFoundError(resource="文章")
     return post  # type: ignore
-
-
 
 
 # ============================= 更新文章 ===========================
@@ -320,19 +319,19 @@ async def toggle_post_featured(
 ) -> PostResponse:
     """切换文章置顶状态（仅管理员）
 
-      **权限**: 需要管理员权限
+    **权限**: 需要管理员权限
 
-      **使用场景**: 切换文章的置顶状态（置顶/取消置顶）
+    **使用场景**: 切换文章的置顶状态（置顶/取消置顶）
 
-      **路径参数**:
-      - post_id: 文章的 UUID
+    **路径参数**:
+    - post_id: 文章的 UUID
 
-      **返回**:
-      - 200: 切换成功
-      - 404: 文章不存在
-      - 403: 无权限切换此文章
+    **返回**:
+    - 200: 切换成功
+    - 404: 文章不存在
+    - 403: 无权限切换此文章
 
-      **示例**: PATCH /api/v1/posts/123e4567-e89b-12d3-a456-426614174000/toggle-featured
+    **示例**: PATCH /api/v1/posts/123e4567-e89b-12d3-a456-426614174000/toggle-featured
 
     """
     featured_post = post_crud.toggle_post_featured(

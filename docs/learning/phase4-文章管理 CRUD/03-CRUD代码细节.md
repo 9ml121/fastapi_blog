@@ -42,7 +42,7 @@ async def create_post(
 
 ```python
 try:
-	new_post = post_crud.create_with_author(...)
+	new_post = post_crud.create_post(...)
     return new_post
 except IntegrityError:
     db.rollback()  # ← 重要！回滚事务
@@ -142,10 +142,10 @@ HTTPException: slug 已存在
 
 ## app/crud/comment.py
 
-### 1. create_with_author 实现解析
+### 1. create_post 实现解析
 
 ```python
-def create_with_author(
+def create_post(
       self,
       db: Session,
       *,

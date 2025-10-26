@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 class Tag(Base):
-    """标签模型
+    """tags数据库表模型
 
     用于文章分类和标记，支持与文章的多对多关系。
 

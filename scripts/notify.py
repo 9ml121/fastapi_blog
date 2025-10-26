@@ -15,7 +15,9 @@ import subprocess
 from pathlib import Path
 
 
-def send_notification(message: str, title: str = "FastAPI Blog", with_sound: bool = False):
+def send_notification(
+    message: str, title: str = "FastAPI Blog", with_sound: bool = False
+):
     """发送系统通知"""
     system = platform.system().lower()
 
@@ -25,30 +27,35 @@ def send_notification(message: str, title: str = "FastAPI Blog", with_sound: boo
     try:
         if system == "darwin":  # macOS
             # 系统通知
-            subprocess.run([
-                "osascript", "-e",
-                f'display notification "{message}" with title "{title}"'
-            ], check=False)
+            subprocess.run(
+                [
+                    "osascript",
+                    "-e",
+                    f'display notification "{message}" with title "{title}"',
+                ],
+                check=False,
+            )
 
             # 播放声音
             if with_sound:
-                subprocess.run([
-                    "afplay", "/System/Library/Sounds/Glass.aiff"
-                ], check=False)
+                subprocess.run(
+                    ["afplay", "/System/Library/Sounds/Glass.aiff"], check=False
+                )
 
         elif system == "linux":
             # Linux 通知
-            if subprocess.run(["which", "notify-send"], capture_output=True).returncode == 0:
-                subprocess.run([
-                    "notify-send", title, message
-                ], check=False)
+            if (
+                subprocess.run(["which", "notify-send"], capture_output=True).returncode
+                == 0
+            ):
+                subprocess.run(["notify-send", title, message], check=False)
 
             # Linux 声音
             if with_sound:
                 sound_files = [
                     "/usr/share/sounds/alsa/Front_Left.wav",
                     "/usr/share/sounds/sound-icons/bell.wav",
-                    "/usr/share/sounds/ubuntu/notifications/Blip.ogg"
+                    "/usr/share/sounds/ubuntu/notifications/Blip.ogg",
                 ]
                 for sound_file in sound_files:
                     if Path(sound_file).exists():
@@ -59,6 +66,7 @@ def send_notification(message: str, title: str = "FastAPI Blog", with_sound: boo
             # Windows 通知
             try:
                 import win10toast
+
                 toaster = win10toast.ToastNotifier()
                 toaster.show_toast(title, message, duration=3)
             except ImportError:

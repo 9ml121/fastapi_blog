@@ -113,7 +113,7 @@ classDiagram
     %% CRUD 层
     class CRUDPost {
         +get_by_slug(slug) Post
-        +create_with_author(data, author_id) Post
+        +create_post(data, author_id) Post
         +update(post_id, data) Post
         +get_paginated(filters, page, size) PaginatedResponse
         +get_user_drafts(user_id) list~Post~
@@ -156,7 +156,7 @@ flowchart TB
     end
 
     subgraph "CRUD 业务层 (crud/post.py)"
-        C1["CRUDPost.create_with_author"]
+        C1["CRUDPost.create_post"]
         C2["CRUDPost.get_paginated"]
         C3["CRUDPost.update"]
         C4["CRUDPost.get_user_drafts"]
@@ -204,7 +204,7 @@ sequenceDiagram
     Client->>API: POST /posts (创建草稿)
     API->>Auth: 验证 JWT Token
     Auth-->>API: 返回当前用户
-    API->>CRUD: create_with_author(data, user_id)
+    API->>CRUD: create_post(data, user_id)
     CRUD->>Model: 创建 Post 实例 (status=draft)
     Model->>DB: INSERT INTO posts
     DB-->>Model: 返回 Post 对象

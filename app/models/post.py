@@ -41,8 +41,7 @@ post_tags = Table(
 
 
 class PostStatus(str, Enum):
-    """文章状态枚举
-    """
+    """文章状态枚举"""
 
     DRAFT = "draft"  # 草稿
     PUBLISHED = "published"  # 已发布

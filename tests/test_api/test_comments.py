@@ -14,9 +14,9 @@ from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+import app.crud.post as post_crud
 from app.core.security import create_access_token
 from app.crud.comment import comment as comment_crud
-from app.crud.post import post as post_crud
 from app.models.comment import Comment
 from app.models.post import Post
 from app.models.user import User
@@ -31,9 +31,9 @@ from app.schemas.post import PostCreate
 @pytest.fixture
 def sample_post(session: Session, sample_user: User) -> Post:
     """创建一篇测试文章"""
-    post = post_crud.create_with_author(
+    post = post_crud.create_post(
         db=session,
-        obj_in=PostCreate(
+        post_in=PostCreate(
             title="FastAPI 评论系统",
             content="实现一个功能完整的评论系统",
             tags=["FastAPI", "评论"],
@@ -59,7 +59,7 @@ def sample_comments(
     comments = []
 
     # 顶级评论1
-    comment1 = comment_crud.create_with_author(
+    comment1 = comment_crud.create_comment(
         db=session,
         obj_in=CommentCreate(content="这篇文章写得很好！"),
         author_id=sample_user.id,
@@ -68,7 +68,7 @@ def sample_comments(
     comments.append(comment1)
 
     # 回复评论1
-    comment2 = comment_crud.create_with_author(
+    comment2 = comment_crud.create_comment(
         db=session,
         obj_in=CommentCreate(content="同意楼上", parent_id=comment1.id),
         author_id=sample_user.id,
@@ -76,7 +76,7 @@ def sample_comments(
     )
     comments.append(comment2)
 
-    comment3 = comment_crud.create_with_author(
+    comment3 = comment_crud.create_comment(
         db=session,
         obj_in=CommentCreate(content="@楼上 感谢支持", parent_id=comment1.id),
         author_id=sample_user.id,
@@ -85,7 +85,7 @@ def sample_comments(
     comments.append(comment3)
 
     # 顶级评论4
-    comment4 = comment_crud.create_with_author(
+    comment4 = comment_crud.create_comment(
         db=session,
         obj_in=CommentCreate(content="请问如何部署？"),
         author_id=sample_user.id,
@@ -94,7 +94,7 @@ def sample_comments(
     comments.append(comment4)
 
     # 顶级评论5
-    comment5 = comment_crud.create_with_author(
+    comment5 = comment_crud.create_comment(
         db=session,
         obj_in=CommentCreate(content="可以用 Docker 部署"),
         author_id=sample_user.id,
@@ -129,13 +129,13 @@ class TestCreateComment:
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
+        pprint(data)
 
         # 验证返回数据
         assert data["content"] == "这是一条顶级评论"
-        assert "id" in data
-        assert "author" in data
         assert data["author"]["username"] == sample_user.username
-        assert "created_at" in data
+        assert data["parent_id"] is None
+        assert data["replies"] == []
 
     def test_create_reply_comment_success(
         self,
@@ -157,9 +157,18 @@ class TestCreateComment:
         )
 
         assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
+        reply_comment = response.json()
 
-        assert data["content"] == "回复第一条评论"
+        # 验证回复评论的父评论是否正确
+        assert reply_comment["content"] == "回复第一条评论"
+        assert reply_comment["parent_id"] == str(parent_comment.id)
+        # 验证回复评论是否在父评论的回复列表中
+        reply_comment_id = str(reply_comment["id"])
+        parent_comment_replies = [
+            str(repley_comment.id) for repley_comment in parent_comment.replies
+        ]
+
+        assert reply_comment_id in parent_comment_replies
 
     def test_create_comment_post_not_found(
         self,
@@ -204,18 +213,17 @@ class TestCreateComment:
         client: TestClient,
         session: Session,
         sample_user: User,
-        sample_post: Post,
         sample_comments: list[Comment],
         auth_headers: dict,
     ):
-        """✅ 异常数据：测试跨文章回复 - 应返回 400
+        """✅ 异常数据：测试跨文章回复 - 应返回 409
 
         场景：尝试在文章B下回复文章A的评论
         """
         # 创建第二篇文章
-        post2 = post_crud.create_with_author(
+        post2 = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(
+            post_in=PostCreate(
                 title="另一篇文章",
                 content="不同的文章",
             ),
@@ -223,18 +231,18 @@ class TestCreateComment:
         )
 
         # 尝试在文章2下回复文章1的评论
-        parent_from_post1 = sample_comments[0]
+        comment_from_post1 = sample_comments[0]
 
         response = client.post(
             f"/api/v1/posts/{post2.id}/comments",  # 文章2
             headers=auth_headers,
             json={
                 "content": "跨文章回复",
-                "parent_id": str(parent_from_post1.id),  # 文章1的评论
+                "parent_id": str(comment_from_post1.id),  # 文章1的评论
             },
         )
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_409_CONFLICT
         assert response.json()["error"]["message"] == "父评论不属于该文章"
 
     def test_create_comment_unauthorized(
@@ -361,6 +369,30 @@ class TestGetComments:
         assert data["has_prev"] is False
         assert data["total"] == 3  # 总只返回 3 条顶级评论
 
+    def test_get_comments_pagination_values(
+        self, client: TestClient, sample_post: Post, sample_comments: list[Comment]
+    ):
+        """✅ 正常数据：测试分页返回信息
+        sample_post 总共 3 条顶级评论
+        """
+        # 按照 siez = 2 分页,验证第二页返回数据,只有 1 条
+        response = client.get(f"/api/v1/posts/{sample_post.id}/comments?page=2&size=2")
+        assert response.status_code == status.HTTP_200_OK
+        page2_data = response.json()
+        assert page2_data["page"] == 2
+        assert page2_data["size"] == 2
+        assert page2_data["total"] == 3
+        assert page2_data["pages"] == 2
+        assert page2_data["has_next"] is False
+        assert page2_data["has_prev"] is True
+        assert len(page2_data["items"]) == 1
+
+        # 按照 siez = 2 分页,验证数据是按照 created_at 降序
+        response = client.get(f"/api/v1/posts/{sample_post.id}/comments?page=1&size=3")
+        data = response.json()
+        assert data["items"][0]["created_at"] >= data["items"][1]["created_at"]
+        assert data["items"][1]["created_at"] >= data["items"][2]["created_at"]
+
     def test_get_comments_post_not_found(
         self,
         client: TestClient,
@@ -383,7 +415,7 @@ class TestGetComments:
         """✅ 极端数据：测试大量评论数据的分页性能"""
         # 创建大量评论数据（50条）
         for i in range(50):
-            comment_crud.create_with_author(
+            comment_crud.create_comment(
                 db=session,
                 obj_in=CommentCreate(content=f"批量评论 {i + 1}"),
                 author_id=sample_user.id,
@@ -477,11 +509,11 @@ class TestDeleteComment:
         sample_comments: list[Comment],
         auth_headers: dict,
     ):
-        """✅ 异常数据：测试评论不属于该文章 - 应返回 404"""
+        """✅ 异常数据：测试评论不属于该文章 - 应返回 409"""
         # 创建第二篇文章
-        other_post = post_crud.create_with_author(
+        other_post = post_crud.create_post(
             db=session,
-            obj_in=PostCreate(
+            post_in=PostCreate(
                 title="测试文章2",
                 content="这是测试文章2的内容",
             ),
@@ -494,7 +526,7 @@ class TestDeleteComment:
             headers=auth_headers,
         )
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_409_CONFLICT
         assert response.json()["error"]["message"] == "评论不属于该文章"
 
     def test_delete_comment_forbidden(

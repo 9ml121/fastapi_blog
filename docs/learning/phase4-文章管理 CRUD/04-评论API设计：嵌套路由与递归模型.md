@@ -382,7 +382,7 @@ async def create_comment(
             raise HTTPException(404, "父评论不存在或不属于该文章")
 
     # 3. 创建评论
-    comment = crud.comment.create_with_author(
+    comment = crud.comment.create_post(
         db=db,
         obj_in=comment_in,
         author_id=current_user.id,

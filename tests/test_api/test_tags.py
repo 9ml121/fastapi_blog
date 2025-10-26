@@ -11,7 +11,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.crud.post import post as post_crud
+import app.crud.post as post_crud
 from app.models.post import Post
 from app.models.user import User
 from app.schemas.post import PostCreate
@@ -38,9 +38,9 @@ def posts_with_tags(session: Session, sample_user: User) -> list[Post]:
     posts = []
 
     # 文章 1
-    post1 = post_crud.create_with_author(
+    post1 = post_crud.create_post(
         db=session,
-        obj_in=PostCreate(
+        post_in=PostCreate(
             title="Python 基础教程",
             content="Python 入门内容",
             tags=["Python", "FastAPI"],
@@ -50,9 +50,9 @@ def posts_with_tags(session: Session, sample_user: User) -> list[Post]:
     posts.append(post1)
 
     # 文章 2
-    post2 = post_crud.create_with_author(
+    post2 = post_crud.create_post(
         db=session,
-        obj_in=PostCreate(
+        post_in=PostCreate(
             title="Python 进阶", content="Python 进阶内容", tags=["Python", "教程"]
         ),
         author_id=sample_user.id,
@@ -60,9 +60,9 @@ def posts_with_tags(session: Session, sample_user: User) -> list[Post]:
     posts.append(post2)
 
     # 文章 3
-    post3 = post_crud.create_with_author(
+    post3 = post_crud.create_post(
         db=session,
-        obj_in=PostCreate(
+        post_in=PostCreate(
             title="FastAPI 实战", content="FastAPI 开发指南", tags=["FastAPI"]
         ),
         author_id=sample_user.id,
@@ -137,9 +137,9 @@ class TestGetTags:
         """测试标签列表分页功能"""
         # 提示：创建 10 个不同的标签（通过 10 篇文章）
         for i in range(10):
-            post_crud.create_with_author(
+            post_crud.create_post(
                 db=session,
-                obj_in=PostCreate(
+                post_in=PostCreate(
                     title=f"文章 {i}",
                     content=f"内容 {i}",
                     tags=[f"Tag {i}"],  # ← 每篇文章用不同标签

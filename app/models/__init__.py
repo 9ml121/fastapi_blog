@@ -6,6 +6,8 @@
 
 from .comment import Comment
 from .post import Post, PostStatus, post_tags
+from .post_favorite import PostFavorite
+from .post_like import PostLike
 from .post_view import PostView
 from .tag import Tag
 from .user import User, UserRole
@@ -19,4 +21,6 @@ __all__ = [
     "Comment",
     "Tag",
     "PostView",
+    "PostLike",
+    "PostFavorite",
 ]

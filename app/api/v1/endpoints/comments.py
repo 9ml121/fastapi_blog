@@ -13,13 +13,18 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_user, get_db
-from app.api.pagination import PaginatedResponse, PaginationParams
+from app.core.exceptions import (
+    PermissionDeniedError,
+    ResourceConflictError,
+    ResourceNotFoundError,
+)
+from app.core.pagination import PaginatedResponse, PaginationParams, paginate_query
 from app.crud.comment import comment as comment_crud
-from app.crud.post import post as post_crud
+from app.models.comment import Comment
 from app.models.user import User
 from app.schemas.comment import CommentCreate, CommentResponse
 
@@ -61,31 +66,7 @@ async def create_comment(
     - 404: 文章不存在
     - 404: 父评论不存在或不属于该文章
     """
-    # 1. 验证文章存在
-    post = post_crud.get(db, id=post_id)
-    if not post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="文章不存在",
-        )
-
-    # 2. 如果是回复评论，验证父评论存在且属于该文章
-    if comment_in.parent_id:
-        parent_comment = comment_crud.get(db, id=comment_in.parent_id)
-        if not parent_comment:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="父评论不存在",
-            )
-        # 验证父评论属于同一文章（防止跨文章回复）
-        if parent_comment.post_id != post_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="父评论不属于该文章",
-            )
-
-    # 3. 创建评论
-    comment = comment_crud.create_with_author(
+    comment = comment_crud.create_comment(
         db=db,
         obj_in=comment_in,
         author_id=current_user.id,
@@ -115,8 +96,7 @@ async def get_comments(
     - order: 排序方向（asc/desc，默认desc）
 
     **返回**:
-    - 200: 分页的评论列表,只返回顶级评论（parent_id=None），
-    子评论通过 replies 字段递归获取
+    - 200: 分页的评论列表,只返回顶级评论（parent_id=None），子评论通过 replies 递归获取
     - 404: 文章不存在
     - 422: 参数验证失败
 
@@ -125,20 +105,14 @@ async def get_comments(
     - GET /api/v1/posts/123/comments/?sort=created_at&order=desc
 
     """
-    # 1. 验证文章存在
-    post = post_crud.get(db, id=post_id)
-    if not post:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="文章不存在",
-        )
+    # 1. CRUD 层构建查询
+    query = comment_crud.build_top_level_comments_query(db, post_id=post_id)
 
-    # 2. 获取评论列表
-    comments, total = comment_crud.get_paginated_by_post(
-        db, post_id=post_id, params=params
-    )
+    # 2. API 层执行分页（支持安全排序）
+    items, total = paginate_query(db, query, params, model=Comment)
 
-    return PaginatedResponse.create(comments, total, params)  # type: ignore
+    # 3. 返回分页响应 (FastAPI 会自动序列化 SQLAlchemy 模型)
+    return PaginatedResponse.create(items, total, params)  # type: ignore[arg-type]
 
 
 @router.delete(
@@ -170,27 +144,18 @@ async def delete_comment(
     注意：
     - 删除评论会级联删除所有子评论（数据库 CASCADE 配置）
     """
-    # 1. 查询评论
+    # 1. 验证评论存在
     comment = comment_crud.get(db, id=comment_id)
     if not comment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="评论不存在",
-        )
+        raise ResourceNotFoundError(resource="评论")
 
     # 2. 验证评论属于该文章
     if comment.post_id != post_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="评论不属于该文章",
-        )
+        raise ResourceConflictError(message="评论不属于该文章")
 
     # 3. 权限检查：只能删除自己的评论
     if comment.user_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权删除他人评论",
-        )
+        raise PermissionDeniedError(message="无权删除他人评论")
 
     # 4. 删除评论（级联删除所有子评论）
     comment_crud.remove(db, id=comment_id)

@@ -147,7 +147,6 @@ class PostResponse(PostBase):
     like_count: int = Field(default=0, description="文章点赞数")
     favorite_count: int = Field(default=0, description="文章收藏数")
 
-
     model_config = ConfigDict(
         from_attributes=True,  # 允许从 ORM 对象创建
         json_schema_extra={
@@ -189,6 +188,7 @@ class PostResponse(PostBase):
         },
     )
 
+
 class PostLikeStatusResponse(BaseModel):
     """文章点赞状态响应"""
 
@@ -207,6 +207,7 @@ class PostFavoriteStatusResponse(BaseModel):
     favorite_count: int = Field(description="文章总收藏数")
 
     model_config = ConfigDict(from_attributes=True)
+
 
 # ============ post过滤模型 ============
 class PostFilters(BaseModel):
@@ -265,8 +266,7 @@ class PostFilters(BaseModel):
 
 # ============ 分页参数模型 ============
 class PostPaginationParams(PaginationParams):
-    """分页参数模型，修改排序默认字段为 published_at,支持置顶优先选项
-    """
+    """分页参数模型，修改排序默认字段为 published_at,支持置顶优先选项"""
 
     sort: str = Field(
         default="published_at", description="排序字段（默认published_at）"

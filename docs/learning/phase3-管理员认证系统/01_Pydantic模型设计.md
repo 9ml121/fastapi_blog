@@ -1,4 +1,4 @@
-# Phase 3 - Pydantic 模型设计
+# 01- Pydantic 模型设计
 
 > **设计目标**：基于 FastAPI 博客项目实践，总结 Pydantic Schema 设计的最佳实践和安全配置策略
 

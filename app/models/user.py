@@ -1,10 +1,14 @@
 """
 用户模型 - 现代 SQLAlchemy 2.0+ 语法版本
 
+🆕 现代语法特点：
+    - 使用 Mapped[Type] 类型注解
+    - 使用 mapped_column() 替代 Column()
+    - 类型更明确，IDE 支持更好
+    - Optional[Type] 明确表示可空字段
+
 🚀 项目正式使用版本 - 采用现代声明式映射语法
 📚 与 user_traditional.py 对比学习传统语法差异
-
-严格按照 docs/standards/database-models.md 实现
 """
 
 import uuid
@@ -22,14 +26,16 @@ from app.db.database import Base
 
 # 使用 TYPE_CHECKING 避免循环导入
 # 仅在类型检查时导入，运行时不导入
+# 参考：https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html#adding-relationships-to-mapped-classes-after-declaration
 if TYPE_CHECKING:
     from .comment import Comment
     from .post import Post, PostView
+    from .post_favorite import PostFavorite
+    from .post_like import PostLike
 
 
 class UserRole(str, Enum):
-    """
-    用户角色枚举
+    """用户角色枚举
 
     继承 str 是为了让枚举值可以直接序列化为 JSON
     这对 FastAPI 的自动文档生成很有帮助
@@ -40,8 +46,7 @@ class UserRole(str, Enum):
 
 
 class User(Base):
-    """
-    用户模型 - 现代 SQLAlchemy 2.0+ 语法版本
+    """users数据库表模型
 
     设计要点：
     1. 使用 UUID 作为主键，支持分布式系统
@@ -49,29 +54,16 @@ class User(Base):
     3. 密码只存储哈希值，不存储明文
     4. 使用枚举类型管理用户角色
     5. 包含软删除和邮箱验证功能
-
-    🆕 现代语法特点：
-    - 使用 Mapped[Type] 类型注解
-    - 使用 mapped_column() 替代 Column()
-    - 类型更明确，IDE 支持更好
-    - Optional[Type] 明确表示可空字段
-
-    关联关系：
-    - 一对多：User -> Post (用户发布文章)
-    - 一对多：User -> Comment (用户发表评论)
-    - 一对多：User -> PostView (用户浏览记录)
+    6. 与 Post, Comment, PostView, PostLike, PostFavorite 等模型建立关联关系
     """
 
     __tablename__ = "users"
 
     def __init__(self, **kwargs):
-        """
-        初始化用户实例，只处理复杂的业务逻辑默认值
-
+        """初始化用户实例，只处理需要计算或有复杂的业务逻辑默认值，
         简单的固定默认值通过 mapped_column(default=...) 设置
-        这里只处理需要计算或有复杂逻辑的默认值
         """
-        # 复杂逻辑：如果没有提供昵称，使用用户名作为昵称
+        # 如果没有提供昵称，使用用户名作为昵称
         if not kwargs.get("nickname") and "username" in kwargs:
             kwargs["nickname"] = kwargs["username"]
 
@@ -136,26 +128,37 @@ class User(Base):
     )
 
     # 5. 关系定义
-    # User → Post： 一对多
-    # !TIPS: lazy="select" 是默认值，先不指定，
-    # 以后按照按需加载文章列表（一对多用 selectin）
+    # User → Post： 一对多(用户发布文章)
+    # ⚠️ lazy="select" 是默认值，这里先不指定，在应用层按需加载（一对多用 selectin）
     posts: Mapped[list["Post"]] = relationship(
         back_populates="author", cascade="all, delete-orphan"
     )
 
-    # User → Comment: 一对多
+    # User → Comment: 一对多(用户发表评论)
     comments: Mapped[list["Comment"]] = relationship(
         back_populates="author",
         cascade="all, delete-orphan",
     )
 
-    # User → PostView: 一对多（浏览历史）
+    # User → PostView: 一对多(用户浏览记录)
     post_views: Mapped[list["PostView"]] = relationship(
-        "PostView",
         back_populates="user",
         cascade="all, delete-orphan",  # 删除用户时删除其浏览记录
-        order_by="PostView.viewed_at.desc()",  # 按浏览时间倒序
-        doc="用户的浏览历史记录",
+        order_by="desc(PostView.viewed_at)",  # 按浏览时间倒序
+    )
+
+    # User → PostLike: 一对多(用户点赞记录)
+    post_likes: Mapped[list["PostLike"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="desc(PostLike.created_at)",
+    )
+
+    # User → PostFavorite: 一对多(用户收藏记录)
+    post_favorites: Mapped[list["PostFavorite"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="desc(PostFavorite.created_at)",
     )
 
     def __repr__(self) -> str:

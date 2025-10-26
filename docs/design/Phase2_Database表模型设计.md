@@ -50,7 +50,7 @@ author_id: int         # 作者关系
 
 ```python
 is_active: bool        # 账户当前是否可用
-is_superuser: bool     # 当前是否拥有管理员权限
+is_admin: bool     # 当前是否拥有管理员权限
 is_verified: bool      # 邮箱当前是否已验证
 ```
 
@@ -278,20 +278,22 @@ CREATE TYPE user_role AS ENUM ('user', 'admin');
 
 **用途**：存储博客文章内容和元数据
 
-| 字段名          | 数据类型         | 约束                        | 描述       | 字段类型          | 索引     |
-| ------------ | ------------ | ------------------------- | -------- | ------------- | ------ |
-| id           | UUID         | PK                        | 文章唯一标识   | 主键            | PK     |
-| title        | VARCHAR(200) | NOT NULL                  | 文章标题     | 业务核心字段-文章内容   | INDEX  |
-| content      | TEXT         | NOT NULL                  | 文章正文     | 业务核心字段-文章内容   | -      |
-| summary      | VARCHAR(500) | NULL                      | 文章摘要     | 业务核心字段-文章内容   | -      |
-| slug         | VARCHAR(200) | UNIQUE, NOT NULL          | URL 友好标识 | 业务核心字段-文章内容   | UNIQUE |
-| status       | ENUM         | NOT NULL, DEFAULT 'draft' | 发布状态     | 状态字段          | INDEX  |
-| is_featured  | BOOLEAN      | NOT NULL, DEFAULT false   | 是否置顶     | 配置字段          | INDEX  |
-| view_count   | INTEGER      | NOT NULL, DEFAULT 0       | 浏览次数     | 状态字段          | -      |
-| author_id    | UUID         | FK, NOT NULL              | 作者 ID    | 关联外键-users.id | INDEX  |
-| published_at | TIMESTAMP    | NULL                      | 发布时间     | 时间戳字段         | INDEX  |
-| created_at   | TIMESTAMP    | NOT NULL, DEFAULT NOW()   | 创建时间     | 时间戳字段         | INDEX  |
-| updated_at   | TIMESTAMP    | NOT NULL, DEFAULT NOW()   | 更新时间     | 时间戳字段         | -      |
+| 字段名            | 数据类型         | 约束                        | 描述       | 字段类型          | 索引     | 更新        |
+| -------------- | ------------ | ------------------------- | -------- | ------------- | ------ | --------- |
+| id             | UUID         | PK                        | 文章唯一标识   | 主键            | PK     |           |
+| title          | VARCHAR(200) | NOT NULL                  | 文章标题     | 业务核心字段-文章内容   | INDEX  |           |
+| content        | TEXT         | NOT NULL                  | 文章正文     | 业务核心字段-文章内容   | -      |           |
+| summary        | VARCHAR(500) | NULL                      | 文章摘要     | 业务核心字段-文章内容   | -      |           |
+| slug           | VARCHAR(200) | UNIQUE, NOT NULL          | URL 友好标识 | 业务核心字段-文章内容   | UNIQUE |           |
+| status         | ENUM         | NOT NULL, DEFAULT 'draft' | 发布状态     | 状态字段          | INDEX  |           |
+| is_featured    | BOOLEAN      | NOT NULL, DEFAULT false   | 是否置顶     | 配置字段          | INDEX  |           |
+| view_count     | INTEGER      | NOT NULL, DEFAULT 0       | 浏览次数     | 状态字段          | -      |           |
+| like_count     | INTEGER      | NOT NULL, DEFAULT 0       | 点赞数      | 状态字段          |        | Phase6 新增 |
+| favorite_count | INTEGER      | NOT NULL, DEFAULT 0       | 收藏数      | 状态字段          |        | Phase6 新增 |
+| author_id      | UUID         | FK, NOT NULL              | 作者 ID    | 关联外键-users.id | INDEX  |           |
+| published_at   | TIMESTAMP    | NULL                      | 发布时间     | 时间戳字段         | INDEX  |           |
+| created_at     | TIMESTAMP    | NOT NULL, DEFAULT NOW()   | 创建时间     | 时间戳字段         | INDEX  |           |
+| updated_at     | TIMESTAMP    | NOT NULL, DEFAULT NOW()   | 更新时间     | 时间戳字段         | -      |           |
 
 **枚举定义**：
 ```sql

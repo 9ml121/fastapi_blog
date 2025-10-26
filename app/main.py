@@ -170,13 +170,31 @@ async def validation_exception_handler(
     Returns:
         统一格式的 JSON 响应
     """
+    # 安全地序列化错误详情，避免 ValueError 等对象序列化问题
+    import json
+
+    try:
+        details = exc.errors()
+        # 验证是否可以序列化，如果不能则使用简化版本
+        json.dumps(details)  # 测试序列化
+    except (TypeError, ValueError):
+        # 如果序列化失败，使用简化的错误信息
+        details = [
+            {
+                "loc": error.get("loc", []),
+                "msg": error.get("msg", "验证错误"),
+                "type": error.get("type", "validation_error"),
+            }
+            for error in exc.errors()
+        ]
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "error": {
                 "code": "VALIDATION_ERROR",
                 "message": "请求数据格式错误",
-                "details": exc.errors(),  # Pydantic 详细错误信息
+                "details": details,
             }
         },
     )

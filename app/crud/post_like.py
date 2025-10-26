@@ -89,6 +89,7 @@ def get_user_liked_post_ids(
 
     return {post_id for (post_id,) in query.all()}
 
+
 def get_user_liked_posts(
     db: Session, user_id: UUID, skip: int = 0, limit: int = 20
 ) -> list[Post]:
@@ -107,7 +108,6 @@ def get_user_liked_posts(
     user = get_user_by_id(db=db, user_id=user_id)
     if not user:
         raise ResourceNotFoundError(resource="用户")
-
 
     return (
         db.query(Post)

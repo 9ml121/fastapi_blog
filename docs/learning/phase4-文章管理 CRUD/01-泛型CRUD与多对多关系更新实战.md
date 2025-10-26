@@ -531,7 +531,7 @@ def test_update_post_with_tags(session: Session, sample_user: User):
         content="Content here...",
         tags=["tag1", "tag2"],  # 初始：tag1, tag2
     )
-    sample_post = post_crud.create_with_author(
+    sample_post = post_crud.create_post(
         session, obj_in=post_in, author_id=sample_user.id
     )
     
@@ -633,7 +633,7 @@ if tag_names is not None:  # 再处理关系字段
 
 #### ✅ 代码规范
 - **文档完整**：每个公共方法都有 Args/Returns/Example
-- **命名清晰**：`get_by_slug`、`create_with_author` 等语义明确
+- **命名清晰**：`get_by_slug`、`create_post` 等语义明确
 - **参数设计**：使用 `*` 强制关键字参数，避免误用
 
 #### ✅ 质量保证
