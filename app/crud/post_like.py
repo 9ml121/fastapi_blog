@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import InvalidParametersError, ResourceNotFoundError
+from app.crud.notification import NotificationEvent, emit_notification_event
 from app.crud.post import get_post_by_id
 from app.crud.user import get_user_by_id
 from app.models.post import Post, PostStatus
@@ -11,7 +12,7 @@ from app.models.user import User
 
 
 def toggle_like(db: Session, user_id: UUID, post_id: UUID) -> bool:
-    """切换点赞状态（幂等）
+    """点赞/取消点赞（幂等，含事件触发）
 
     Args:
         db (Session): 数据库会话
@@ -22,7 +23,7 @@ def toggle_like(db: Session, user_id: UUID, post_id: UUID) -> bool:
         bool: 是否点赞成功，True 表示点赞成功，False 表示取消点赞成功
     """
     # 1. 校验文章存在和状态
-    post = db.query(Post).filter_by(id=post_id).first()
+    post = db.get(Post, post_id)
     if not post:
         raise ResourceNotFoundError(resource="文章")
 
@@ -37,14 +38,32 @@ def toggle_like(db: Session, user_id: UUID, post_id: UUID) -> bool:
     if existing_like:
         # 3. 取消点赞
         db.delete(existing_like)
-        post.decrement_like_count()
+        # post.decrement_like_count()
+        # 使用原子操作递减 like_count，防止并发问题
+        db.query(Post).filter(Post.id == post_id, Post.like_count > 0).update(
+            {Post.like_count: Post.like_count - 1}, synchronize_session=False
+        )
+        # db.query(Post)查询后在修改 post属性，就不需要 db.add(post),可以直接提交
         db.commit()
         return False
     else:
         # 4. 添加点赞
         new_like = PostLike(user_id=user_id, post_id=post_id)
         db.add(new_like)
-        post.increment_like_count()
+
+        # 使用原子操作递增 like_count，防止并发问题
+        db.query(Post).filter(Post.id == post_id).update(
+            {Post.like_count: Post.like_count + 1}, synchronize_session=False
+        )
+
+        # 5. 触发通知：仅在作者与点赞用户不同的情况下
+        emit_notification_event(
+            db=db,
+            event_type=NotificationEvent.POST_LIKED,
+            recipient_id=post.author_id,
+            actor_id=user_id,
+            post_id=post_id,
+        )
         db.commit()
         return True
 

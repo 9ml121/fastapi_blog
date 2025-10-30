@@ -78,7 +78,7 @@ def posts_with_tags(session: Session, sample_user: User) -> list[Post]:
 
 
 class TestGetTags:
-    """测试获取标签列表 API"""
+    """测试分页获取所有标签 API"""
 
     def test_get_tags_empty(self, client: TestClient):
         """测试获取空标签列表"""
@@ -86,8 +86,13 @@ class TestGetTags:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert isinstance(data, list)
-        assert len(data) == 0
+        assert data["items"] == []
+        assert data["total"] == 0
+        assert data["page"] == 1
+        assert data["size"] == 20
+        assert data["pages"] == 0
+        assert data["has_next"] is False
+        assert data["has_prev"] is False
 
     def test_get_tags_with_data(
         self,
@@ -98,7 +103,7 @@ class TestGetTags:
         response = client.get("/api/v1/tags/")
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        data = response.json()["items"]
 
         # 验证标签数量（3 个唯一标签）
         assert len(data) == 3
@@ -118,7 +123,7 @@ class TestGetTags:
     ):
         """测试 post_count 统计正确"""
         response = client.get("/api/v1/tags/")
-        data = response.json()
+        data = response.json()["items"]
 
         # 将标签转换为字典，方便查找
         tags_dict = {tag["name"]: tag for tag in data}
@@ -148,17 +153,17 @@ class TestGetTags:
             )
 
         # 测试 skip=0&limit=5 和 skip=5&limit=5
-        response1 = client.get("/api/v1/tags/?skip=0&limit=5")
+        response1 = client.get("/api/v1/tags/?page=1&size=5")
         assert response1.status_code == status.HTTP_200_OK
-        assert len(response1.json()) == 5
-        assert response1.json()[0]["name"] == "Tag 0"
-        assert response1.json()[-1]["name"] == "Tag 4"
+        assert len(response1.json()["items"]) == 5
+        assert response1.json()["items"][0]["name"] == "Tag 0"
+        assert response1.json()["items"][-1]["name"] == "Tag 4"
 
-        response2 = client.get("/api/v1/tags/?skip=5&limit=5")
+        response2 = client.get("/api/v1/tags/?page=2&size=5")
         assert response2.status_code == status.HTTP_200_OK
-        assert len(response2.json()) == 5
-        assert response2.json()[0]["name"] == "Tag 5"
-        assert response2.json()[-1]["name"] == "Tag 9"
+        assert len(response2.json()["items"]) == 5
+        assert response2.json()["items"][0]["name"] == "Tag 5"
+        assert response2.json()["items"][-1]["name"] == "Tag 9"
 
 
 # ============================================

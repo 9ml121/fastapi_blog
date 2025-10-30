@@ -12,7 +12,7 @@
 """
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING
 from uuid import UUID
@@ -29,6 +29,8 @@ from app.db.database import Base
 # 参考：https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html#adding-relationships-to-mapped-classes-after-declaration
 if TYPE_CHECKING:
     from .comment import Comment
+    from .follow import Follow
+    from .notification import Notification
     from .post import Post, PostView
     from .post_favorite import PostFavorite
     from .post_like import PostLike
@@ -92,6 +94,10 @@ class User(Base):
         String(255), default=None, comment="头像文件路径"
     )
 
+    bio: Mapped[str | None] = mapped_column(
+        String(255), default=None, comment="个人简介，用于在用户个人主页展示"
+    )
+
     # 3. 状态和配置字段 - 配置
     role: Mapped[UserRole] = mapped_column(
         SQLEnum(UserRole), default=UserRole.USER, comment="用户角色"
@@ -127,7 +133,7 @@ class User(Base):
         DateTime(timezone=True), default=None, comment="软删除时间（用户主动删除账号）"
     )
 
-    # 5. 关系定义
+    # ============== 5. 关系定义 ==============
     # User → Post： 一对多(用户发布文章)
     # ⚠️ lazy="select" 是默认值，这里先不指定，在应用层按需加载（一对多用 selectin）
     posts: Mapped[list["Post"]] = relationship(
@@ -159,6 +165,33 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         order_by="desc(PostFavorite.created_at)",
+    )
+
+    # User → Follow: 一对多(用户关注关系)
+    followers: Mapped[list["Follow"]] = relationship(
+        foreign_keys="Follow.followed_id",
+        back_populates="followed",
+        cascade="all, delete-orphan",
+        order_by="desc(Follow.created_at)",
+    )
+    following: Mapped[list["Follow"]] = relationship(
+        foreign_keys="Follow.follower_id",
+        back_populates="follower",
+        cascade="all, delete-orphan",
+        order_by="desc(Follow.created_at)",
+    )
+
+    # User → Notification: 一对多(用户通知关系)
+    received_notifications: Mapped[list["Notification"]] = relationship(
+        foreign_keys="Notification.recipient_id",
+        back_populates="recipient",
+        cascade="all",
+        order_by="desc(Notification.created_at)",
+    )
+    sent_notifications: Mapped[list["Notification"]] = relationship(
+        foreign_keys="Notification.actor_id",
+        back_populates="actor",
+        cascade="all",
     )
 
     def __repr__(self) -> str:
@@ -212,4 +245,4 @@ class User(Base):
 
     def update_last_login(self) -> None:
         """更新最后登录时间"""
-        self.last_login = datetime.now()
+        self.last_login = datetime.now(UTC)

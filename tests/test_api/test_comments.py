@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 import app.crud.post as post_crud
 from app.core.security import create_access_token
-from app.crud.comment import comment as comment_crud
+from app.crud import comment as comment_crud
 from app.models.comment import Comment
 from app.models.post import Post
 from app.models.user import User
@@ -478,11 +478,17 @@ class TestDeleteComment:
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
         # 2. 查询数据库验证评论1、评论2、评论3 都不存在
-        assert not comment_crud.get(session, id=comment_to_delete.id)
-        assert not comment_crud.get(session, id=sample_comments[1].id)
-        assert not comment_crud.get(session, id=sample_comments[2].id)
+        assert not comment_crud.get_comment_by_id(
+            session, comment_id=comment_to_delete.id
+        )
+        assert not comment_crud.get_comment_by_id(
+            session, comment_id=sample_comments[1].id
+        )
+        assert not comment_crud.get_comment_by_id(
+            session, comment_id=sample_comments[2].id
+        )
         # 3. 验证评论4 仍然存在（不应该被删除）
-        assert comment_crud.get(session, id=sample_comments[3].id)
+        assert comment_crud.get_comment_by_id(session, comment_id=sample_comments[3].id)
 
     def test_delete_comment_not_found(
         self,

@@ -21,7 +21,7 @@ from app.core.pagination import PaginationParams
 from app.models.post import PostStatus
 
 from .tag import TagResponse
-from .user import UserResponse
+from .user import UserSimpleResponse
 
 
 # ============ 基础模型 (共享字段) ============
@@ -49,7 +49,7 @@ class PostCreate(PostBase):
 
     特点：
     - 继承 PostBase 的所有字段。
-    - 允许客户端直接传递一个字符串列表作为标签，后端将处理"获取或创建"逻辑。
+    - tags 字段允许客户端直接传递一个字符串列表，后端将处理"获取或创建"逻辑。
     - status 字段允许指定初始状态，默认为 draft（草稿）
     - ⚠️ post创建模型不能包含 author_id 隐私字段
 
@@ -116,8 +116,7 @@ class PostUpdate(BaseModel):
     )
 
 
-# ============ 响应模型 (从数据库读取) ============
-# TODO: 待增加 ListPostResponse 模型，用于返回多个文章的列表数据
+# ============ 响应模型 ============
 class PostResponse(PostBase):
     """返回给客户端的文章数据
 
@@ -125,14 +124,12 @@ class PostResponse(PostBase):
     - 继承 PostBase 的核心字段。
     - 包含 `author` 和 `tags` 的完整嵌套信息，使用对应的 Response Schema。
     - 包含所有系统生成的和用于展示的状态字段。
-    - ⚠️ 包含 `status` 字段，用于前端判断文章可见性
 
-
-    用途：所有返回单个或多个文章信息的 API 端点。
+    用途：返回单个文章详细信息的 API 端点。
     """
 
     id: UUID = Field(description="文章唯一标识符")
-    author: UserResponse = Field(description="文章作者的详细信息")
+    author: UserSimpleResponse = Field(description="文章作者的详细信息")
     tags: list[TagResponse] = Field(default=[], description="与文章关联的标签列表")
     status: PostStatus = Field(description="文章状态（draft/published/archived）")
     created_at: datetime = Field(description="文章创建时间")
@@ -161,15 +158,9 @@ class PostResponse(PostBase):
                     "author": {
                         "id": "b1c2d3e4-f5a6-7890-1234-abcdef123456",
                         "username": "johndoe",
-                        "email": "johndoe@example.com",
                         "nickname": "John D.",
-                        "is_active": True,
-                        "role": "user",
                         "avatar": None,
-                        "is_verified": True,
-                        "last_login": "2025-10-09T12:00:00Z",
-                        "created_at": "2025-01-01T10:00:00Z",
-                        "updated_at": "2025-01-01T10:00:00Z",
+                        "bio": None,
                     },
                     "tags": [
                         {
@@ -187,6 +178,24 @@ class PostResponse(PostBase):
             ]
         },
     )
+
+
+class PostSimpleResponse(BaseModel):
+    """文章简要信息，继承BaseModel
+
+    适用场景：通知列表（文章链接）、文章列表页、搜索结果、收藏／点赞列表等。
+    """
+
+    id: UUID = Field(description="文章唯一标识符")
+    title: str = Field(description="文章标题")
+    slug: str = Field(description="URL 友好标识")
+    author: UserSimpleResponse = Field(description="文章作者的详细信息")
+    status: PostStatus = Field(description="文章状态（draft/published/archived）")
+    published_at: datetime | None = Field(
+        default=None, description="文章发布时间，如果未发布则为 null"
+    )
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PostLikeStatusResponse(BaseModel):

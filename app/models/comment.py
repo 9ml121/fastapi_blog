@@ -17,6 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base
 
 if TYPE_CHECKING:
+    from .notification import Notification
     from .post import Post
     from .user import User
 
@@ -107,6 +108,13 @@ class Comment(Base):
         "Post",
         back_populates="comments",
         lazy="joined",  # 适合"消息中心"场景
+    )
+
+    # Comment → Notification: 一对多（评论所有通知记录列表）
+    notifications: Mapped[list["Notification"]] = relationship(
+        back_populates="comment",
+        cascade="all, delete-orphan",  # 删除评论时删除所有通知记录
+        order_by="desc(Notification.created_at)",  # 按通知时间降序
     )
 
     # ============ 业务方法 ============

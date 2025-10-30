@@ -15,7 +15,7 @@ from app.core.exceptions import (
     ResourceNotFoundError,
 )
 from app.core.pagination import PaginatedResponse, paginate_query
-from app.crud.tag import tag as tag_crud
+from app.crud import tag as tag_crud
 from app.crud.user import get_user_by_id
 from app.models.post import Post, PostStatus
 from app.schemas.post import (
@@ -180,7 +180,7 @@ def create_post(db: Session, *, post_in: PostCreate, author_id: UUID) -> Post:
     # 6. 处理标签同步
     # ⚠️ tag_crud.get_or_create 是没有事务提交的
     for tag_name in tag_names:
-        tag_obj = tag_crud.get_or_create(db, name=tag_name)
+        tag_obj = tag_crud.get_or_create_tag(db, name=tag_name)
         post.tags.append(tag_obj)
 
     # 7. 一次性提交事务，保证事务完整性。
@@ -228,7 +228,7 @@ def update_post(
     # 6. 单独处理标签同步
     if tag_names is not None:
         # 将标签名列表转换为 Tag 对象列表
-        tags = [tag_crud.get_or_create(db, name=name) for name in tag_names]
+        tags = [tag_crud.get_or_create_tag(db, name=name) for name in tag_names]
         # 直接赋值给 relationship 属性，SQLAlchemy 会自动处理差异
         post.tags = tags
 

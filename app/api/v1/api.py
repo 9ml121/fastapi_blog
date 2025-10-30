@@ -6,7 +6,18 @@ API v1 路由聚合器
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, comments, favorites, likes, posts, tags, users
+from app.api.v1.endpoints import (
+    auth,
+    comments,
+    favorites,
+    follows,
+    likes,
+    notifications,
+    post_views,
+    posts,
+    tags,
+    users,
+)
 
 # 创建 API v1 的主路由器
 api_router = APIRouter()
@@ -58,4 +69,25 @@ api_router.include_router(
     favorites.router,
     prefix="/posts",  # 前缀：/posts，实际路由：/posts/{post_id}/favorites
     tags=["🌟 收藏管理"],
+)
+
+# 注册文章浏览管理路由（嵌套在文章路由下）
+api_router.include_router(
+    post_views.router,
+    prefix="/posts",  # 前缀：/posts，实际路由：/posts/{post_id}/views
+    tags=["👀 文章浏览管理"],
+)
+
+# 注册关注管理路由
+api_router.include_router(
+    follows.router,
+    prefix="/users",
+    tags=["👥 关注管理"],
+)
+
+# 注册通知管理路由
+api_router.include_router(
+    notifications.router,
+    prefix="/users",
+    tags=["🔔 通知管理"],
 )

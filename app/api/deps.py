@@ -35,6 +35,13 @@ from app.models.user import User
 # tokenUrl 指向登录接口，用于 Swagger 文档生成"登录"按钮
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
+# OAuth2 配置（可选认证，不自动抛出异常）
+# 用于支持匿名用户的接口
+oauth2_scheme_auto_error = OAuth2PasswordBearer(
+    tokenUrl="api/v1/auth/login",
+    auto_error=False,  # 不自动抛出异常
+)
+
 
 # ==========================================
 # 认证依赖：用户身份验证
@@ -139,6 +146,59 @@ def get_current_active_user(
             detail="Inactive user",
         )
     return current_user
+
+
+# ==========================================
+# 可选认证依赖：可选用户验证
+# ==========================================
+
+
+def get_current_user_optional(
+    db: Session = Depends(get_db),
+    token: str | None = Depends(oauth2_scheme_auto_error),
+) -> User | None:
+    """获取当前用户（可选认证）
+
+    与 get_current_user 不同，此依赖在无 token 时返回 None，
+    而不是抛出异常。适用于支持匿名用户的接口。
+
+    Args:
+        db: 数据库会话（由 get_db 依赖注入）
+        token: OAuth2 token（可选）
+
+    Returns:
+        User | None: 当前登录用户对象，未登录时返回 None
+
+    使用场景：
+        - 支持匿名用户浏览文章
+        - 记录用户访问日志
+        - 个性化内容推荐
+    """
+    if not token:
+        return None
+
+    # 1. 解码 token
+    payload = decode_access_token(token)
+    if not payload:
+        return None
+
+    # 2. 从 payload 提取用户 ID
+    user_id_str: str | None = payload.get("sub")
+    if not user_id_str:
+        return None
+
+    # 3. 转换 user_id 为 UUID
+    try:
+        user_id = UUID(user_id_str)
+    except ValueError:
+        return None
+
+    # 4. 从数据库查询用户
+    user = crud_user.get_user_by_id(db, user_id=user_id)
+    if not user:
+        return None
+
+    return user
 
 
 # ==========================================

@@ -2,6 +2,8 @@
 app/crud/base.py
 
 通用的 CRUD (Create, Read, Update, Delete) 操作基类
+
+⚠️ 已弃用，准备删除！！
 """
 
 from typing import Any, Generic, TypeVar

@@ -7,7 +7,9 @@ FastAPI 应用主入口
 3. OpenAPI 元数据：优化 API 文档（Swagger UI）
 """
 
+import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -17,12 +19,28 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.api import api_router
 from app.core.exceptions import AppError
+from app.crud import notification as notification_crud
+from app.db.database import SessionLocal
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 # 创建 FastAPI 应用实例
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """使用了 FastAPI 最新的 lifespan 事件管理器，
+    来定义在应用程序“生命周期”的开始和结束阶段需要执行的操作。
+
+    它是一种更现代、更推荐的方式，用于替代旧版的 @app.on_event("startup")
+    和 @app.on_event("shutdown") 装饰器。
+    """
+
+    await _cleanup_notifications_on_startup()
+    yield
+
+
 app = FastAPI(
     title="FastAPI 博客系统 API",
     description="""
@@ -98,6 +116,7 @@ app = FastAPI(
             "description": "评论的发表、回复、删除（即将推出）",
         },
     ],
+    lifespan=lifespan,
 )
 
 # ============ CORS 中间件配置 ============
@@ -327,6 +346,32 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+
+async def _cleanup_notifications_on_startup() -> None:
+    """后台任务：应用启动后清理过期通知
+
+    FastAPI 应用启动时执行的后台任务。
+    其核心目标是异步地、非阻塞地清理掉数据库中过期的通知记录
+    """
+
+    def _run_sync_cleanup() -> int:
+        with SessionLocal() as session:
+            return notification_crud.cleanup_old_notifications(session)
+
+    async def _run_async_cleanup() -> None:
+        try:
+            # 1. 使用 asyncio.to_thread 将同步阻塞的数据库操作移到后台线程，
+            # 避免阻塞主事件循环。
+            deleted_count = await asyncio.to_thread(_run_sync_cleanup)
+            if deleted_count:
+                logger.info("Cleaned %d stale notifications", deleted_count)
+        except Exception:
+            logger.exception("Failed to cleanup stale notifications on startup")
+
+    # 2.使用 asyncio.create_task 实现了“发射后不管”，
+    # 让清理任务在后台运行，不拖慢应用的启动速度。
+    asyncio.create_task(_run_async_cleanup())
 
 
 if __name__ == "__main__":

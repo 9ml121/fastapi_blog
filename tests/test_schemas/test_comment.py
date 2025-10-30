@@ -10,7 +10,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.comment import CommentCreate, CommentResponse
-from app.schemas.user import UserResponse
+from app.schemas.user import UserSimpleResponse
 
 
 class TestCommentCreateSchema:
@@ -75,7 +75,7 @@ class TestCommentResponseSchema:
         comment_response = CommentResponse.model_validate(mock_comment_orm)
 
         assert comment_response.content == "A top-level comment"
-        assert isinstance(comment_response.author, UserResponse)
+        assert isinstance(comment_response.author, UserSimpleResponse)
         assert comment_response.author.username == "commenter"
         assert comment_response.replies == []
 

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING
 from uuid import UUID
@@ -22,6 +22,7 @@ from app.db.database import Base
 
 if TYPE_CHECKING:
     from .comment import Comment
+    from .notification import Notification
     from .post_favorite import PostFavorite
     from .post_like import PostLike
     from .post_view import PostView
@@ -100,7 +101,7 @@ class Post(Base):
         from datetime import datetime
 
         if not title:
-            return f"文章-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            return f"文章-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
 
         # 基本清理：移除不友好的特殊字符
         cleaned = re.sub(r"[^\w\u4e00-\u9fff\s\-]", "", title)
@@ -120,7 +121,7 @@ class Post(Base):
         return (
             cleaned
             if len(cleaned) >= 1
-            else f"文章-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            else f"文章-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
         )
 
     # 1. 主键
@@ -195,7 +196,7 @@ class Post(Base):
         comment="更新时间",
     )
 
-    # 6. 关系定义
+    # ============== 6. 关系定义 ==============
     # lazy 策略说明：
     # - "select"：默认值，按需查询，容易产生 N+1 问题
     # - "joined"：使用 LEFT JOIN，1次查询获取所有数据（推荐用于多对一关系）
@@ -241,6 +242,13 @@ class Post(Base):
         back_populates="post",
         cascade="all, delete-orphan",  # 删除文章时删除所有收藏记录
         order_by="desc(PostFavorite.created_at)",  # 按收藏时间降序
+    )
+
+    # Post → Notification: 一对多（文章所有通知记录列表）
+    notifications: Mapped[list["Notification"]] = relationship(
+        back_populates="post",
+        cascade="all, delete-orphan",  # 删除文章时删除所有通知记录
+        order_by="desc(Notification.created_at)",  # 按通知时间降序
     )
 
     def __repr__(self) -> str:
@@ -300,7 +308,7 @@ class Post(Base):
         """发布文章"""
         self.status = PostStatus.PUBLISHED
         if not self.published_at:
-            self.published_at = datetime.now()
+            self.published_at = datetime.now(UTC)
 
     def archive(self) -> None:
         """归档文章"""

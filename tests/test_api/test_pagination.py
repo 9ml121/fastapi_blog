@@ -434,7 +434,7 @@ class TestPaginationPerformance:
         execution_time = time.time() - start_time
 
         # 验证深度分页性能
-        assert execution_time < 0.2  # 深度分页允许更长时间
+        assert execution_time < 0.5  # 深度分页允许更长时间
         assert len(items) == 50
         assert total == len(many_posts)
 

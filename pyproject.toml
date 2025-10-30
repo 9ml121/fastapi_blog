@@ -46,7 +46,7 @@ python_functions = ["test_*"]
 addopts = [
     "-v",         # 详细输出
     "-q",         # 简化头部输出信息
-    "--tb=short", # 简短的错误堆栈
+    # "--tb=short", # 简短的错误堆栈
     "-s",  # 禁止 pytest 捕获输出, 控制台可以打印出 print语句内容
     # "-rP",   # 显示通过测试的 print 输出
 ]

@@ -5,6 +5,8 @@
 """
 
 from .comment import Comment
+from .follow import Follow
+from .notification import Notification, NotificationType
 from .post import Post, PostStatus, post_tags
 from .post_favorite import PostFavorite
 from .post_like import PostLike
@@ -23,4 +25,7 @@ __all__ = [
     "PostView",
     "PostLike",
     "PostFavorite",
+    "Notification",
+    "Follow",
+    "NotificationType",
 ]

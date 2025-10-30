@@ -10,7 +10,7 @@ User CRUD - 用户数据操作层
 4. 删除操作使用软删除（设置 deleted_at）
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -27,7 +27,7 @@ from app.schemas.user import UserCreate, UserProfileUpdate, UserUpdate
 
 
 #  =================================== 用户查询 ===================================
-def get_user_by_id(db: Session, *, user_id: UUID) -> User | None:
+def get_user_by_id(db: Session, user_id: UUID) -> User | None:
     """通过用户 ID 查询用户（主键查询）
 
     设计要点：
@@ -52,7 +52,7 @@ def get_user_by_id(db: Session, *, user_id: UUID) -> User | None:
     )
 
 
-def get_user_by_email(db: Session, *, email: str) -> User | None:
+def get_user_by_email(db: Session, email: str) -> User | None:
     """通过邮箱地址查询用户
 
     设计要点：
@@ -77,7 +77,7 @@ def get_user_by_email(db: Session, *, email: str) -> User | None:
     )
 
 
-def get_user_by_username(db: Session, *, username: str) -> User | None:
+def get_user_by_username(db: Session, username: str) -> User | None:
     """通过用户名查询用户
 
     设计要点：
@@ -333,7 +333,7 @@ def update_password(
 #  =================================== 用户删除 ===================================
 
 
-def delete_user(db: Session, *, user_id: UUID) -> User | None:
+def delete_user(db: Session, user_id: UUID) -> User | None:
     """软删除用户（设置 deleted_at 时间戳）
 
     设计要点：
@@ -356,7 +356,7 @@ def delete_user(db: Session, *, user_id: UUID) -> User | None:
         raise ResourceNotFoundError(resource="用户")
 
     # 2. 设置软删除时间戳
-    user.deleted_at = datetime.now()
+    user.deleted_at = datetime.now(UTC)
 
     # 3. 提交更新
     db.commit()

@@ -39,16 +39,20 @@ def toggle_favorite(db: Session, user_id: UUID, post_id: UUID) -> bool:
     )
 
     if existing_favorite:
-        # 3. 取消收藏
+        # 3. 取消收藏, post更新采用原子操作
         db.delete(existing_favorite)
-        post.decrement_favorite_count()
+        db.query(Post).filter(Post.id == post_id, Post.favorite_count > 0).update(
+            {Post.favorite_count: Post.favorite_count - 1}, synchronize_session=False
+        )
         db.commit()
         return False
     else:
-        # 4. 添加收藏
+        # 4. 添加收藏，post更新采用原子操作
         new_favorite = PostFavorite(user_id=user_id, post_id=post_id)
         db.add(new_favorite)
-        post.increment_favorite_count()
+        db.query(Post).filter(Post.id == post_id).update(
+            {Post.favorite_count: Post.favorite_count + 1}, synchronize_session=False
+        )
         db.commit()
         return True
 

@@ -10,7 +10,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.post import PostCreate, PostResponse, PostUpdate
-from app.schemas.user import UserResponse
+from app.schemas.user import UserSimpleResponse
 
 
 class TestPostCreateSchema:
@@ -127,7 +127,7 @@ class TestPostResponseSchema:
         assert post_response.id == UUID("f47ac10b-58cc-4372-a567-0e02b2c3d479")
         assert post_response.title == "ORM Post Title"
         assert isinstance(
-            post_response.author, UserResponse
+            post_response.author, UserSimpleResponse
         )  # 验证 author 字段被正确转换成了 UserResponse 类型
         assert post_response.author.username == "testuser"
         assert post_response.slug == "orm-post-title"

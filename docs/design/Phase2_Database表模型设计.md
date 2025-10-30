@@ -242,21 +242,22 @@ max_*              # 最大限制
 
 **用途**：管理系统用户，包括普通用户和管理员
 
-| 字段名           | 数据类型         | 约束                       | 描述             | 字段类型        | 索引     |
-| ------------- | ------------ | ------------------------ | -------------- | ----------- | ------ |
-| id            | UUID         | PK                       | 用户唯一标识         | 主键          | PK     |
-| username      | VARCHAR(50)  | UNIQUE, NOT NULL         | 用户名（登录用）       | 业务核心字段-登录凭证 | UNIQUE |
-| email         | VARCHAR(255) | UNIQUE, NOT NULL         | 邮箱地址           | 业务核心字段-登录凭证 | UNIQUE |
-| password_hash | VARCHAR(255) | NOT NULL                 | 密码哈希值          | 业务核心字段-登录凭证 | -      |
-| nickname      | VARCHAR(100) | NOT NULL                 | 显示昵称           | 业务核心字段-基本信息 | -      |
-| avatar        | VARCHAR(255) | NULL                     | 头像 URL         | 业务核心字段-基本信息 | -      |
-| role          | ENUM         | NOT NULL, DEFAULT 'user' | 用户角色           | 配置字段        | INDEX  |
-| is_active     | BOOLEAN      | NOT NULL, DEFAULT true   | 账户是否激活（管理员可禁用） | 状态字段        | INDEX  |
-| is_verified   | BOOLEAN      | NOT NULL, DEFAULT false  | 邮箱验证状态         | 状态字段        | -      |
-| last_login    | TIMESTAMP    | NULL                     | 最后登录时间         | 时间戳字段       | INDEX  |
-| created_at    | TIMESTAMP    | NOT NULL, DEFAULT NOW()  | 创建时间           | 时间戳字段       | INDEX  |
-| updated_at    | TIMESTAMP    | NOT NULL, DEFAULT NOW()  | 更新时间           | 时间戳字段       | -      |
-| deleted_at    | TIMESTAMP    | NULL                     | 软删除时间（用户删除账号）  | 时间戳字段       |        |
+| 字段名           | 数据类型         | 约束                       | 描述             | 字段类型        | 索引     | 更新          |
+| ------------- | ------------ | ------------------------ | -------------- | ----------- | ------ | ----------- |
+| id            | UUID         | PK                       | 用户唯一标识         | 主键          | PK     |             |
+| username      | VARCHAR(50)  | UNIQUE, NOT NULL         | 用户名（登录用）       | 业务核心字段-登录凭证 | UNIQUE |             |
+| email         | VARCHAR(255) | UNIQUE, NOT NULL         | 邮箱地址           | 业务核心字段-登录凭证 | UNIQUE |             |
+| password_hash | VARCHAR(255) | NOT NULL                 | 密码哈希值          | 业务核心字段-登录凭证 | -      |             |
+| nickname      | VARCHAR(100) | NOT NULL                 | 显示昵称           | 业务核心字段-基本信息 | -      |             |
+| avatar        | VARCHAR(255) | NULL                     | 头像 URL         | 业务核心字段-基本信息 | -      |             |
+| bio           | VARCHAR(255) | NULL                     | 个人简介           | 业务核心字段-基本信息 |        | 20251028 新增 |
+| role          | ENUM         | NOT NULL, DEFAULT 'user' | 用户角色           | 配置字段        | INDEX  |             |
+| is_active     | BOOLEAN      | NOT NULL, DEFAULT true   | 账户是否激活（管理员可禁用） | 状态字段        | INDEX  |             |
+| is_verified   | BOOLEAN      | NOT NULL, DEFAULT false  | 邮箱验证状态         | 状态字段        | -      |             |
+| last_login    | TIMESTAMP    | NULL                     | 最后登录时间         | 时间戳字段       | INDEX  |             |
+| created_at    | TIMESTAMP    | NOT NULL, DEFAULT NOW()  | 创建时间           | 时间戳字段       | INDEX  |             |
+| updated_at    | TIMESTAMP    | NOT NULL, DEFAULT NOW()  | 更新时间           | 时间戳字段       | -      |             |
+| deleted_at    | TIMESTAMP    | NULL                     | 软删除时间（用户删除账号）  | 时间戳字段       |        |             |
 
 
 **枚举定义**：

@@ -7,7 +7,8 @@ Pytest 配置文件 - 定义共享的 fixture
 import sqlite3
 import uuid
 from collections.abc import Callable, Generator
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,12 +18,13 @@ from sqlalchemy.pool import ConnectionPoolEntry
 
 import app.crud.post as post_crud
 from app.core.security import create_access_token
-from app.crud.comment import comment as comment_crud
+from app.crud import comment as comment_crud
+from app.crud import follow as follow_crud
 from app.db.database import Base
-
-# 导入所有模型，确保它们注册到 Base.metadata,这样 create_all() 才能创建所有表
 from app.models import Comment, Post, PostView, Tag, User  # noqa: F401
+from app.models.notification import Notification
 from app.models.post import PostStatus
+from app.models.user import UserRole
 from app.schemas.comment import CommentCreate
 from app.schemas.post import PostCreate
 
@@ -165,6 +167,22 @@ def sample_user_with_password(session: Session) -> tuple[User, str]:
 
 
 @pytest.fixture
+def sample_admin(session: Session, sample_user) -> User:
+    """创建测试管理员用户"""
+    user = User(
+        username="test_admin",
+        email="test_admin@example.com",
+        password_hash="hashed_password",
+        nickname="Test Admin",
+        role=UserRole.ADMIN,
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)  # 刷新以获取数据库生成的字段
+    return user
+
+
+@pytest.fixture
 def sample_post(session: Session, sample_user: User) -> Post:
     """创建测试文章,默认是草稿状态
 
@@ -196,30 +214,94 @@ def sample_post(session: Session, sample_user: User) -> Post:
 def published_post(session: Session, sample_user: User) -> Post:
     """创建一篇已发布文章"""
     # ✅ 使用 CRUD 层创建，自动处理标签字符串转 Tag 对象
-    return post_crud.create_post(
-        db=session,
-        post_in=PostCreate(
-            title="测试已发布文章",
-            content="这是一篇已发布文章",
-            tags=["FastAPI", "测试"],
-            status=PostStatus.PUBLISHED,
-        ),
+    post = Post(
+        title="测试已发布文章",
+        content="这是一篇已发布文章",
+        slug=f"test-published-post-{uuid.uuid4().hex[:8]}",
+        status=PostStatus.PUBLISHED,
         author_id=sample_user.id,
     )
+    session.add(post)
+    session.commit()
+    session.refresh(post)
+    return post
+
+
+@pytest.fixture
+def post_view_records(
+    session: Session,
+    published_post: Post,
+    sample_user: User,
+) -> dict[str, PostView]:
+    """预置文章浏览记录，覆盖不同时间窗口与身份场景"""
+
+    now = datetime.now(UTC)
+
+    recent_user_view = PostView(
+        post_id=published_post.id,
+        user_id=sample_user.id,
+        session_id="user_session_recent",
+        ip_address="10.0.0.1",
+        viewed_at=now - timedelta(minutes=10),
+    )
+
+    stale_user_view = PostView(
+        post_id=published_post.id,
+        user_id=sample_user.id,
+        session_id="user_session_stale",
+        ip_address="10.0.0.2",
+        viewed_at=now - timedelta(days=2),
+    )
+
+    recent_anonymous_view = PostView(
+        post_id=published_post.id,
+        session_id="anon_session_recent",
+        ip_address="203.0.113.10",
+        viewed_at=now - timedelta(minutes=5),
+    )
+
+    stale_anonymous_view = PostView(
+        post_id=published_post.id,
+        session_id="anon_session_stale",
+        ip_address="203.0.113.20",
+        viewed_at=now - timedelta(days=3),
+    )
+
+    session.add_all(
+        [recent_user_view, stale_user_view, recent_anonymous_view, stale_anonymous_view]
+    )
+    session.commit()
+
+    for view in (
+        recent_user_view,
+        stale_user_view,
+        recent_anonymous_view,
+        stale_anonymous_view,
+    ):
+        session.refresh(view)
+
+    return {
+        "recent_user": recent_user_view,
+        "stale_user": stale_user_view,
+        "recent_anonymous": recent_anonymous_view,
+        "stale_anonymous": stale_anonymous_view,
+    }
 
 
 @pytest.fixture
 def draft_post(session: Session, sample_user: User) -> Post:
     """创建一篇草稿文章"""
-    return post_crud.create_post(
-        db=session,
-        post_in=PostCreate(
-            title="草稿文章",
-            content="这是一篇草稿文章",
-            status=PostStatus.DRAFT,
-        ),
+    post = Post(
+        title="草稿文章",
+        content="这是一篇草稿文章",
+        slug=f"test-draft-post-{uuid.uuid4().hex[:8]}",
+        status=PostStatus.DRAFT,
         author_id=sample_user.id,
     )
+    session.add(post)
+    session.commit()
+    session.refresh(post)
+    return post
 
 
 # ============================================
@@ -324,6 +406,13 @@ def auth_headers(sample_user: User) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+@pytest.fixture
+def admin_auth_headers(sample_admin: User) -> dict:
+    """管理员认证 headers fixture"""
+    token = create_access_token(data={"sub": str(sample_admin.id)})
+    return {"Authorization": f"Bearer {token}"}
+
+
 # ============================================
 # 多个user、post、comment数据 Fixture
 # ============================================
@@ -331,10 +420,10 @@ def auth_headers(sample_user: User) -> dict:
 def sample_users(session: Session, sample_user: User) -> list[User]:
     """创建多个测试用户，包含 sample_user
 
-    创建 2 个额外的测试用户，用于：
+    创建 3 个额外的测试用户，用于：
     - 测试用户 API 端点
     - 作为文章和评论的作者
-    - 避免与 sample_user 冲突
+    - 创建sample_follows测试数据
     """
     from app.crud.user import create_user
     from app.schemas.user import UserCreate
@@ -349,6 +438,11 @@ def sample_users(session: Session, sample_user: User) -> list[User]:
         {
             "username": "lisi",
             "email": "lisi@example.com",
+            "password": "testpassword123",
+        },
+        {
+            "username": "wangwu",
+            "email": "wangwu@example.com",
             "password": "testpassword123",
         },
     ]
@@ -538,3 +632,219 @@ def sample_comments(
 
     session.commit()
     return comments
+
+
+# ============================================
+# 关注测试数据 Fixture
+# ============================================
+@pytest.fixture
+def sample_follows(session: Session, sample_users: list[User]) -> list[User]:
+    """创建sample_users之间的关注关系
+
+    sample_users[0]之外的3 个用户都关注sample_users[0]
+    """
+    sample_user = sample_users[0]
+    for user in sample_users[1:]:
+        follow_crud.follow_user(
+            db=session,
+            follower_id=user.id,
+            followed_id=sample_user.id,
+        )
+
+    return sample_users
+
+
+# ============================================
+# 通知测试数据 Fixture
+# ============================================
+
+
+@dataclass(slots=True)
+class CreatedNotifications:
+    """用于封装通知工厂返回结果的数据类"""
+
+    all: list[Notification]
+    read: list[Notification]
+    unread: list[Notification]
+
+    @property
+    def all_count(self) -> int:
+        return len(self.all)
+
+    @property
+    def unread_count(self) -> int:
+        return len(self.unread)
+
+    @property
+    def read_count(self) -> int:
+        return len(self.read)
+
+    def get_one_unread(self) -> Notification | None:
+        return self.unread[0] if self.unread else None
+
+    def get_one_read(self) -> Notification | None:
+        return self.read[0] if self.read else None
+
+
+@pytest.fixture
+def notification_factory(
+    session: Session,
+    sample_users: list[User],
+    published_post: Post,
+) -> Callable[..., CreatedNotifications]:
+    """
+    通知数据工厂 fixture，用于按需创建灵活的通知测试数据。
+
+    返回一个函数，该函数接受一个规格列表 (specs)，每个规格定义了一批要创建的通知。
+
+    工厂函数签名:
+        _factory(specs: list[dict], recipient: User | None = None)
+        -> CreatedNotifications
+
+    规格 (spec) 字典支持的键:
+        - count (int): 创建通知的数量 (默认为 1)
+        - is_read (bool): 是否已读 (默认为 False)
+        - minutes_ago (int): 创建于多少分钟前 (用于控制时间)
+        - notification_type (NotificationType): 通知类型 (默认为 LIKE)
+        - actor_index (int): 使用 sample_users 中的哪个用户作为 actor (默认为 1)
+        - aggregated_count (int): 聚合数量 (默认为 1)
+
+    返回:
+        CreatedNotifications: 一个包含已创建通知列表和统计信息的数据对象。
+
+    Example:
+        def test_example(notification_factory):
+            # 创建 3 条 5 分钟前未读的点赞通知
+            data = notification_factory([
+                {
+                    "count": 3,
+                    "is_read": False,
+                    "minutes_ago": 5,
+                    "notification_type": NotificationType.LIKE,
+                }
+            ])
+            assert data.unread_count == 3
+
+            # 创建 1 条已读的关注通知
+            follow_data = notification_factory(
+                [{"is_read": True, "notification_type": NotificationType.FOLLOW}])
+            assert follow_data.read_count == 1
+    """
+    from app.models.notification import Notification, NotificationType
+
+    def _factory(
+        specs: list[dict], recipient: User | None = None
+    ) -> CreatedNotifications:
+        """根据规格列表创建通知"""
+        created_notifications = []
+        now = datetime.now(UTC)
+        _recipient = recipient or sample_users[0]
+
+        for spec in specs:
+            count = spec.get("count", 1)
+            is_read = spec.get("is_read", False)
+            minutes_ago = spec.get("minutes_ago")
+            notification_type = spec.get("notification_type", NotificationType.LIKE)
+            actor_index = spec.get("actor_index", 1)
+            aggregated_count = spec.get("aggregated_count", 1)
+
+            actor = sample_users[actor_index]
+
+            for _ in range(count):
+                created_at = (
+                    (now - timedelta(minutes=minutes_ago)) if minutes_ago else now
+                )
+                read_at = created_at + timedelta(minutes=1) if is_read else None
+
+                notification = Notification(
+                    recipient_id=_recipient.id,
+                    actor_id=actor.id,
+                    notification_type=notification_type,
+                    post_id=published_post.id,
+                    aggregated_count=aggregated_count,
+                    is_read=is_read,
+                    created_at=created_at,
+                    read_at=read_at,
+                )
+                created_notifications.append(notification)
+
+        session.add_all(created_notifications)
+        session.commit()
+
+        for notif in created_notifications:
+            session.refresh(notif)
+
+        read_items = [n for n in created_notifications if n.is_read]
+        unread_items = [n for n in created_notifications if not n.is_read]
+
+        return CreatedNotifications(
+            all=created_notifications,
+            read=read_items,
+            unread=unread_items,
+        )
+
+    return _factory
+
+
+# ============================================
+# 端到端测试数据 Fixture
+# ============================================
+
+
+@dataclass(slots=True)
+class E2ENotificationData:
+    """端到端测试数据容器
+
+    用于端到端测试，提供清晰的用户角色和完整的认证信息。
+    所有操作通过真实 API 调用完成，验证事件驱动的通知创建和聚合。
+    """
+
+    author: User  # 文章作者（接收通知的人）
+    user_a: User  # 用户 A（操作者）
+    user_b: User  # 用户 B（操作者）
+    post: Post  # 已发布的文章
+    author_headers: dict[str, str]  # 作者的认证 headers
+    user_a_headers: dict[str, str]  # 用户 A 的认证 headers
+    user_b_headers: dict[str, str]  # 用户 B 的认证 headers
+
+
+@pytest.fixture
+def e2e_notification_data(
+    session: Session,
+    sample_users: list[User],
+    published_post: Post,
+) -> E2ENotificationData:
+    """端到端测试数据工厂
+
+    设置：
+    - author = sample_users[0] (文章作者，published_post 的作者)
+    - user_a = sample_users[1] (zhangsan，执行操作的用户)
+    - user_b = sample_users[2] (lisi，执行操作的用户)
+    - post = published_post
+
+    特点：
+    - 所有操作通过 API 调用完成（点赞、评论、关注）
+    - 验证事件驱动的通知创建和聚合
+    - 不预设任何通知数据（从零开始）
+    - 提供所有用户的认证 headers，方便测试使用
+
+    Returns:
+        E2ENotificationData: 包含所有测试所需数据的容器对象
+    """
+    author = sample_users[0]
+    user_a = sample_users[1]
+    user_b = sample_users[2]
+
+    author_token = create_access_token(data={"sub": str(author.id)})
+    user_a_token = create_access_token(data={"sub": str(user_a.id)})
+    user_b_token = create_access_token(data={"sub": str(user_b.id)})
+
+    return E2ENotificationData(
+        author=author,
+        user_a=user_a,
+        user_b=user_b,
+        post=published_post,
+        author_headers={"Authorization": f"Bearer {author_token}"},
+        user_a_headers={"Authorization": f"Bearer {user_a_token}"},
+        user_b_headers={"Authorization": f"Bearer {user_b_token}"},
+    )

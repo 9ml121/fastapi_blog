@@ -17,14 +17,8 @@ from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_user, get_db
-from app.core.exceptions import (
-    PermissionDeniedError,
-    ResourceConflictError,
-    ResourceNotFoundError,
-)
-from app.core.pagination import PaginatedResponse, PaginationParams, paginate_query
-from app.crud.comment import comment as comment_crud
-from app.models.comment import Comment
+from app.core.pagination import PaginatedResponse, PaginationParams
+from app.crud import comment as comment_crud
 from app.models.user import User
 from app.schemas.comment import CommentCreate, CommentResponse
 
@@ -32,6 +26,7 @@ from app.schemas.comment import CommentCreate, CommentResponse
 router = APIRouter()
 
 
+# ================ 创建 API 端点 ================
 @router.post(
     "/{post_id}/comments",
     response_model=CommentResponse,
@@ -76,6 +71,7 @@ async def create_comment(
     return comment
 
 
+# ================ 查询 API 端点 ================
 @router.get("/{post_id}/comments", response_model=PaginatedResponse[CommentResponse])
 async def get_comments(
     post_id: UUID,
@@ -105,16 +101,11 @@ async def get_comments(
     - GET /api/v1/posts/123/comments/?sort=created_at&order=desc
 
     """
-    # 1. CRUD 层构建查询
-    query = comment_crud.build_top_level_comments_query(db, post_id=post_id)
-
-    # 2. API 层执行分页（支持安全排序）
-    items, total = paginate_query(db, query, params, model=Comment)
-
-    # 3. 返回分页响应 (FastAPI 会自动序列化 SQLAlchemy 模型)
-    return PaginatedResponse.create(items, total, params)  # type: ignore[arg-type]
+    response = comment_crud.get_comment_by_post_id(db, post_id=post_id, params=params)
+    return response  # type: ignore
 
 
+# ================ 删除 API 端点 ================
 @router.delete(
     "/{post_id}/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT
 )
@@ -144,20 +135,11 @@ async def delete_comment(
     注意：
     - 删除评论会级联删除所有子评论（数据库 CASCADE 配置）
     """
-    # 1. 验证评论存在
-    comment = comment_crud.get(db, id=comment_id)
-    if not comment:
-        raise ResourceNotFoundError(resource="评论")
-
-    # 2. 验证评论属于该文章
-    if comment.post_id != post_id:
-        raise ResourceConflictError(message="评论不属于该文章")
-
-    # 3. 权限检查：只能删除自己的评论
-    if comment.user_id != current_user.id:
-        raise PermissionDeniedError(message="无权删除他人评论")
-
-    # 4. 删除评论（级联删除所有子评论）
-    comment_crud.remove(db, id=comment_id)
+    comment_crud.delete_comment(
+        db=db,
+        comment_id=comment_id,
+        post_id=post_id,
+        user_id=current_user.id,
+    )
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)

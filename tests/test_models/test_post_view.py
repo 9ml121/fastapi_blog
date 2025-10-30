@@ -299,13 +299,17 @@ class TestPostViewModel:
         session.commit()
 
         # 5分钟内再次浏览，应该被识别为重复
-        is_dup = PostView.is_duplicate(session, sample_user.id, sample_post.id)
+        is_dup = PostView.is_duplicate_view(
+            session, sample_post.id, user_id=sample_user.id
+        )
         assert is_dup is True
 
-        # 模拟6分钟后再次浏览
-        view1.viewed_at = datetime.now(UTC) - timedelta(minutes=6)
+        # 模拟1天后后再次浏览，不再是重复浏览
+        view1.viewed_at = datetime.now(UTC) - timedelta(days=1)
         session.commit()
-        is_dup_later = PostView.is_duplicate(session, sample_user.id, sample_post.id)
+        is_dup_later = PostView.is_duplicate_view(
+            session, sample_post.id, user_id=sample_user.id
+        )
         assert is_dup_later is False  # 6分钟前不算重复
 
     def test_is_duplicate_anonymous_user(self, session: Session, sample_post: Post):
@@ -316,13 +320,13 @@ class TestPostViewModel:
         session.commit()
 
         # 匿名用户无法准确判断重复，返回 False
-        is_dup = PostView.is_duplicate(session, None, sample_post.id)
+        is_dup = PostView.is_duplicate_view(session, sample_post.id)
         assert is_dup is False
 
         # 模拟6分钟后再次浏览, 还是返回 False
         view.viewed_at = datetime.now(UTC) - timedelta(minutes=6)
         session.commit()
-        is_dup_later = PostView.is_duplicate(session, None, sample_post.id)
+        is_dup_later = PostView.is_duplicate_view(session, sample_post.id)
         assert is_dup_later is False
 
     def test_is_duplicate_different_posts(
@@ -340,7 +344,7 @@ class TestPostViewModel:
         session.commit()
 
         # 浏览文章2，不算重复
-        is_dup = PostView.is_duplicate(session, sample_user.id, post2.id)
+        is_dup = PostView.is_duplicate_view(session, post2.id, user_id=sample_user.id)
         assert is_dup is False
 
     # ============ 属性方法测试 ============

@@ -23,7 +23,7 @@ from sqlalchemy.sql import Select
 from app.core.exceptions import InvalidParametersError
 from app.db.database import Base
 
-# 分页响应中数据项的类型， 可以是 SQLAlchemy 模型或 Pydantic 模型
+# 分页响应中数据项的类型， ItemType只能是 pydantic 模型，不能是 sqlalchemy 模型
 ItemType = TypeVar("ItemType")
 # SQLAlchemy 模型类型（如 Post）
 ModelType = TypeVar("ModelType", bound=Base)
@@ -70,7 +70,7 @@ class PaginatedResponse(BaseModel, Generic[ItemType]):
 
     继承：
     1. BaseModel - Pydantic 数据验证
-    2. Generic[ItemType] - 泛型支持，可以是 sqlalchemy 模型或 pydantic 模型
+    2. Generic[ItemType] - 泛型支持，ItemType只能是 pydantic 模型
     """
 
     items: list[ItemType] = Field(description="数据列表")

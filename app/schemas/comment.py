@@ -9,7 +9,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .user import UserResponse
+from .user import UserSimpleResponse
 
 
 # 基础模型 (共享字段)
@@ -56,8 +56,7 @@ class CommentResponse(CommentBase):
     """
 
     id: UUID
-    # TODO: author可以改为更轻量级的
-    author: UserResponse  # 嵌套作者信息
+    author: UserSimpleResponse  # 嵌套作者信息
     parent_id: UUID | None = Field(default=None, description="父评论ID，顶级评论为None")
     created_at: datetime
     replies: list["CommentResponse"] = []  # 递归模型：一个评论可以包含一组评论作为回复
@@ -71,9 +70,11 @@ class CommentResponse(CommentBase):
                 "author": {
                     "id": "f0e9d8c7-b6a5-4321-fedc-ba9876543210",
                     "username": "main_user",
-                    "email": "main_user@example.com",
-                    "created_at": "2025-10-08T10:00:00Z",
+                    "nickname": "Main User",
+                    "avatar": "https://example.com/avatar.jpg",
+                    "bio": "I'm the main user.",
                 },
+                "parent_id": None,
                 "created_at": "2025-10-08T11:00:00Z",
                 "replies": [
                     {

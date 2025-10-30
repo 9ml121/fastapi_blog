@@ -53,6 +53,7 @@ class PostView(Base):
         post_id: 被浏览的文章ID
         ip_address: 访问者IP地址（可选，用于防刷和分析）
         user_agent: 浏览器User-Agent（可选，用于设备分析）
+        session_id: 会话标识符（可选，用于会话级别防刷）
         viewed_at: 浏览时间
         user: 浏览用户对象（关系）
         post: 被浏览的文章对象（关系）
@@ -66,6 +67,12 @@ class PostView(Base):
         Index("idx_post_viewed", "post_id", "viewed_at"),
         # 索引2：查询某用户的浏览历史（按时间倒序）
         Index("idx_user_viewed", "user_id", "viewed_at"),
+        # 索引3：会话级别查询（用于防刷）
+        Index("idx_session_viewed", "session_id", "viewed_at"),
+        # 索引4：复合防刷查询（用户+文章+时间）
+        Index("idx_user_post_time", "user_id", "post_id", "viewed_at"),
+        # 索引5：会话防刷查询（会话+文章+时间）
+        Index("idx_session_post_time", "session_id", "post_id", "viewed_at"),
         # 可选：如果需要去重（同一用户只记录一次浏览）
         # UniqueConstraint("user_id", "post_id", name="uq_user_post_view"),
     )
@@ -79,7 +86,7 @@ class PostView(Base):
 
     # 外键字段
     user_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("users.id", ondelete="SET NULL"),
         default=None,  # 🔑 关键：允许 NULL
         index=True,
         comment="浏览用户ID（NULL表示匿名用户）",
@@ -103,6 +110,13 @@ class PostView(Base):
         String(500),
         default=None,
         comment="浏览器User-Agent信息",
+    )
+
+    session_id: Mapped[str | None] = mapped_column(
+        String(32),  # 会话标识符长度
+        default=None,
+        index=True,
+        comment="会话标识符（用于会话级别防刷）",
     )
 
     # 时间戳
@@ -135,47 +149,73 @@ class PostView(Base):
     # ============ 业务方法 ============
 
     @staticmethod
-    def is_duplicate(
+    def is_duplicate_view(
         session,
-        user_id: uuid.UUID | None,
         post_id: uuid.UUID,
-        within_seconds: int = 300,
+        *,
+        user_id: uuid.UUID | None = None,
+        session_id: str | None = None,
+        ip_address: str | None = None,
+        within_seconds: int = 86400,  # 默认一天（24小时）
     ) -> bool:
-        """检查是否为重复浏览（防刷）
+        """检查是否为重复浏览（增强防刷）
 
-        判断逻辑：
-        - 同一用户（或匿名+同IP）在指定时间内重复浏览同一文章
+        防刷策略（按优先级）：
+        1. 登录用户：只按 user_id 在时间窗口内防刷
+        2. 匿名用户 + 会话ID：基于会话 + 时间窗口防刷
+        3. 匿名用户 + IP地址：基于IP + 时间窗口防刷
 
         Args:
             session: 数据库会话
-            user_id: 用户ID（None表示匿名）
             post_id: 文章ID
-            within_seconds: 时间窗口（秒），默认300秒（5分钟）
+            user_id: 用户ID（None表示匿名）
+            session_id: 会话标识符（可选）
+            ip_address: IP地址（可选）
+            within_seconds: 时间窗口（秒），默认86400秒（24小时）
 
         Returns:
             bool: True表示重复浏览，False表示新浏览
 
         Example:
-            >>> if not PostView.is_duplicate(session, user.id, post.id):
-            >>>     view = PostView(user_id=user.id, post_id=post.id)
+            >>> if not PostView.is_duplicate_view(session, post.id, user.id, session_id, ip_address):
+            >>>     view = PostView(user_id=user.id, post_id=post.id, session_id=session_id)
             >>>     session.add(view)
-        """
+        """  # noqa: E501
         from datetime import timedelta
 
         cutoff_time = datetime.now(UTC) - timedelta(seconds=within_seconds)
 
-        query = session.query(PostView).filter(
-            PostView.post_id == post_id, PostView.viewed_at >= cutoff_time
-        )
-
+        # 策略1：登录用户，只按 user_id 判断
         if user_id:
-            # 已登录用户：检查 user_id
-            query = query.filter(PostView.user_id == user_id)
-        else:
-            # 匿名用户：无法准确判断，返回 False（允许记录）
-            return False
+            query = session.query(PostView).filter(
+                PostView.post_id == post_id,
+                PostView.user_id == user_id,
+                PostView.viewed_at >= cutoff_time,
+            )
+            return query.first() is not None
 
-        return query.first() is not None
+        # 策略2：匿名用户 + 会话ID
+        if session_id:
+            query = session.query(PostView).filter(
+                PostView.post_id == post_id,
+                PostView.session_id == session_id,
+                PostView.user_id.is_(None),
+                PostView.viewed_at >= cutoff_time,
+            )
+            return query.first() is not None
+
+        # 策略3：匿名用户 + IP地址
+        if ip_address:
+            query = session.query(PostView).filter(
+                PostView.post_id == post_id,
+                PostView.ip_address == ip_address,
+                PostView.user_id.is_(None),
+                PostView.viewed_at >= cutoff_time,
+            )
+            return query.first() is not None
+
+        # 默认：不认为是重复浏览
+        return False
 
     # ============ 特殊方法 ============
 

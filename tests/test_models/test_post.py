@@ -272,7 +272,7 @@ class TestPostModel:
         session.refresh(post)
 
         # 测试 __str__ 方法
-        assert str(post) == sample_post_data["title"]
+        assert str(post) == post.display_title
 
         # 测试 __repr__ 方法
         repr_str = repr(post)
