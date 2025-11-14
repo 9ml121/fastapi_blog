@@ -72,7 +72,6 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Returns:
             数据库对象列表。
         """
-        # TODO: db.query -> Legacy 风格, 建议使用 db.execute 替代
         return db.query(self.model).offset(skip).limit(limit).all()
 
     def create(

@@ -19,10 +19,18 @@
 
 **关键文档**：
 
--   `docs/project/process.md` - 项目开发计划和任务追踪
--   `docs/design/phaseX_xx概设.md` - 阶段性概要设计
--   `docs/learning/phaseX_code_explain.md` - 编码设计讲解
--   `docs/learning/**专项指南.md` - 重要知识点专项教程
+-   **项目管理**：`docs/project/README.md` - 文档体系说明（必读）
+-   **已完成功能**：`docs/project/overview.md` - 项目全景图
+-   **后端计划**：`docs/project/plan_backend.md` - 后端 Product Backlog
+-   **前端计划**：`docs/project/plan_frontend.md` - 前端 Product Backlog
+-   **当前进展**：`docs/project/process.md` - Sprint Backlog（任务状态）
+-   **设计文档**：`docs/design_backend/` 和 `docs/design_frontend/` - 架构设计
+-   **学习文档**：`docs/learning_backend/` 和 `docs/learning_frontend/` - 编码教程
+
+**快速导航**：
+- 📖 了解文档体系 → `docs/README.md`
+- 🎯 查看项目进展 → `docs/project/overview.md`
+- 📋 查看当前任务 → `docs/project/process.md`
 
 ---
 
@@ -76,7 +84,8 @@
 
 **文档同步**
 
--   ✅ MUST：这是一个教学项目，务必重视文档质量
+-   ✅ MUST：遵循敏捷开发的文档体系进行文档维护
+
 
 **测试驱动**
 
@@ -151,21 +160,37 @@ uv run mypy app tests                               # 静态类型检查
 
 ### Step1. 计划阶段
 
-**核心目标**：通过 `process.md` 快速了解项目总体计划、已完成功能、当前阶段开发进展
+**核心目标**：制定 Phase 开发计划，明确目标、任务清单和验收标准
+
+**文档使用**：
+- `plan_*.md` - Product Backlog（要做什么，L1/L2 功能级别）
+- `process.md` - Sprint Backlog（正在做什么，L3 具体步骤）
+- `overview.md` - 项目全景图（已完成什么）
 
 **检查清单**：
 
--   [ ] 项目开始：和用户充分讨论项目目标和核心需求，输出项目总的开发计划到 `process.md`
-    -   说明：目前是已经拆分为 6 个 Phase 阶段，每个 Phase 阶段制定了「目标 + 步骤 + 验收标准」
--   [ ] Phase 开始：和用户进一步讨论当前 phase 的目标和需求，最后更新当前 phase的任务清单到`process.md`
-    -   建议1: 任务按照『高、中、低』优先级区分
-    -   建议2：phase阶段任务 进行三层分解，比如 `L1: phase1阶段功能/需求描述, L2: phase1-1子任务功能/需求描述, L3: todo list` 
-    -   建议3：最小粒度任务可在一天内完成
+-   [ ] **项目开始**：和用户充分讨论项目目标和核心需求
+    -   输出项目总体开发计划到 `plan_backend.md` 或 `plan_frontend.md`
+    -   说明：目前后端已拆分为 6 个 Phase，前端拆分为 3 个 Week
+    -   每个 Phase/Week 制定「目标 + 任务清单（L1/L2）+ 验收标准 + 预估工作量」
+
+-   [ ] **Phase 开始**：和用户进一步讨论当前 Phase 的目标和需求
+    -   **更新 plan_*.md**：添加详细任务清单（L2 功能级别）
+    -   **初始化 process.md**：从 plan 复制并细化到 L3（具体步骤）
+    -   任务粒度建议：
+        - L1：Phase 级别功能描述（如"社交功能"）
+        - L2：子功能模块（如"通知系统"、"关注功能"）
+        - L3：具体可执行步骤（如"创建 Notification 模型"）
+    -   最小粒度任务可在 1-2 天内完成
 
 
 ### Step2. 设计阶段
 
-**核心目标**：通过`phaseX_xx概设.md` 帮助用户理解「为什么这样设计」和「如何实现」，为编码提供清晰指导
+**核心目标**：通过 `design_*/phaseX_概设.md` 帮助用户理解「为什么这样设计」和「如何实现」，为编码提供清晰指导
+
+**文档位置**：
+- 后端设计：`docs/design_backend/phaseX_概设.md`
+- 前端设计：`docs/design_frontend/phaseX_概设.md`
 
 **检查清单**：
 
@@ -200,7 +225,7 @@ uv run mypy app tests                               # 静态类型检查
 
     -   搭建完整代码框架
     -   实现第一个完整示例（如 CRUD 中的 create）
-    -   通过代码注释，`phaseX_code_explain.md`文档同步和互动答疑，协助用户彻底理解代码实现细节和关键点
+    -   通过代码注释、`learning_*/phaseX_专题.md` 文档同步和互动答疑，协助用户彻底理解代码实现细节和关键点
     -   留白：用户参考示例完成其他函数（如 read/update/delete）
     -   自测通过（ruff + mypy）
 
@@ -264,12 +289,15 @@ uv run mypy app tests                               # 静态类型检查
     -   性能：N+1 查询、不必要的数据库调用
 
 -   [ ] ✅ SHOULD: git 提交
--   [ ] ✅ SHOULD: 总结重要知识点到 `**专项指南.md`
--   [ ] ✅ MUST: 最后更新 `process.md`
-    -   标记完成状态(目的是让 ai 快速了解项目进度)
-    -   添加已完成概述说明(目的是让 ai 快速了解历史已完成内容)
+-   [ ] ✅ SHOULD: 总结重要知识点到 `learning_*/专项指南.md`
+-   [ ] ✅ MUST: 更新项目管理文档
+    -   **更新 process.md**：标记当前 Phase 任务完成状态
+    -   **更新 overview.md**：添加已完成功能概述和核心技术点
+    -   **更新 plan_*.md**：标记 Phase 完成（[x]）
+    -   目的：让 AI 和团队成员快速了解项目进度和历史完成内容
 
 ---
+
 
 ## 6. 项目架构（Reference）
 

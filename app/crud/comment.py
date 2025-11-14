@@ -19,7 +19,7 @@ from app.core.pagination import PaginatedResponse, PaginationParams, paginate_qu
 from app.crud.notification import NotificationEvent, emit_notification_event
 from app.crud.user import get_user_by_id
 from app.models.comment import Comment
-from app.schemas.comment import CommentCreate, CommentResponse
+from app.schemas.comment import CommentCreate
 
 
 # ================ 查询方法 ================
@@ -38,7 +38,7 @@ def get_comment_by_id(db: Session, comment_id: UUID) -> Comment | None:
 
 def get_comment_by_post_id(
     db: Session, post_id: UUID, params: PaginationParams
-) -> PaginatedResponse[CommentResponse]:
+) -> PaginatedResponse[Comment]:
     """获取文章的所有顶级评论（树形结构）
 
     Args:

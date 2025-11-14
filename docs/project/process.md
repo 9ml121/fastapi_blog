@@ -1,101 +1,104 @@
 # 项目开发进展
 
-> **文档用途**：AI 快速了解项目进度和历史已完成内容
-> **更新频率**：Phase 开始、子任务完成、Phase 完成
+> **文档用途**：详细拆解当前 Phase 阶段任务清单（带状态）
+> **更新频率**：每完成子任务时更新
 
 ---
 
-## 🎯 当前任务
+# 当前 Sprint（2025-11-03 ~ 2025-11-10）
 
-**Phase 6 - 社交功能与内容增强**（🚀 进行中）
+## 🎯 本周目标
+完成前端 Phase 1.1：Vue 3 基础（Day 1-2）
 
-**当前子任务**：Phase 6.4 - 通知系统 + 关注功能（高优先级）
+**Phase 目标**：掌握 Vue 3 核心概念，搭建项目基础架构
 
-**下一步行动**：
+**验收标准**：
+- ✅ 运行开发服务器成功
+- ✅ 理解响应式系统和组件通信
+- ✅ 独立完成 PostCard 组件
 
-1. ✅ 代码质量检查：ruff + mypy + 覆盖率检查（已完成）
-2. ⏳ Phase 6.4 Code Review 和收尾验收
+---
+
+## 📋 任务清单
+
+### 1️⃣ 搭建开发环境（Vite + TypeScript）
+
+#### 初始化项目
+- [ ] 在 `fastapi_blog` 根目录执行 `npm create vite@latest frontend -- --template vue-ts`
+- [ ] 进入 frontend 目录：`cd frontend`
+- [ ] 安装依赖：`npm install`
+- [ ] 启动开发服务器：`npm run dev`
+- [ ] 验证：访问 http://localhost:5173，看到 Vite + Vue 欢迎页
+
+#### 配置开发工具
+- [ ] 安装 ESLint：`npm install -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin`
+- [ ] 安装 Prettier：`npm install -D prettier eslint-config-prettier`
+- [ ] 创建 `.eslintrc.cjs` 配置文件
+- [ ] 创建 `.prettierrc` 配置文件
 
 ---
 
-## ✅ 已完成功能清单（避免重复开发）
+### 2️⃣ Vue 3 核心概念学习与实践
 
-### Phase 1-2：基础设施 ✅
+#### 理解响应式系统
+- [ ] 阅读 `docs/learning_frontend/phase1_vue3_basics.md` - Day 1 理论部分
+- [ ] 完成练习：实现计数器组件（+1、-1、重置、大于10警告）
+- [ ] 理解 `ref` 和 `reactive` 的区别
 
--   ✅ SQLAlchemy 模型：`User`, `Post`, `Comment`, `Tag`, `PostView`
-    -   代码位置：`app/models/*.py`
--   ✅ 数据库配置和迁移（Alembic）
--   ✅ 应用配置：`app/core/config.py`
-
-### Phase 3：认证系统 ✅
-
--   ✅ 用户注册/登录 API
--   ✅ JWT Token 认证：`app/core/security.py`
--   ✅ 权限依赖：`get_current_user`, `get_current_active_user`
--   ✅ User CRUD 完整实现
-
-### Phase 4：内容管理 ✅
-
--   ✅ **文章 CRUD**：`app/crud/post.py`, `app/api/v1/endpoints/posts.py`
-    -   支持标签关联（多对多）
-    -   权限控制（作者/管理员）
--   ✅ **标签 CRUD**：`app/crud/tag.py`, `app/api/v1/endpoints/tags.py`
-    -   去重逻辑、删除保护
--   ✅ **评论 CRUD**：`app/crud/comment.py`, `app/api/v1/endpoints/comments.py`
-    -   递归树形结构
-    -   嵌套路由：`/posts/{post_id}/comments`
--   ✅ **技术模式**：
-    -   泛型 CRUD 基类
-    -   RESTful 最佳实践（PATCH 语义）
-    -   selectinload 优化 N+1 查询
-
-### Phase 5：API 完善与前端准备 ✅
-
--   ✅ **用户资料管理**：`app/api/v1/endpoints/users.py`
-    -   个人资料查看/更新（`/users/me`）
-    -   密码修改（旧密码验证）
--   ✅ **全局异常处理系统**：`app/core/exceptions.py`
-    -   自定义异常基类 + 8 个业务异常类
-    -   统一错误格式（支持前端国际化）
-    -   4 个全局异常处理器
--   ✅ **泛型分页系统**：`app/core/pagination.py`
-    -   `PaginatedResponse[ItemType]` 泛型设计
-    -   安全排序功能（防 SQL 注入）
-    -   支持多种过滤条件
--   ✅ **CORS 跨域配置**：前后端分离支持
--   ✅ **测试体系完善**：
-    -   306 个测试，100% 通过率
-    -   91% 测试覆盖率（目标 85%）
-    -   测试数据四象限全覆盖
-
-### Phase 6：社交功能与内容增强 ✅
-
--   ✅ **草稿系统**：完整的文章状态管理（draft/published/archived）
-    -   数据模型：Post 模型扩展 status 和 published_at 字段
-    -   CRUD 层：get_user_drafts、publish、archive、revert_to_draft 方法
-    -   API 端点：GET /posts/drafts、PATCH /posts/{id}/publish 等
-    -   权限控制：草稿和归档文章仅作者可见
--   ✅ **架构优化重构**：CRUD 层分页逻辑分离
-    -   分页逻辑从 CRUD 层移动到 core 层（符合行业最佳实践）
-    -   Post CRUD：get_paginated → build_published_posts_query
-    -   Comment CRUD：get_paginated_by_post → build_top_level_comments_query
-    -   业务逻辑优化：公开接口默认只返回已发布文章
-    -   代码质量：无 linting 错误，测试覆盖率保持
--   ✅ **点赞收藏系统**：完整的用户互动功能（Phase 6.2）🎉 2025-10-26
-    -   数据模型：PostLike 和 PostFavorite 模型，支持唯一约束和级联删除
-    -   CRUD 层：幂等操作 toggle_like、toggle_favorite，状态查询方法
-    -   API 端点：8 个 RESTful 端点，支持点赞/收藏和状态查询
-    -   高级功能：文章置顶（featured posts）、查询优化
-    -   测试覆盖：27 个测试全部通过，覆盖各种边界情况
-    -   技术亮点：幂等性设计、性能优化、权限控制、RESTful 设计
--   ✅ **通知系统 + 关注功能**：事件驱动的通知系统和用户关注功能（Phase 6.4）🎉 2025-10-30
-    -   数据模型：Notification 和 Follow 模型，支持通知聚合和关注关系
-    -   事件驱动架构：点赞/评论/关注后自动触发通知
-    -   智能聚合策略：根据通知类型采用不同聚合粒度（文章级别/评论级别/用户级别）
-    -   CRUD 层：完整的通知和关注 CRUD 操作，支持聚合、去重、清理
-    -   API 端点：通知列表、已读管理、关注/取消关注、粉丝/关注列表
-    -   测试覆盖：42 个测试全部通过（CRUD + API + E2E），覆盖率 96%
-    -   技术亮点：事件驱动、聚合策略、原子操作、自动清理、行业最佳实践
+#### 理解组件通信
+- [ ] 学习 Props（父→子）的使用
+- [ ] 学习 Emit（子→父）的使用
+- [ ] 学习 Slots（插槽）的使用
 
 ---
+
+### 3️⃣ 创建基础布局组件
+
+#### Header 组件
+- [ ] 创建 `src/components/TheHeader.vue`
+- [ ] 实现导航栏结构（Logo + 导航链接）
+- [ ] 添加响应式样式（scoped CSS）
+- [ ] 验证：组件在浏览器中正确显示
+
+#### Footer 组件
+- [ ] 创建 `src/components/TheFooter.vue`
+- [ ] 实现页脚信息（版权、技术栈说明）
+- [ ] 添加样式（背景色、居中对齐）
+- [ ] 验证：组件在浏览器中正确显示
+
+#### 组合到 App.vue
+- [ ] 修改 `src/App.vue`，引入 TheHeader 和 TheFooter
+- [ ] 实现布局结构：Header + Main + Footer
+- [ ] 添加全局样式（重置样式、字体、布局）
+- [ ] 验证：完整页面布局正确
+
+---
+
+### 4️⃣ 留白任务：PostCard 组件
+
+**任务说明**：用户独立完成
+
+**要求**：
+- [ ] 创建 `src/components/PostCard.vue`
+- [ ] 接收 Props：title、summary、author、createdAt
+- [ ] 实现卡片样式（边框、圆角、阴影、悬停效果）
+- [ ] 点击卡片时 emit `post-clicked` 事件
+- [ ] 在 App.vue 中使用 PostCard 组件测试
+
+**参考文档**：`docs/learning_frontend/phase1_vue3_basics.md` - Day 2 留白任务
+
+---
+
+## 📝 完成情况统计
+
+- **总任务数**：19 个
+- **已完成**：0 个
+- **进行中**：0 个
+- **待开始**：19 个
+
+---
+
+## 📅 下一步计划
+
+Phase 1.1 完成后，进入 **Phase 1.2：API 对接 + 认证（Day 3-4）**
 

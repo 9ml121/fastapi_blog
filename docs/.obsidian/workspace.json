@@ -24,35 +24,17 @@
             }
           },
           {
-            "id": "d985aa0f0da3f97e",
+            "id": "86a3fe497b013d45",
             "type": "leaf",
-            "pinned": true,
             "state": {
               "type": "markdown",
               "state": {
-                "file": "project/tmp_todo_list.md",
+                "file": "standards/frontend-styles.md",
                 "mode": "source",
                 "source": false
               },
-              "pinned": true,
               "icon": "lucide-file",
-              "title": "tmp_todo_list"
-            }
-          },
-          {
-            "id": "ea1b0e7921abfed9",
-            "type": "leaf",
-            "pinned": true,
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "learning/phase6_社交功能/phase6_4_通知系统概设.md",
-                "mode": "source",
-                "source": false
-              },
-              "pinned": true,
-              "icon": "lucide-file",
-              "title": "phase6_4_通知系统概设"
+              "title": "frontend-styles"
             }
           }
         ],
@@ -113,7 +95,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 297.5
+    "width": 200
   },
   "right": {
     "id": "d116440b89ded4f3",
@@ -177,13 +159,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "project/tmp_todo_list.md",
+                "file": "standards/frontend-styles.md",
                 "followCursor": true,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "tmp_todo_list 的大纲"
+              "title": "frontend-styles 的大纲"
             }
           },
           {
@@ -218,43 +200,44 @@
       "mermaid-tools:Open Mermaid Toolbar": false
     }
   },
-  "active": "d985aa0f0da3f97e",
+  "active": "86a3fe497b013d45",
   "lastOpenFiles": [
+    "standards/frontend-styles.md",
     "project/process.md",
-    "learning/phase6_社交功能/phase6_4_通知系统概设.md",
-    "standards/testing.md",
-    "project/plan.md",
-    "project/tmp_todo_list.md",
-    "learning/fastapi-lifespan-non-blocking-tasks.md",
-    "design/Phase2_Database表模型设计.md",
-    "design/Phase4_Alembic数据库迁移设计.md",
-    "database/README.md",
-    "learning/phase6_社交功能/phase6_3_文章浏览概设.md",
-    "learning/phase6_社交功能/phase6_2_点赞收藏概设.md",
-    "learning/phase6_社交功能/phase6_1_草稿系统概设.md",
-    "design/Phase6_文章管理设计.md",
-    "learning/phase6_社交功能",
-    "design/Phase5_用户资料管理设计.md",
-    "design/Phase3-Pydantic数据验证与Schema设计.md",
-    "learning/phase3-管理员认证系统/01_Pydantic模型设计.md",
-    "learning/phase2-数据库设计与连接/02-Alembic数据库迁移详解.md",
-    "design/Phase6_2_点赞与收藏设计.md",
-    "learning/现代 Web 项目架构设计最佳实践.md",
+    "standards/api-documentation.md",
+    "project/plan_frontend.md",
+    "learning_frontend/phase1_vue3_basics.md",
+    "learning_frontend/vue3_项目结构详解.md",
+    "project/todos.md",
+    "project/README.md",
+    "project/overview.md",
+    "project/plan_backend.md",
     "README.md",
-    "standards/README.md",
-    "learning/phase5-API完善与前端准备/Phase5_分页与过滤.md",
-    "learning/phase3-管理员认证系统/06-FastAPI 路由设计完整指南.md",
-    "learning/phase3-管理员认证系统/03-仓储模式与CRUD设计.md",
-    "standards/mermaid-diagrams.md",
-    "learning/phase5-API完善与前端准备/Phase5_summary.md",
+    "learning_backend/README.md",
+    "database/README.md",
+    "learning_backend/phase1_项目基础搭建概设.md",
+    "design_backend/phase2_数据库设计与连接/01-数据库设计理论.md",
+    "design_backend/final_code_review.md",
+    "design_backend/phase4_文章管理 CRUD/05-Phase4核心知识点总结.md",
+    "design_backend/phase4_文章管理 CRUD/03-CRUD代码细节.md",
+    "learning_frontend",
+    "learning_backend/现代 Web 项目架构设计最佳实践.md",
+    "learning_backend/python-generics-and-inheritance.md",
+    "design_frontend",
+    "design_backend/phase2_数据库设计与连接/03_项目环境变量配置指南.md",
+    "design_backend/phase3_认证系统/03-Pydantic数据验证与Schema设计.md",
+    "learning_backend/fastAPI 教程/03-仓储模式与CRUD设计.md",
+    "design_backend/phase3_认证系统/02-JWT认证机制详解.md",
+    "learning_backend/fastAPI 教程/05-FastAPI依赖注入与认证依赖.md",
+    "design_backend/phase3_认证系统/01-密码安全与哈希机制.md",
+    "design_backend/phase3_认证系统",
+    "review",
+    "design_backend/phase6_社交功能",
     "learning/phase5-API完善与前端准备/phase5_code_explain.md.tmp.10368.1760351812677",
-    "learning/phase5-API完善与前端准备",
-    "design",
+    "design_backend/phase5-API完善与前端准备",
+    "design_backend",
     "reference",
-    "learning/phase4-文章管理 CRUD",
-    "learning/dev-workflow",
-    "database/initial_schema.sql",
-    "database",
+    "design_backend/phase4_文章管理 CRUD",
     "PixPin_2025-10-01_23-57-20.png"
   ]
 }

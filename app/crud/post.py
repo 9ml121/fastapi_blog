@@ -22,7 +22,6 @@ from app.schemas.post import (
     PostCreate,
     PostFilters,
     PostPaginationParams,
-    PostResponse,
     PostUpdate,
 )
 
@@ -60,7 +59,7 @@ def get_published_posts_paginated(
     *,
     filters_params: PostFilters | None = None,
     pagination_params: PostPaginationParams,
-) -> PaginatedResponse[PostResponse]:
+) -> PaginatedResponse[Post]:
     """已发布文章列表分页查询（支持置顶优先）
 
     Args:
@@ -135,7 +134,7 @@ def get_user_drafts(db: Session, *, user_id: UUID) -> list[Post]:
 
 def get_featured_posts(
     db: Session, pagination_params: PostPaginationParams
-) -> PaginatedResponse[PostResponse]:
+) -> PaginatedResponse[Post]:
     """获取置顶文章列表"""
     query = (
         select(Post)

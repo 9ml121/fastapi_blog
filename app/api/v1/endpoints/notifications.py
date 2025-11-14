@@ -52,7 +52,7 @@ def get_current_user_notifications(
         items=items, total=total, params=pagination_params
     )
 
-    return response
+    return response  # type: ignore
 
 
 # ============================= 获取未读通知数量 ===========================
