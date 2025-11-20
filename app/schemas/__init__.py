@@ -2,9 +2,10 @@
 Pydantic Schemas - 数据验证和序列化层
 
 这个包包含所有 API 数据验证的 Schema 定义
+todo: 应该扁平化导出
 """
 
-from app.schemas.user import (
+from .user import (
     UserBase,
     UserCreate,
     UserInDB,

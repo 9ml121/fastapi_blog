@@ -1,0 +1,33 @@
+{
+  "folders": [
+    {
+      "name": "🚀 Project Root",
+      "path": "."
+    },
+    {
+      "name": "🎯 Frontend (Vue3)",
+      "path": "frontend"
+    },
+    {
+      "name": "⚙️ Backend (FastAPI)",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "${workspaceFolder:⚙️ Backend (FastAPI)}/venv/bin/python",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "[python]": {
+      "editor.defaultFormatter": "charliermarsh.ruff",
+      "editor.formatOnSave": true
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    },
+    "[vue]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.formatOnSave": true
+    }
+  }
+}

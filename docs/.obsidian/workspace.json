@@ -22,23 +22,8 @@
               "icon": "lucide-file",
               "title": "process"
             }
-          },
-          {
-            "id": "86a3fe497b013d45",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "standards/frontend-styles.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "frontend-styles"
-            }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -95,7 +80,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200
+    "width": 295.5
   },
   "right": {
     "id": "d116440b89ded4f3",
@@ -159,13 +144,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "standards/frontend-styles.md",
+                "file": "project/process.md",
                 "followCursor": true,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "frontend-styles 的大纲"
+              "title": "process 的大纲"
             }
           },
           {
@@ -200,44 +185,44 @@
       "mermaid-tools:Open Mermaid Toolbar": false
     }
   },
-  "active": "86a3fe497b013d45",
+  "active": "2af72e3c1f07cbd7",
   "lastOpenFiles": [
-    "standards/frontend-styles.md",
-    "project/process.md",
-    "standards/api-documentation.md",
-    "project/plan_frontend.md",
-    "learning_frontend/phase1_vue3_basics.md",
-    "learning_frontend/vue3_项目结构详解.md",
-    "project/todos.md",
-    "project/README.md",
-    "project/overview.md",
-    "project/plan_backend.md",
     "README.md",
-    "learning_backend/README.md",
-    "database/README.md",
-    "learning_backend/phase1_项目基础搭建概设.md",
-    "design_backend/phase2_数据库设计与连接/01-数据库设计理论.md",
-    "design_backend/final_code_review.md",
-    "design_backend/phase4_文章管理 CRUD/05-Phase4核心知识点总结.md",
-    "design_backend/phase4_文章管理 CRUD/03-CRUD代码细节.md",
-    "learning_frontend",
-    "learning_backend/现代 Web 项目架构设计最佳实践.md",
-    "learning_backend/python-generics-and-inheritance.md",
-    "design_frontend",
-    "design_backend/phase2_数据库设计与连接/03_项目环境变量配置指南.md",
-    "design_backend/phase3_认证系统/03-Pydantic数据验证与Schema设计.md",
-    "learning_backend/fastAPI 教程/03-仓储模式与CRUD设计.md",
-    "design_backend/phase3_认证系统/02-JWT认证机制详解.md",
-    "learning_backend/fastAPI 教程/05-FastAPI依赖注入与认证依赖.md",
-    "design_backend/phase3_认证系统/01-密码安全与哈希机制.md",
-    "design_backend/phase3_认证系统",
-    "review",
-    "design_backend/phase6_社交功能",
-    "learning/phase5-API完善与前端准备/phase5_code_explain.md.tmp.10368.1760351812677",
-    "design_backend/phase5-API完善与前端准备",
-    "design_backend",
-    "reference",
-    "design_backend/phase4_文章管理 CRUD",
+    "project/process.md",
+    "project/plan.md",
+    "learning/testing/pytest/README.md",
+    "learning/testing/pytest/04-pytest最佳实践.md",
+    "learning/testing/pytest/03-数据库测试实战.md",
+    "learning/testing/pytest/02-pytest-fixtures详解.md",
+    "learning/testing/pytest/01-pytest基础概念.md",
+    "learning/testing/pytest",
+    "learning/sqlalchemy 教程/Alembic数据库迁移最佳实践.md",
+    "learning/sqlalchemy 教程/05-SQLAlchemy-ORM底层映射原理深度解析.md",
+    "learning/sqlalchemy 教程/04-SQLAlchemy-最佳实践与常见陷阱.md",
+    "learning/dev-workflow/01-Git版本控制与VSCode实践.md",
+    "learning/sqlalchemy 教程/03-SQLAlchemy-ORM模型定义实战详解.md",
+    "learning/sqlalchemy 教程/02-SQLAlchemy语法对比分析.md",
+    "learning/sqlalchemy 教程/01-SQLAlchemy架构与数据校验.md",
+    "learning/fastAPI 教程/fastapi-lifespan-non-blocking-tasks.md",
+    "learning/fastAPI 教程/06-FastAPI 路由设计完整指南.md",
+    "learning/fastAPI 教程/05-FastAPI依赖注入与认证依赖.md",
+    "learning/fastAPI 教程/03-仓储模式与CRUD设计.md",
+    "learning/fastAPI 教程/01_Pydantic模型设计.md",
+    "learning/现代 Web 项目架构设计最佳实践.md",
+    "learning/testing",
+    "learning/sqlalchemy 教程",
+    "learning/python-generics-and-inheritance.md",
+    "learning/phase1_项目基础搭建概设.md",
+    "learning/fastAPI 教程",
+    "learning/dev-workflow",
+    "learning",
+    "reference/testing/pytest/README.md",
+    "reference/testing/pytest/04-pytest最佳实践.md",
+    "reference/testing/pytest/02-pytest-fixtures详解.md",
+    "reference/testing/pytest",
+    "reference/testing",
+    "reference/sqlalchemy 教程",
+    "reference/fastAPI 教程",
     "PixPin_2025-10-01_23-57-20.png"
   ]
 }

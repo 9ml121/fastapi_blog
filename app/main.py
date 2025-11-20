@@ -20,7 +20,7 @@ from sqlalchemy.exc import IntegrityError
 from app.api.v1.api import api_router
 from app.core.exceptions import AppError
 from app.crud import notification as notification_crud
-from app.db.database import SessionLocal
+from app.db import SessionLocal
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)

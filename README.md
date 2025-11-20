@@ -77,10 +77,10 @@ uv run python app/main.py
 
 启动成功后，你可以访问：
 
-- **API 文档**: http://localhost:8000/docs (Swagger UI)
-- **API 文档**: http://localhost:8000/redoc (ReDoc)
-- **健康检查**: http://localhost:8000/health
-- **欢迎页面**: http://localhost:8000/
+- **API 文档**: <http://localhost:8000/docs> (Swagger UI)
+- **API 文档**: <http://localhost:8000/redoc> (ReDoc)
+- **健康检查**: <http://localhost:8000/health>
+- **欢迎页面**: <http://localhost:8000/>
 
 ## 开发工具
 
@@ -123,7 +123,7 @@ uv run alembic history
 
 ## 项目结构
 
-```
+```text
 fastapi_blog/
 ├── app/                    # 主应用目录
 │   ├── api/               # API 路由处理器
