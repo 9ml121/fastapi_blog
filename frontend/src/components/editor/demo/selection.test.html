@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>getTextContent 测试</title>
+    <style>
+      body {
+        font-family: 'Courier New', monospace;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .test-case {
+        background: white;
+        margin: 20px 0;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #4caf50;
+      }
+      .test-case.fail {
+        border-left-color: #f44336;
+      }
+      .test-name {
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+      .test-result {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        gap: 10px;
+        margin: 5px 0;
+        font-size: 14px;
+      }
+      .label {
+        color: #666;
+      }
+      .value {
+        font-weight: bold;
+      }
+      .pass {
+        color: #4caf50;
+      }
+      .fail {
+        color: #f44336;
+      }
+      .editor {
+        border: 1px solid #ddd;
+        padding: 10px;
+        min-height: 50px;
+        margin: 10px 0;
+        background: #fafafa;
+      }
+      .summary {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>getTextContent 函数测试</h1>
+    <div class="summary" id="summary"></div>
+    <div id="results"></div>
+
+    <script type="module">
+      // 导入函数（实际项目中需要构建，这里我们直接复制代码）
+      function getTextContent(root) {
+        let text = ''
+
+        function traverse(node) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            text += node.textContent || ''
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.nodeName === 'BR') {
+              // BR不产生字符
+            } else {
+              // 递归处理子节点
+              for (const child of node.childNodes) {
+                traverse(child)
+              }
+            }
+
+            // DIV边界产生换行
+            if (node.nodeName === 'DIV' && node !== root && node.nextSibling) {
+              text += '\n'
+            }
+          }
+        }
+
+        traverse(root)
+        return text
+      }
+
+      // 测试用例
+      const tests = [
+        {
+          name: 'Test 1.1: 空编辑器',
+          html: '<div><br></div>',
+          expected: '',
+        },
+        {
+          name: 'Test 1.2: 单行文本',
+          html: '<div>Hello</div>',
+          expected: 'Hello',
+        },
+        {
+          name: 'Test 1.3: 多行文本',
+          html: '<div>Hello</div><div>World</div>',
+          expected: 'Hello\nWorld',
+        },
+        {
+          name: 'Test 1.4: 包含空行',
+          html: '<div>Hello</div><div><br></div><div>World</div>',
+          expected: 'Hello\n\nWorld',
+        },
+        {
+          name: 'Test 1.5: 连续空行',
+          html: '<div><br></div><div><br></div><div><br></div>',
+          expected: '\n\n',
+        },
+        {
+          name: 'Edge 1: 首行空行',
+          html: '<div><br></div><div>Hello</div>',
+          expected: '\nHello',
+        },
+        {
+          name: 'Edge 2: 尾行空行',
+          html: '<div>Hello</div><div><br></div>',
+          expected: 'Hello\n',
+        },
+        {
+          name: 'Edge 3: 混合嵌套',
+          html: '<div><span>Hello</span> <b>World</b></div>',
+          expected: 'Hello World',
+        },
+        {
+          name: 'Test 1.6: 三行文本',
+          html: '<div>First</div><div>Second</div><div>Third</div>',
+          expected: 'First\nSecond\nThird',
+        },
+        {
+          name: 'Edge 4: 空行在中间多次',
+          html: '<div>A</div><div><br></div><div><br></div><div>B</div>',
+          expected: 'A\n\n\nB',
+        },
+      ]
+
+      // 运行测试
+      const resultsContainer = document.getElementById('results')
+      let passCount = 0
+      let failCount = 0
+
+      tests.forEach((test, index) => {
+        const container = document.createElement('div')
+        container.className = 'editor'
+        container.contentEditable = 'true'
+        container.innerHTML = test.html
+
+        const actual = getTextContent(container)
+        const passed = actual === test.expected
+
+        if (passed) passCount++
+        else failCount++
+
+        const testDiv = document.createElement('div')
+        testDiv.className = `test-case ${passed ? 'pass' : 'fail'}`
+        testDiv.innerHTML = `
+        <div class="test-name">${test.name}</div>
+        <div class="test-result">
+          <span class="label">HTML:</span>
+          <code class="value">${escapeHtml(test.html)}</code>
+        </div>
+        <div class="test-result">
+          <span class="label">期望:</span>
+          <code class="value">${escapeHtml(JSON.stringify(test.expected))}</code>
+        </div>
+        <div class="test-result">
+          <span class="label">实际:</span>
+          <code class="value ${passed ? 'pass' : 'fail'}">${escapeHtml(JSON.stringify(actual))}</code>
+        </div>
+        <div class="test-result">
+          <span class="label">结果:</span>
+          <span class="value ${passed ? 'pass' : 'fail'}">${passed ? '✅ PASS' : '❌ FAIL'}</span>
+        </div>
+      `
+        resultsContainer.appendChild(testDiv)
+
+        // 清理
+        container.remove()
+      })
+
+      // 显示摘要
+      const summary = document.getElementById('summary')
+      summary.innerHTML = `
+      <h3>测试摘要</h3>
+      <div style="font-size: 18px; margin: 10px 0;">
+        总计: ${tests.length}<br>
+        <span class="pass">✅ 通过: ${passCount}</span><br>
+        <span class="fail">❌ 失败: ${failCount}</span>
+      </div>
+      <div style="font-size: 24px; font-weight: bold; margin-top: 15px;">
+        ${failCount === 0 ? '<span class="pass">全部通过! 🎉</span>' : '<span class="fail">有测试失败</span>'}
+      </div>
+    `
+
+      function escapeHtml(text) {
+        const div = document.createElement('div')
+        div.textContent = text
+        return div.innerHTML
+      }
+    </script>
+  </body>
+</html>

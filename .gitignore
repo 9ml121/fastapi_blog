@@ -89,4 +89,5 @@ Thumbs.db
 .serena/
 .claude/
 .cursor/
-AGENTS.md
+*.copilot/
+

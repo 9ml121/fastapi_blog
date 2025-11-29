@@ -44,9 +44,6 @@
 │    - 需要实时预览和格式化工具                  │
 │    - 自动保存草稿                              │
 │                                                 │
-│ 💬 场景2：评论编辑（支持富文本）               │
-│    - 用户回复评论，需要部分Markdown格式        │
-│    - 简化的工具栏，快速输入                     │
 │                                                 │
 │ 📓 场景3：笔记编辑（内部项目）                 │
 │    - 快速记笔记，支持嵌入代码块和图片         │
@@ -61,21 +58,21 @@
 
 ### 核心价值
 
-| 维度 | 价值 |
-|------|------|
-| **开发效率** | 减少50%的编辑器编码时间 |
-| **代码复用** | 一次开发，多项目无缝集成 |
+| 维度         | 价值                             |
+| ------------ | -------------------------------- |
+| **开发效率** | 减少50%的编辑器编码时间          |
+| **代码复用** | 一次开发，多项目无缝集成         |
 | **可维护性** | 集中维护编辑器逻辑，项目聚焦业务 |
-| **用户体验** | Medium级别的编辑体验 |
-| **性能** | 优化的渲染，支持大型文档 |
+| **用户体验** | Medium级别的编辑体验             |
+| **性能**     | 优化的渲染，支持大型文档         |
 
 ---
 
 ## 🎨 样式设计
 
-### 1\. 编辑器整体布局（Medium风格所见即所得）
+### 1\. 编辑器整体布局（Obsidian Live Preview 风格）
 
-```
+````
 ┌──────────────────────────────────────────────────────┐
 │  Header                                              │
 │  (自动保存状态 | 发布 | 更多选项)                     │
@@ -87,15 +84,16 @@
 │  │ (contenteditable + font-size: 32px bold)      │ │
 │  └────────────────────────────────────────────────┘ │
 │                                                      │
-│  正文编辑区（所见即所得）                            │
+│  正文编辑区（Live Preview）                          │
 │  ┌────────────────────────────────────────────────┐ │
-│  │ ## 这是二级标题                                 │ │
+│  │ <span class="token"># </span>这是二级标题       │ │
 │  │                                                │ │
-│  │ 这是一段正文。**粗体文本**、*斜体文本*          │ │
+│  │ 这是一段正文。<span class="token">**</span>     │ │
+│  │ 粗体文本<span class="token">**</span>、*斜体文本*          │ │
 │  │ 和 [链接](url)                                │ │
 │  │                                                │ │
-│  │ - 列表项 1                                     │ │
-│  │ - 列表项 2                                     │ │
+│  │ <span class="token">- </span>列表项 1           │ │
+│  │ <span class="token">- </span>列表项 2           │ │
 │  │                                                │ │
 │  │ ```javascript                                 │ │
 │  │ const code = 'hello world';                   │ │
@@ -111,28 +109,31 @@
 │  (字数统计 | 保存状态 | 预计阅读时间)                │
 │                                                      │
 └──────────────────────────────────────────────────────┘
-```
+````
 
-**关键特征（真正的所见即所得）**：
-- ✅ 单一的编辑区，没有分屏预览
-- ✅ 用户输入 Markdown 语法，实时看到格式化效果
-- ✅ `contenteditable` div 同时是编辑界面和预览界面
-- ✅ 浮动工具栏仅在用户选中文本时出现
-- ✅ 视觉体验就像在写文章，而不是写代码
+**关键特征（Obsidian Live Preview 风格）**：
+
+- ✅ **保留语法符号**：Markdown 符号（如 `**`, `#`）始终可见，但颜色变浅（弱化）。
+- ✅ **实时渲染样式**：内容文本实时应用富文本样式（如粗体、大号标题）。
+- ✅ **所见即所得**：无需切换预览模式，编辑体验流畅。
+- ✅ **适合学习**：实现逻辑比完全隐藏符号简单，更适合初学者掌握 DOM 操作。
 
 ### 2. 色彩规范
 
 基于项目设计系统的编辑器色彩（`phase1_design_system.md`）
 
 #### 编辑区域色彩
+
 ```
 背景：#FFFFFF (纯白)
 文本：#1F2937 (灰-900)
+语法符号（Token）：#9CA3AF (灰-400)  <-- 关键：弱化显示的符号
 边框：#E5E7EB (灰-200)
 焦点环：#0EA5E9 (Primary 蓝)
 ```
 
 #### 工具栏色彩
+
 ```
 背景：#FFFFFF (纯白) + shadow-md
 按钮默认：#9CA3AF (灰-400) text
@@ -141,6 +142,7 @@
 ```
 
 #### Markdown 格式化色彩（在编辑区内显示）
+
 ```
 代码块背景：#1F2937 (灰-900)
 代码块文本：#FFFFFF (纯白)
@@ -219,6 +221,7 @@
 ### 5. 交互状态
 
 #### 编辑区交互
+
 ```
 默认：
   - 背景：白色
@@ -238,6 +241,7 @@
 ```
 
 #### 工具栏按钮
+
 ```
 默认：
   - 背景：透明
@@ -346,14 +350,44 @@
 └──────────────────────────────────────────────────────┘
 ```
 
+备用：
+```
+┌─────────────────────────────────────────────┐
+│  Component Layer (组件层)                    │
+│  ├─ EditorToolbar.vue                       │
+│  ├─ FloatingToolbar.vue                     │
+│  └─ BlockMenu.vue                           │
+└─────────────────────────────────────────────┘
+                ↓ 可能直接调用
+┌─────────────────────────────────────────────┐
+│  Business Logic Layer (业务逻辑层)           │
+│  ├─ useMarkdownEditor (协调器)              │
+│  ├─ useMarkdown (格式化逻辑)    ← 主要使用者 │
+│  ├─ useHistory (历史管理)                   │
+│  └─ useAutoSave (自动保存)                  │
+└─────────────────────────────────────────────┘
+                ↓ 依赖
+┌─────────────────────────────────────────────┐
+│  Utility Layer (工具层)                      │
+│  ├─ useSelection (文本选择)     ← 通用工具   │
+│  └─ markdown-parser (解析器)                │
+└─────────────────────────────────────────────┘
+                ↓ 使用
+┌─────────────────────────────────────────────┐
+│  Browser API Layer (浏览器 API)              │
+│  ├─ window.getSelection()                   │
+│  ├─ document.createRange()                  │
+│  └─ contenteditable DOM                     │
+└─────────────────────────────────────────────┘
+```
 ### 2. 分层优势
 
-| 层级 | 优势 |
-|------|------|
-| **组件层** | Vue 3 特定，UI 实现 |
+| 层级             | 优势                       |
+| ---------------- | -------------------------- |
+| **组件层**       | Vue 3 特定，UI 实现        |
 | **Composable层** | 可复用逻辑，与 UI 框架无关 |
-| **工具函数层** | 纯函数，可在任何环境运行 |
-| **类型和配置** | 支持配置驱动的行为 |
+| **工具函数层**   | 纯函数，可在任何环境运行   |
+| **类型和配置**   | 支持配置驱动的行为         |
 
 **结果**：核心逻辑可以移植到任何框架！
 
@@ -385,588 +419,6 @@ debounce 500ms (防止频繁保存)
 
 ---
 
-## 🔧 Phase 1.2 辅助函数架构设计
-
-### 整体设计思路
-
-Phase 1.2 的核心是**实现 5 个关键的 Composable**，将编辑器的复杂逻辑分层管理。这遵循了**单一职责原则**和**依赖注入模式**，使代码高度可测试和可维护。
-
-```
-编辑器系统依赖关系（分层）：
-
-      ┌─────────────────────────────────┐
-      │  useMarkdownEditor()            │  ← 第5层（协调层）
-      │  主 Composable（对外接口）      │
-      └────────┬────────────────────────┘
-               │
-      ┌────────┴─────────┬──────────────┬──────────────┐
-      │                  │              │              │
-      ▼                  ▼              ▼              ▼
-  ┌─────────┐    ┌──────────┐    ┌──────────┐    ┌───────────┐
-  │useHistory    │useSelection   │useMarkdown    │useAutoSave│ ← 第4层（功能层）
-  │撤销重做  │     选中文本    │    格式化           │自动保存    │
-  │事务管理  │     光标操作    │    Markdown        │混合方案    │
-  └─────────┘    └──────────┘    └──────────┘    └───────────┘
-      │              │              │              │
-      └──────────────┴──────────────┴──────────────┘
-             │
-             ▼
-      ┌────────────────────────────────┐
-      │  EditorState (核心状态)         │  ← 第3层（状态层）
-      │  4层状态架构                    │
-      └────────────────────────────────┘
-             │
-             ▼
-      ┌────────────────────────────────┐
-      │  辅助工具函数                   │  ← 第2层（工具层）
-      │  - historyUtils.ts            │
-      │  - markdownUtils.ts           │
-      │  - selectionUtils.ts          │
-      └────────────────────────────────┘
-             │
-             ▼
-      ┌────────────────────────────────┐
-      │  TypeScript 类型系统            │  ← 第1层（基础层）
-      │  - EditorState                │
-      │  - EditTransaction            │
-      │  - SelectionInfo              │
-      └────────────────────────────────┘
-```
-
-### 5 个 Composable 的详细职责
-
-#### 1️⃣ **useSelection** - 文本选中处理（基础层）
-
-**目的**：管理编辑器中的光标位置和文本选中状态
-
-**核心职责**：
-```typescript
-export function useSelection(
-  editorRef: Ref<HTMLDivElement | null>,
-  state: EditorState
-) {
-  // 获取当前选中的文本范围（start, end, selectedText）
-  const getSelection = (): SelectionInfo => { ... }
-  
-  // 设置光标位置到指定位置
-  const setCursor = (position: number): void => { ... }
-  
-  // 选中指定范围的文本
-  const selectRange = (start: number, end: number): void => { ... }
-  
-  // 包裹选中文本（加粗、斜体等）
-  const wrapSelection = (before: string, after: string): void => { ... }
-  
-  // 判断当前是否有文本被选中
-  const hasSelection = (): boolean => { ... }
-  
-  // 获取光标所在行的内容
-  const getCurrentLine = (): string => { ... }
-  
-  return { getSelection, setCursor, selectRange, wrapSelection, hasSelection, getCurrentLine }
-}
-```
-
-**关键实现细节**：
-- 使用浏览器 Selection API（getSelection()、getRangeAt()）
-- 处理光标位置的字符偏移计算
-- 支持跨越 DOM 节点的选中
-- 更新 UI 层的 SelectionInfo 状态
-
-**难度**：⭐⭐（基础，但需要理解 DOM Selection API）
-
----
-
-#### 2️⃣ **useHistory** - 撤销重做（核心复杂）
-
-**目的**：管理 EditTransaction 栈，支持撤销和重做操作
-
-**核心职责**：
-```typescript
-export function useHistory(
-  state: EditorState,
-  config: EditorConfig
-) {
-  // 添加一个事务到历史栈
-  const addTransaction = (tx: EditTransaction): void => { ... }
-  
-  // 执行撤销操作（回到上一个事务）
-  const undo = (): void => { ... }
-  
-  // 执行重做操作（前进到下一个事务）
-  const redo = (): void => { ... }
-  
-  // 检查是否可以撤销
-  const canUndo = (): boolean => { ... }
-  
-  // 检查是否可以重做
-  const canRedo = (): boolean => { ... }
-  
-  // 清空所有历史记录
-  const clearHistory = (): void => { ... }
-  
-  // 获取历史栈信息（调试用）
-  const getHistoryInfo = () => ({
-    totalTransactions: number,
-    currentIndex: number,
-    canUndo: boolean,
-    canRedo: boolean,
-  })
-  
-  return { addTransaction, undo, redo, canUndo, canRedo, clearHistory, getHistoryInfo }
-}
-```
-
-**核心算法**（重点！）：
-```
-撤销逻辑：
-  currentIndex = 2 (处于 transaction[2] 之后)
-  undo() → currentIndex = 1
-  → 恢复到 transaction[1] 之后的状态
-  
-重做逻辑：
-  currentIndex = 1
-  redo() → currentIndex = 2
-  → 重新应用 transaction[2]
-  
-执行新操作时：
-  currentIndex = 1
-  addTransaction(txNew) 
-  → 删除 transactions[2...] (之后的所有事务)
-  → 添加新事务到末尾
-  → currentIndex = 2
-```
-
-**关键设计点**：
-- 事务必须是**原子的且可逆的**
-- 需要存储操作前后的状态（for undo/redo）
-- 历史栈大小有限制（防止内存泄漏）
-- 新操作会**清空之后的重做历史**
-
-**难度**：⭐⭐⭐（复杂的状态管理逻辑）
-
----
-
-#### 3️⃣ **useMarkdown** - Markdown 格式化（中等）
-
-**目的**：处理 Markdown 格式的应用，实现格式化操作
-
-**核心职责**：
-```typescript
-export function useMarkdown(
-  state: EditorState,
-  selection: SelectionInfo,
-  history: ReturnType<typeof useHistory>
-) {
-  // 应用浮动工具栏操作（加粗、斜体、链接等）
-  const applyFormat = (action: FloatingActionType): void => { ... }
-  
-  // 插入块级元素（代码块、表格、标题等）
-  const insertBlock = (action: BlockActionType, position?: number): void => { ... }
-  
-  // 将选中文本转换为 Markdown 语法
-  const wrapWithMarkdown = (before: string, after: string): void => { ... }
-  
-  // 将 Markdown 内容转换为 HTML（用于预览）
-  const markdownToHtml = (markdown: string): string => { ... }
-  
-  // 获取当前光标所在行的语法类型（用于判断是否已应用格式）
-  const getCurrentFormat = (): { isBold: boolean; isItalic: boolean; ... } => { ... }
-  
-  return { applyFormat, insertBlock, wrapWithMarkdown, markdownToHtml, getCurrentFormat }
-}
-```
-
-**核心实现示例**：
-```typescript
-// 应用加粗
-applyFormat('bold') {
-  const { selectedText, start, end } = selection.getSelection();
-  if (!selectedText) return;
-  
-  // 检查是否已加粗（如果已加粗则取消）
-  if (selectedText.startsWith('**') && selectedText.endsWith('**')) {
-    // 移除加粗标记
-    const unwrapped = selectedText.slice(2, -2);
-    editor.replaceRange(start, end, unwrapped);
-  } else {
-    // 添加加粗标记
-    const wrapped = `**${selectedText}**`;
-    editor.replaceRange(start, end, wrapped);
-  }
-  
-  // 记录事务到历史
-  history.addTransaction({
-    id: generateId(),
-    label: `应用加粗`,
-    actions: [{ type: 'format', content: wrapped, start, end }],
-    timestamp: Date.now(),
-  });
-}
-```
-
-**Markdown 操作矩阵**：
-
-| 操作        | Markdown 语法        | 作用范围 |
-| --------- | ------------------ | ---- |
-| bold      | `**text**`         | 选中文本 |
-| italic    | `*text*`           | 选中文本 |
-| code      | `` `text` ``       | 选中文本 |
-| link      | `[text](url)`      | 选中文本 |
-| heading1  | `# text`           | 整行   |
-| heading2  | `## text`          | 整行   |
-| heading3  | `### text`         | 整行   |
-| quote     | `> text`           | 整段   |
-| codeBlock | ```` ```js``` ```` | code |
-| table     | \| col \| col \|   | 新块   |
-| image     | `![alt](url)`      | 新块   |
-| video     | 自定义语法              | 新块   |
-| embedLink | 自定义语法              | 新块   |
-| newpart   | `---`              | 新块   |
-
-
-**难度**：⭐⭐⭐⭐（需要理解 Markdown 语法和字符串操作）
-
----
-
-#### 4️⃣ **useAutoSave** - 自动保存（异步处理）
-
-**目的**：实现混合方案的本地+服务器自动保存
-
-**核心职责**：
-```typescript
-export function useAutoSave(
-  state: EditorState,
-  config: EditorConfig
-) {
-  // 保存到 localStorage（同步、快速）
-  const saveLocal = (): void => { ... }
-  
-  // 保存到服务器（异步、带重试）
-  const saveToServer = (): Promise<void> => { ... }
-  
-  // 启动自动保存定时器
-  const startAutoSave = (): void => { ... }
-  
-  // 停止自动保存定时器
-  const stopAutoSave = (): void => { ... }
-  
-  // 从 localStorage 恢复草稿
-  const loadDraft = (): EditorState | null => { ... }
-  
-  // 清除本地草稿
-  const clearDraft = (): void => { ... }
-  
-  // 手动保存（用户点击保存按钮时）
-  const save = (): Promise<void> => { ... }
-  
-  return { saveLocal, saveToServer, startAutoSave, stopAutoSave, loadDraft, clearDraft, save }
-}
-```
-
-**混合方案实现细节**：
-```typescript
-// 启动自动保存
-startAutoSave() {
-  // 方案A：仅本地保存
-  if (config.autoSave?.storage === 'localStorage') {
-    localInterval = setInterval(() => {
-      saveLocal();  // 每 2秒保存一次（快速）
-    }, 2000);
-  }
-  
-  // 方案B：仅服务器保存
-  if (config.autoSave?.storage === 'api') {
-    apiInterval = setInterval(() => {
-      saveToServer().catch(err => {
-        // 失败记录错误，但不中断用户操作
-        console.warn('服务器保存失败:', err);
-      });
-    }, 10000);  // 每 10秒保存一次（低频）
-  }
-  
-  // 方案C：混合保存（推荐）
-  if (config.autoSave?.storage === 'both') {
-    // 本地：高频、同步
-    localInterval = setInterval(() => {
-      saveLocal();  // 2秒
-    }, 2000);
-    
-    // 服务器：低频、异步
-    apiInterval = setInterval(() => {
-      saveToServer().catch(err => {
-        // 服务器失败不影响用户，本地有备份
-      });
-    }, 10000);  // 10秒
-  }
-  
-  // 页面卸载前强制保存
-  window.addEventListener('beforeunload', () => {
-    if (config.autoSave?.saveOnBeforeUnload !== false) {
-      save();  // 同步保存，不能是异步
-    }
-  });
-}
-```
-
-**错误处理和重试**：
-```typescript
-async saveToServer() {
-  let retries = 0;
-  const maxRetries = config.autoSave?.maxRetries ?? 3;
-  const retryDelay = config.autoSave?.retryDelay ?? 1000;
-  
-  while (retries < maxRetries) {
-    try {
-      const response = await fetch(config.autoSave?.apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: state.title,
-          content: state.content,
-          timestamp: Date.now(),
-        }),
-      });
-      
-      if (response.ok) {
-        state.lastSaved = new Date();
-        return;  // 成功
-      }
-      
-      // 服务器错误，重试
-      retries++;
-      await sleep(retryDelay * retries);  // 指数退避
-    } catch (error) {
-      retries++;
-      await sleep(retryDelay * retries);
-    }
-  }
-  
-  // 所有重试都失败，记录错误但不抛出
-  console.error('自动保存失败，本地有备份');
-}
-```
-
-**难度**：⭐⭐⭐（异步处理、重试逻辑、混合方案）
-
----
-
-#### 5️⃣ **useMarkdownEditor** - 主 Composable（协调层）
-
-**目的**：协调其他 4 个 Composable，暴露统一的编辑器 API
-
-**核心职责**：
-```typescript
-export function useMarkdownEditor(config: EditorConfig) {
-  // 1. 初始化状态
-  const state = reactive<EditorState>({
-    title: config.title ?? '',
-    content: config.content ?? '',
-    transactions: [],
-    currentIndex: -1,
-    selection: { start: 0, end: 0, selectedText: '', isEmpty: true },
-    isSaving: false,
-    isDirty: false,
-    isFocused: false,
-    hasError: false,
-    canUndo: false,
-    canRedo: false,
-  });
-  
-  // 2. 初始化子 Composable
-  const editorRef = ref<HTMLDivElement>(null);
-  const history = useHistory(state, config);
-  const selection = useSelection(editorRef, state);
-  const markdown = useMarkdown(state, state.selection, history);
-  const autoSave = useAutoSave(state, config);
-  
-  // 3. 暴露的公开 API（对外接口）
-  
-  // 内容操作
-  const insertTransaction = (tx: EditTransaction) => {
-    history.addTransaction(tx);
-    state.isDirty = true;
-  };
-  
-  const undo = () => {
-    history.undo();
-    state.isDirty = true;
-  };
-  
-  const redo = () => {
-    history.redo();
-    state.isDirty = true;
-  };
-  
-  // 格式化操作
-  const formatSelection = (action: FloatingActionType) => {
-    markdown.applyFormat(action);
-    state.isDirty = true;
-  };
-  
-  const insertContent = (action: BlockActionType, position?: number) => {
-    markdown.insertBlock(action, position);
-    state.isDirty = true;
-  };
-  
-  // 保存操作
-  const save = async () => {
-    try {
-      state.isSaving = true;
-      await autoSave.save();
-      state.isDirty = false;
-      state.lastSaved = new Date();
-    } catch (error) {
-      state.hasError = true;
-      state.error = {
-        code: 'SAVE_ERROR',
-        message: '保存失败',
-        originalError: error as Error,
-        timestamp: Date.now(),
-        recoverable: true,
-      };
-    } finally {
-      state.isSaving = false;
-    }
-  };
-  
-  // 4. 生命周期
-  onMounted(() => {
-    // 从 localStorage 恢复草稿
-    const draft = autoSave.loadDraft();
-    if (draft) {
-      state.content = draft.content;
-      state.title = draft.title;
-    }
-    
-    // 启动自动保存
-    autoSave.startAutoSave();
-    
-    // 监听内容变化（debounce 500ms）
-    watch(
-      () => [state.content, state.title],
-      debounce(() => {
-        autoSave.saveLocal();  // 保存草稿
-      }, 500)
-    );
-  });
-  
-  onBeforeUnmount(() => {
-    autoSave.stopAutoSave();
-  });
-  
-  // 5. 返回暴露的 API
-  return {
-    // 状态（只读）
-    state: readonly(state),
-    
-    // 操作方法
-    insertTransaction,
-    undo,
-    redo,
-    formatSelection,
-    insertContent,
-    save,
-    
-    // 工具方法
-    getSelection: () => selection.getSelection(),
-    setCursor: (pos: number) => selection.setCursor(pos),
-    clearDraft: () => autoSave.clearDraft(),
-    
-    // 查询方法
-    canUndo: () => history.canUndo(),
-    canRedo: () => history.canRedo(),
-  };
-}
-```
-
-**难度**：⭐⭐（相对简单，主要是协调和暴露 API）
-
----
-
-### 实现顺序和依赖关系
-
-```
-实现顺序（从下往上，底层优先）：
-
-1️⃣ useSelection
-   ├─ 依赖：EditorState, 浏览器 Selection API
-   ├─ 被依赖：useMarkdown, useMarkdownEditor
-   └─ 预期实现时间：2-3 小时
-
-2️⃣ useHistory
-   ├─ 依赖：EditorState, EditorConfig
-   ├─ 被依赖：useMarkdown, useMarkdownEditor
-   └─ 预期实现时间：4-5 小时（核心复杂）
-
-3️⃣ useMarkdown
-   ├─ 依赖：EditorState, SelectionInfo, useHistory
-   ├─ 被依赖：useMarkdownEditor
-   └─ 预期实现时间：3-4 小时
-
-4️⃣ useAutoSave
-   ├─ 依赖：EditorState, EditorConfig, HTTP client
-   ├─ 被依赖：useMarkdownEditor
-   └─ 预期实现时间：3-4 小时
-
-5️⃣ useMarkdownEditor
-   ├─ 依赖：所有以上 4 个 Composable
-   ├─ 被依赖：UI 组件
-   └─ 预期实现时间：2-3 小时（组装）
-
-总计：约 14-19 小时（2-3 天开发）
-```
-
----
-
-### 关键设计原则
-
-#### 🎯 原则 1：单一职责
-- 每个 Composable 只负责**一个明确的功能域**
-- 例如：useSelection 只管理选中状态，不涉及格式化逻辑
-
-#### 🎯 原则 2：依赖注入
-- 子 Composable 不创建自己的状态，接收外部的 state 和 config
-- 这样便于测试和复用
-
-#### 🎯 原则 3：可测试性
-- 所有逻辑都是纯函数（除了副作用如 DOM 操作）
-- 不依赖全局状态，易于单元测试
-
-#### 🎯 原则 4：渐进式功能
-- 可以独立使用任何一个 Composable
-- 也可以通过 useMarkdownEditor 整合使用
-
----
-
-### 测试策略
-
-每个 Composable 都需要完整的单元测试：
-
-```typescript
-// __tests__/useSelection.spec.ts
-describe('useSelection', () => {
-  test('应该返回当前选中的文本范围', () => { ... });
-  test('应该支持设置光标位置', () => { ... });
-  test('应该支持包裹选中文本', () => { ... });
-  // ...总计 8-10 个测试用例
-});
-
-// __tests__/useHistory.spec.ts
-describe('useHistory', () => {
-  test('应该添加事务到历史', () => { ... });
-  test('撤销应该回到上一个状态', () => { ... });
-  test('重做应该前进到下一个状态', () => { ... });
-  test('新操作应该清空之后的重做历史', () => { ... });
-  // ...总计 12-15 个测试用例（最复杂）
-});
-
-// ...其他 Composable 类似
-```
-
-**测试覆盖目标**：≥ 85%（重点是核心逻辑）
-
----
 
 ## 📁 模块结构
 
@@ -1013,6 +465,7 @@ frontend/src/components/editor/
 ### 各文件详细说明
 
 #### **MarkdownEditor.vue** (主组件)
+
 ```
 负责：
 - 管理编辑器总体状态
@@ -1022,6 +475,7 @@ frontend/src/components/editor/
 ```
 
 #### **composables/** (编辑逻辑)
+
 ```
 useMarkdownEditor:
   - 编辑内容的增删改查
@@ -1045,6 +499,7 @@ useShortcuts:
 ```
 
 #### **utils/** (纯函数)
+
 ```
 markdown.ts:
   - marked.parse() 包装
@@ -1072,42 +527,42 @@ editor-helpers.ts:
 ```typescript
 interface EditorProps {
   // 内容绑定
-  modelValue?: string;                    // v-model 内容
-  title?: string;                         // 文章标题
-  
+  modelValue?: string // v-model 内容
+  title?: string // 文章标题
+
   // 编辑器显示模式
-  displayMode?: 'compact' | 'normal' | 'fullscreen';  // 紧凑 / 正常 / 全屏
-  
+  displayMode?: 'compact' | 'normal' | 'fullscreen' // 紧凑 / 正常 / 全屏
+
   // 尺寸配置
-  minHeight?: string;                     // 最小高度
-  maxHeight?: string;                     // 最大高度
-  
+  minHeight?: string // 最小高度
+  maxHeight?: string // 最大高度
+
   // 功能开关
   features?: {
-    toolbar?: boolean;                    // 是否显示工具栏
-    autoSave?: boolean;                   // 是否自动保存
-    footer?: boolean;                     // 是否显示页脚（字数统计）
-    markdown?: boolean;                   // 是否支持Markdown语法
-    shortcuts?: boolean;                  // 是否启用快捷键
-  };
-  
+    toolbar?: boolean // 是否显示工具栏
+    autoSave?: boolean // 是否自动保存
+    footer?: boolean // 是否显示页脚（字数统计）
+    markdown?: boolean // 是否支持Markdown语法
+    shortcuts?: boolean // 是否启用快捷键
+  }
+
   // 工具栏配置
-  toolbarConfig?: ToolbarConfig;
-  
+  toolbarConfig?: ToolbarConfig
+
   // 自动保存配置
-  autoSaveConfig?: AutoSaveConfig;
-  
+  autoSaveConfig?: AutoSaveConfig
+
   // 只读模式
-  readOnly?: boolean;
-  
+  readOnly?: boolean
+
   // 占位符
   placeholder?: {
-    title?: string;
-    content?: string;
-  };
-  
+    title?: string
+    content?: string
+  }
+
   // 插件系统
-  plugins?: EditorPlugin[];
+  plugins?: EditorPlugin[]
 }
 ```
 
@@ -1116,25 +571,25 @@ interface EditorProps {
 ```typescript
 interface EditorEmits {
   // 内容变化
-  'update:modelValue': [content: string];
-  'update:title': [title: string];
-  'change': [{ title: string; content: string }];
-  
+  'update:modelValue': [content: string]
+  'update:title': [title: string]
+  change: [{ title: string; content: string }]
+
   // 编辑事件
-  'input': [content: string];
-  'focus': [];
-  'blur': [];
-  
+  input: [content: string]
+  focus: []
+  blur: []
+
   // 保存事件
-  'save': [{ title: string; content: string }];
-  'saved': [timestamp: number];
-  'save-error': [error: Error];
-  
+  save: [{ title: string; content: string }]
+  saved: [timestamp: number]
+  'save-error': [error: Error]
+
   // 工具栏事件
-  'toolbar-action': [action: string];
-  
+  'toolbar-action': [action: string]
+
   // 自定义事件
-  'plugin-event': [{ plugin: string; data: any }];
+  'plugin-event': [{ plugin: string; data: any }]
 }
 ```
 
@@ -1147,7 +602,7 @@ interface EditorMethods {
   setContent(content: string): void;
   insertText(text: string): void;
   replaceSelection(text: string): void;
-  
+
   // 格式化
   bold(): void;                           // 加粗选中文本
   italic(): void;                         // 斜体
@@ -1156,16 +611,16 @@ interface EditorMethods {
   insertCodeBlock(): void;                // 插入代码块
   insertTable(): void;                    // 插入表格
   insertHeading(level: 1-6): void;       // 插入标题
-  
+
   // 编辑历史
   undo(): void;                           // 撤销
   redo(): void;                           // 重做
-  
+
   // 状态查询
   getState(): EditorState;
   canUndo(): boolean;
   canRedo(): boolean;
-  
+
   // 其他
   focus(): void;                          // 聚焦编辑区
   save(): Promise<void>;                  // 保存
@@ -1184,75 +639,75 @@ interface EditorMethods {
 
 // 编辑器状态
 interface EditorState {
-  title: string;
-  content: string;
-  isDirty: boolean;                      // 是否有未保存的改动
-  isSaving: boolean;                     // 是否正在保存
-  canUndo: boolean;
-  canRedo: boolean;
-  lastSaved?: Date;
-  selectedText?: string;
+  title: string
+  content: string
+  isDirty: boolean // 是否有未保存的改动
+  isSaving: boolean // 是否正在保存
+  canUndo: boolean
+  canRedo: boolean
+  lastSaved?: Date
+  selectedText?: string
 }
 
 // 选中文本信息
 interface SelectionInfo {
-  start: number;                         // 选中开始位置
-  end: number;                           // 选中结束位置
-  selectedText: string;                  // 选中的文本
-  isEmpty: boolean;                      // 是否为空
+  start: number // 选中开始位置
+  end: number // 选中结束位置
+  selectedText: string // 选中的文本
+  isEmpty: boolean // 是否为空
 }
 
 // 工具栏配置
 interface ToolbarConfig {
-  position?: 'floating' | 'fixed' | 'inline';  // 工具栏位置
-  items?: ToolbarItem[];                 // 工具栏按钮
-  groups?: ToolbarGroup[];               // 按钮组
+  position?: 'floating' | 'fixed' | 'inline' // 工具栏位置
+  items?: ToolbarItem[] // 工具栏按钮
+  groups?: ToolbarGroup[] // 按钮组
 }
 
 interface ToolbarItem {
-  id: string;                            // 按钮ID
-  label: string;                         // 按钮标签
-  icon?: string;                         // 图标
-  title?: string;                        // 提示文本
-  action?: string;                       // 触发的操作
-  hotkey?: string;                       // 快捷键
-  disabled?: boolean;                    // 是否禁用
+  id: string // 按钮ID
+  label: string // 按钮标签
+  icon?: string // 图标
+  title?: string // 提示文本
+  action?: string // 触发的操作
+  hotkey?: string // 快捷键
+  disabled?: boolean // 是否禁用
 }
 
 // 自动保存配置
 interface AutoSaveConfig {
-  enabled: boolean;
-  interval: number;                      // 保存间隔（ms）
-  storage: 'localStorage' | 'api' | 'both';
-  apiUrl?: string;                       // API 端点
-  draftKey?: string;                     // localStorage 键
+  enabled: boolean
+  interval: number // 保存间隔（ms）
+  storage: 'localStorage' | 'api' | 'both'
+  apiUrl?: string // API 端点
+  draftKey?: string // localStorage 键
 }
 
 // 插件接口
 interface EditorPlugin {
-  name: string;                          // 插件名称
-  version?: string;
-  
+  name: string // 插件名称
+  version?: string
+
   hooks?: {
-    beforeParse?: (markdown: string) => string;
-    afterParse?: (html: string) => string;
-    beforeInsert?: (text: string) => string;
-    onToolbarAction?: (action: string) => void;
-    onSelectionChange?: (selection: SelectionInfo) => void;
-  };
-  
-  commands?: Record<string, (args: any) => void>;
+    beforeParse?: (markdown: string) => string
+    afterParse?: (html: string) => string
+    beforeInsert?: (text: string) => string
+    onToolbarAction?: (action: string) => void
+    onSelectionChange?: (selection: SelectionInfo) => void
+  }
+
+  commands?: Record<string, (args: any) => void>
 }
 
 // 编辑操作历史
 interface EditAction {
-  type: 'insert' | 'delete' | 'replace' | 'format';
-  timestamp: number;
+  type: 'insert' | 'delete' | 'replace' | 'format'
+  timestamp: number
   content: {
-    before: string;
-    after: string;
-    position?: number;
-  };
+    before: string
+    after: string
+    position?: number
+  }
 }
 ```
 
@@ -1265,31 +720,26 @@ interface EditAction {
 ```vue
 <template>
   <div class="container">
-    <MarkdownEditor 
-      v-model="content"
-      v-model:title="title"
-      mode="split"
-      @save="handleSave"
-    />
+    <MarkdownEditor v-model="content" v-model:title="title" mode="split" @save="handleSave" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import MarkdownEditor from '@/components/editor/MarkdownEditor.vue';
+import { ref } from 'vue'
+import MarkdownEditor from '@/components/editor/MarkdownEditor.vue'
 
-const title = ref('我的文章');
-const content = ref('');
+const title = ref('我的文章')
+const content = ref('')
 
 const handleSave = async (data: { title: string; content: string }) => {
   try {
     // 调用 API 保存文章
-    await api.posts.create(data);
-    console.log('保存成功！');
+    await api.posts.create(data)
+    console.log('保存成功！')
   } catch (error) {
-    console.error('保存失败：', error);
+    console.error('保存失败：', error)
   }
-};
+}
 </script>
 ```
 
@@ -1309,11 +759,11 @@ const handleSave = async (data: { title: string; content: string }) => {
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import MarkdownEditor from '@/components/editor/MarkdownEditor.vue';
-import type { EditorConfig, EditorPlugin } from '@/components/editor/types';
+import { ref } from 'vue'
+import MarkdownEditor from '@/components/editor/MarkdownEditor.vue'
+import type { EditorConfig, EditorPlugin } from '@/components/editor/types'
 
-const content = ref('');
+const content = ref('')
 
 // 完整的编辑器配置
 const editorConfig: EditorConfig = {
@@ -1341,7 +791,7 @@ const editorConfig: EditorConfig = {
     preview: true,
     markdown: true,
   },
-};
+}
 
 // 自定义插件
 const customPlugins: EditorPlugin[] = [
@@ -1350,7 +800,7 @@ const customPlugins: EditorPlugin[] = [
     hooks: {
       beforeParse: (markdown) => {
         // 将 @username 转换为链接
-        return markdown.replace(/@(\w+)/g, '[@$1](user/$1)');
+        return markdown.replace(/@(\w+)/g, '[@$1](user/$1)')
       },
     },
   },
@@ -1359,19 +809,19 @@ const customPlugins: EditorPlugin[] = [
     commands: {
       insertEmoji: (emoji) => {
         // 插入emoji
-        editor.value?.insertText(emoji);
+        editor.value?.insertText(emoji)
       },
     },
   },
-];
+]
 
 const handleSave = async (data: any) => {
-  console.log('保存:', data);
-};
+  console.log('保存:', data)
+}
 
 const handleToolbarAction = (action: string) => {
-  console.log('工具栏点击:', action);
-};
+  console.log('工具栏点击:', action)
+}
 </script>
 ```
 
@@ -1379,27 +829,27 @@ const handleToolbarAction = (action: string) => {
 
 ```typescript
 // 在其他项目中使用核心逻辑，不使用UI组件
-import { useMarkdownEditor } from '@/components/editor/composables/useMarkdownEditor';
+import { useMarkdownEditor } from '@/components/editor/composables/useMarkdownEditor'
 
 const editor = useMarkdownEditor({
   initialContent: '# Hello',
   onChange: (content) => {
-    console.log('内容变化:', content);
+    console.log('内容变化:', content)
   },
-});
+})
 
 // 直接调用方法
-editor.bold();              // 加粗
-editor.italic();            // 斜体
-editor.insertLink();        // 插入链接
-editor.insertCodeBlock();   // 插入代码块
+editor.bold() // 加粗
+editor.italic() // 斜体
+editor.insertLink() // 插入链接
+editor.insertCodeBlock() // 插入代码块
 
 // 查询状态
-console.log(editor.canUndo());
-console.log(editor.getState());
+console.log(editor.canUndo())
+console.log(editor.getState())
 
 // 导出内容
-const html = marked.parse(editor.content.value);
+const html = marked.parse(editor.content.value)
 ```
 
 ---
@@ -1416,6 +866,7 @@ const html = marked.parse(editor.content.value);
 - [ ] 编写单元测试框架
 
 **输出物**：
+
 - 类型定义文件
 - Composable 基础实现
 - 测试套件框架
@@ -1431,6 +882,7 @@ const html = marked.parse(editor.content.value);
 - [ ] 实现编辑历史（撤销/重做）
 
 **输出物**：
+
 - `EditorContent.vue` 组件
 - `selection.ts` 工具函数
 - `markdown.ts` 工具函数
@@ -1447,6 +899,7 @@ const html = marked.parse(editor.content.value);
 - [ ] 应用设计系统样式
 
 **输出物**：
+
 - 所有 Vue 组件
 - 编辑器样式文件
 - 组件集成测试
@@ -1462,6 +915,7 @@ const html = marked.parse(editor.content.value);
 - [ ] 编写集成测试
 
 **输出物**：
+
 - 自动保存逻辑
 - 快捷键系统
 - 插件接口实现
@@ -1478,6 +932,7 @@ const html = marked.parse(editor.content.value);
 - [ ] 发布 npm 包（可选）
 
 **输出物**：
+
 - 完整使用文档
 - 示例代码
 - npm 发布配置（可选）
@@ -1486,30 +941,31 @@ const html = marked.parse(editor.content.value);
 
 ## 📊 文件清单
 
-| 文件 | 优先级 | 周次 | 说明 |
-|------|--------|------|------|
-| `types/editor.ts` | P0 | 1 | 类型定义，所有文件的基础 |
-| `composables/useMarkdownEditor.ts` | P0 | 1-2 | 核心编辑逻辑 |
-| `utils/selection.ts` | P0 | 2 | 光标和选中操作 |
-| `utils/markdown.ts` | P0 | 2 | Markdown 解析渲染 |
-| `sub-components/EditorContent.vue` | P0 | 2 | 编辑区核心组件 |
-| `EditorTitle.vue` | P1 | 2 | 标题输入框 |
-| `EditorHeader.vue` | P1 | 3 | 头部（保存状态等） |
-| `EditorToolbar.vue` | P1 | 3 | 浮动工具栏 |
-| `EditorFooter.vue` | P2 | 4 | 页脚（字数、时间） |
-| `MarkdownEditor.vue` | P0 | 3 | 主组件 |
-| `composables/useAutoSave.ts` | P2 | 4 | 自动保存 |
-| `composables/useShortcuts.ts` | P2 | 4 | 快捷键 |
-| `utils/editor-helpers.ts` | P2 | 4 | 辅助函数 |
-| `styles/editor.css` | P1 | 3 | 样式文件 |
-| `__tests__/*` | P1 | 1-5 | 测试文件 |
-| `README.md` | P1 | 5 | 使用文档 |
+| 文件                               | 优先级 | 周次 | 说明                     |
+| ---------------------------------- | ------ | ---- | ------------------------ |
+| `types/editor.ts`                  | P0     | 1    | 类型定义，所有文件的基础 |
+| `composables/useMarkdownEditor.ts` | P0     | 1-2  | 核心编辑逻辑             |
+| `utils/selection.ts`               | P0     | 2    | 光标和选中操作           |
+| `utils/markdown.ts`                | P0     | 2    | Markdown 解析渲染        |
+| `sub-components/EditorContent.vue` | P0     | 2    | 编辑区核心组件           |
+| `EditorTitle.vue`                  | P1     | 2    | 标题输入框               |
+| `EditorHeader.vue`                 | P1     | 3    | 头部（保存状态等）       |
+| `EditorToolbar.vue`                | P1     | 3    | 浮动工具栏               |
+| `EditorFooter.vue`                 | P2     | 4    | 页脚（字数、时间）       |
+| `MarkdownEditor.vue`               | P0     | 3    | 主组件                   |
+| `composables/useAutoSave.ts`       | P2     | 4    | 自动保存                 |
+| `composables/useShortcuts.ts`      | P2     | 4    | 快捷键                   |
+| `utils/editor-helpers.ts`          | P2     | 4    | 辅助函数                 |
+| `styles/editor.css`                | P1     | 3    | 样式文件                 |
+| `__tests__/*`                      | P1     | 1-5  | 测试文件                 |
+| `README.md`                        | P1     | 5    | 使用文档                 |
 
 ---
 
 ## ✅ 验收标准
 
 ### 功能完整性
+
 - [ ] 支持基础 Markdown 格式（标题、加粗、斜体、列表、链接）
 - [ ] 实时预览功能正常
 - [ ] 工具栏所有按钮可用
@@ -1517,18 +973,21 @@ const html = marked.parse(editor.content.value);
 - [ ] 自动保存功能正常
 
 ### 代码质量
+
 - [ ] 测试覆盖率 ≥ 85%
 - [ ] TypeScript 无错误和警告
 - [ ] ESLint 检查通过
 - [ ] 所有公共 API 有文档注释
 
 ### 性能指标
+
 - [ ] 编辑响应时间 < 100ms
 - [ ] 预览渲染时间 < 300ms
 - [ ] 大文档（10000+ 字）可正常编辑
 - [ ] 内存占用稳定，无泄漏
 
 ### 用户体验
+
 - [ ] Medium 风格的编辑体验
 - [ ] 流畅的动画过渡
 - [ ] 清晰的视觉反馈
@@ -1538,16 +997,16 @@ const html = marked.parse(editor.content.value);
 
 ## 🔗 相关文档
 
-- [phase1_design_system.md](./phase1_design_system.md) - 项目设计系统
-- [frontend-styles.md](./frontend-styles.md) - Tailwind CSS 规范
-- [process.md](../project/process.md) - 项目进度
+- [phase1_design_system.md](phase1_design_system.md) - 项目设计系统
+- [frontend-styles.md](frontend-styles.md) - Tailwind CSS 规范
+- [process.md](02-PROCESS.md) - 项目进度
 
 ---
 
 ## 📝 版本历史
 
-| 版本 | 日期 | 内容 |
-|------|------|------|
+| 版本 | 日期       | 内容         |
+| ---- | ---------- | ------------ |
 | v1.0 | 2025-11-18 | 初始设计文档 |
 
 ---

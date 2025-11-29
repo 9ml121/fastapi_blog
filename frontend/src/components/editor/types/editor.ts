@@ -21,8 +21,8 @@
  * - 其他所有状态都围绕这个展开
  */
 export interface EditorContent {
-  title: string;    // 文章标题
-  content: string;  // 文章正文内容（Markdown 格式）
+  title: string // 文章标题
+  content: string // 文章正文内容（Markdown 格式）
 }
 
 // ============================================================================
@@ -41,18 +41,18 @@ export interface EditorContent {
  */
 export interface EditAction {
   // 操作类型
-  type: 'insert' | 'delete' | 'format' | 'replace';
+  type: 'insert' | 'delete' | 'format' | 'replace'
 
   // 操作详情
-  content?: string;     // 插入/删除/替换的内容
-  start?: number;       // 操作的起始位置
-  end?: number;         // 操作的结束位置
+  content?: string // 插入/删除/替换的内容
+  start?: number // 操作的起始位置
+  end?: number // 操作的结束位置
 
   // 撤销所需：记录操作前的内容
-  previousContent?: string;
+  previousContent?: string
 
   // 时间戳（用于自动合并判断）
-  timestamp: number;
+  timestamp: number
 }
 
 /**
@@ -81,16 +81,17 @@ export interface EditAction {
  */
 export interface EditTransaction {
   // 事务的唯一标识
-  id: string;
+  id: string
 
   // 可读的描述（用于 UI 展示、调试）
-  label: string;  // 如 "输入文本"、"删除文本"、"替换文本"、"应用格式" 等
+  label: string // 如 "输入文本"、"删除文本"、"替换文本"、"应用格式" 等
 
   // 组成这个事务的所有原子操作
-  actions: EditAction[];
+  // actions: EditAction[]
+  content: string  // todo 先实现简单快照版本，后面升级到增量版本
 
   // 事务发生的时间（取第一个 action 的时间）
-  timestamp: number;
+  timestamp: number
 }
 
 /**
@@ -118,7 +119,7 @@ export interface EditTransaction {
 export interface EditorHistory {
   // 所有已提交的事务列表（按时间顺序）
   // 这是历史记录，不会被撤销操作修改
-  transactions: EditTransaction[];
+  transactions: EditTransaction[]
 
   // 当前在历史中的位置
   // currentIndex = -1 表示未进行任何操作（初始状态）
@@ -129,7 +130,7 @@ export interface EditorHistory {
   // transactions.length = 5, currentIndex = 2
   // 表示已经执行了 transactions[0]、transactions[1]、transactions[2]
   // 可以重做 transactions[3]、transactions[4]
-  currentIndex: number;
+  currentIndex: number
 }
 
 // ============================================================================
@@ -142,14 +143,14 @@ export interface EditorHistory {
  * 设计原则：只存储原始数据（start/end），其他都通过计算得出
  */
 export interface SelectionInfo {
-  start: number;        // 选中的开始位置（字符索引，从 0 开始）
-  end: number;          // 选中的结束位置
+  start: number // 选中的开始位置（字符索引，从 0 开始）
+  end: number // 选中的结束位置
 
   // 选中的文字（可以从 content[start:end] 得出，但为了方便存储）
-  selectedText: string;
+  selectedText: string
 
   // 状态属性（通过计算得出：start === end）
-  isEmpty: boolean;
+  isEmpty: boolean
 }
 
 /**
@@ -162,14 +163,14 @@ export interface SelectionInfo {
  */
 export interface EditorUIState {
   // 文本选中信息（频繁变化）
-  selection: SelectionInfo;
+  selection: SelectionInfo
 
   // 保存状态
-  isSaving: boolean;    // 是否正在保存中
-  isDirty: boolean;     // 是否有未保存的改动
+  isSaving: boolean // 是否正在保存中
+  isDirty: boolean // 是否有未保存的改动
 
   // 编辑器焦点
-  isFocused: boolean;   // 编辑器是否获得焦点
+  isFocused: boolean // 编辑器是否获得焦点
 }
 
 // ============================================================================
@@ -182,19 +183,20 @@ export interface EditorUIState {
  * 用途：当操作失败时，记录错误详情
  */
 export interface EditorErrorInfo {
-  code: string;           // 错误代码（如 'SAVE_FAILED'）
-  message: string;        // 用户可读的错误信息
-  originalError?: Error;  // 原始错误对象（用于日志）
-  timestamp: number;      // 错误发生的时间
-  recoverable: boolean;   // 是否可以恢复（比如重试）
+  code: string // 错误代码（如 'SAVE_FAILED'）
+  message: string // 用户可读的错误信息
+  originalError?: Error // 原始错误对象（用于日志）
+  timestamp: number // 错误发生的时间
+  recoverable: boolean // 是否可以恢复（比如重试）
 }
 
 /**
  * EditorErrorState: 错误状态管理
  */
 export interface EditorErrorState {
-  hasError: boolean;       // 是否有错误
-  error?: EditorErrorInfo; // 错误详情
+  hasError: boolean // 是否有错误
+
+  error?: EditorErrorInfo // 错误详情
 }
 
 // ============================================================================
@@ -211,18 +213,14 @@ export interface EditorErrorState {
  * - 错误层：hasError, error
  * - 额外信息：lastSaved, canUndo, canRedo（计算属性的缓存）
  */
-export interface EditorState
-  extends EditorContent,
-    EditorHistory,
-    EditorUIState,
-    EditorErrorState {
+export interface EditorState extends EditorContent, EditorHistory, EditorUIState, EditorErrorState {
   // 额外的元信息
-  lastSaved?: Date;  // 上次保存的时间
+  lastSaved?: Date // 上次保存的时间
 
   // 计算属性的缓存（为了避免频繁计算）
   // 实际上这些可以从 history 中计算出来，但为了性能，缓存在这里
-  canUndo: boolean;
-  canRedo: boolean;
+  canUndo: boolean
+  canRedo: boolean
 }
 
 // ============================================================================
@@ -254,28 +252,28 @@ export interface EditorState
  */
 export interface AutoSaveConfig {
   // ===== 启用开关 =====
-  enabled: boolean;              // 是否启用自动保存
+  enabled: boolean // 是否启用自动保存
 
   // ===== 本地保存（localStorage）=====
-  localStorageInterval?: number; // 本地保存间隔（毫秒，默认 2000）
-  draftKey?: string;             // localStorage 的键名（默认 'editor-draft'）
+  localStorageInterval?: number // 本地保存间隔（毫秒，默认 2000）
+  draftKey?: string // localStorage 的键名（默认 'editor-draft'）
 
   // ===== 服务器保存（API）=====
-  apiUrl?: string;               // API 保存端点（当 storage 为 'api' 或 'both' 时需要）
-  apiInterval?: number;          // 服务器保存间隔（毫秒，默认 10000，异步非阻塞）
+  apiUrl?: string // API 保存端点（当 storage 为 'api' 或 'both' 时需要）
+  apiInterval?: number // 服务器保存间隔（毫秒，默认 10000，异步非阻塞）
 
   // ===== 重试配置 =====
-  maxRetries?: number;           // 服务器保存失败时最多重试次数（默认 3）
-  retryDelay?: number;           // 重试等待时间（毫秒，默认 1000）
+  maxRetries?: number // 服务器保存失败时最多重试次数（默认 3）
+  retryDelay?: number // 重试等待时间（毫秒，默认 1000）
 
   // ===== 保存策略选择 =====
-  storage: 'localStorage' | 'api' | 'both';
+  storage: 'localStorage' | 'api' | 'both'
   //        - 'localStorage'：只用本地存储
   //        - 'api'：只用服务器存储
   //        - 'both'：同时用两个存储（推荐）
 
   // ===== 页面卸载处理 =====
-  saveOnBeforeUnload?: boolean;  // 用户关闭页面前是否强制保存（默认 true）
+  saveOnBeforeUnload?: boolean // 用户关闭页面前是否强制保存（默认 true）
 }
 
 // ============================================================================
@@ -283,50 +281,53 @@ export interface AutoSaveConfig {
 // ============================================================================
 
 /**
- * SelectionRequiredActionType: 需要选中文本的操作
- *
- * 这些操作只对选中的文本范围有效
- * 比如用户先选中"hello"，然后点击"加粗"按钮，才会变成 **hello**
+ * InlineFormatType: 行内格式类型,需要用户选中文本才能应用
  */
-export type SelectionRequiredActionType =
-  | 'bold'       // 加粗：**文字**
-  | 'italic'     // 斜体：*文字*
-  | 'code'       // 行内代码：`文字`
-  | 'link';      // 链接：[文字](url)
+export type InlineFormatType =
+  | 'bold' // 加粗：**文字**
+  | 'italic' // 斜体：*文字*
+  | 'code' // 行内代码：`文字`
+  | 'highlight' // 高亮：==文字==
+  | 'link' // 链接：[文字](url)
 
 /**
- * ParagraphTargetActionType: 以段落为目标的操作
+ * ParagraphFormatType: 段落目标格式类型
  *
  * 这些操作应用于整个段落，不需要选中全文
  * 比如用户光标在任何地方，点击"H1"按钮，整行都会变成 H1
  */
-export type ParagraphTargetActionType =
-  | 'heading1'   // 一级标题：# 文字
-  | 'heading2'   // 二级标题：## 文字
-  | 'heading3'   // 三级标题：### 文字
-  | 'quote';     // 引用：> 文字
+export type ParagraphFormatType =
+  | 'heading1' // 一级标题：# 文字
+  | 'heading2' // 二级标题：## 文字
+  | 'heading3' // 三级标题：### 文字
+  | 'quote' // 引用：> 文字
 
 /**
- * BlockActionType: 块菜单的操作（插入新内容）
+ * BlockInsertType: 块级插入操作（插入新内容）
+ *
+ * 用于插入代码块、图片、表格等块级元素
  */
-export type BlockActionType =
-  | 'codeBlock'  // 代码块：```language ...code... ```
-  | 'image'      // 图片：![alt](url)
-  | 'table'      // 表格：| col1 | col2 |
-  | 'video'      // 视频：嵌入视频
-  | 'embedLink'  // 内嵌链接：嵌入外链预览
-  | 'newpart';   // 新分段：插入分割线或新部分
+export type BlockInsertType =
+  | 'codeBlock' // 代码块：```language ...code... ```
+  | 'image' // 图片：![alt](url)
+  | 'table' // 表格：| col1 | col2 |
+  | 'video' // 视频：嵌入视频
+  | 'embedLink' // 内嵌链接：嵌入外链预览
+  | 'divider' // 分割线：---
 
 /**
- * FloatingActionType: 浮动工具栏的操作
- * 组合：需要选中的操作 + 段落目标操作
+ * FloatingToolbarType: 浮动工具栏支持的所有操作类型
+ *
+ * 组合：行内格式操作 + 段落格式操作
  */
-export type FloatingActionType = SelectionRequiredActionType | ParagraphTargetActionType;
+export type FloatingToolbarType = InlineFormatType | ParagraphFormatType
 
 /**
- * ToolbarActionType: 所有支持的操作类型
+ * ToolbarType: 所有工具栏支持的操作类型
+ *
+ * 包含：浮动工具栏操作 + 块级插入操作
  */
-export type ToolbarActionType = FloatingActionType | BlockActionType;
+export type ToolbarType = FloatingToolbarType | BlockInsertType
 
 // ============================================================================
 // 工具栏配置类型
@@ -336,49 +337,48 @@ export type ToolbarActionType = FloatingActionType | BlockActionType;
  * ToolbarItem 基础接口
  */
 interface ToolbarItemBase {
-  id: string;        // 按钮唯一 ID
-  icon?: string;     // 图标名称（Lucide Icons）
-  title?: string;    // 鼠标悬停提示
-  hotkey?: string;   // 快捷键（如 "Ctrl+B"）
-  disabled?: boolean; // 是否禁用
+  id: string // 按钮唯一 ID
+  icon?: string // 图标名称（Lucide Icons）
+  title?: string // 鼠标悬停提示
+  hotkey?: string // 快捷键（如 "Ctrl+B"）
+  disabled?: boolean // 是否禁用
   // 注意：label 和 description 会从 ActionRegistry 获取
 }
 
 /**
- * 需要选中文本的工具栏项
+ * 行内格式工具栏项（需要选中文本）
  */
-interface SelectionRequiredToolbarItem extends ToolbarItemBase {
-  action: SelectionRequiredActionType;
-  requiresSelection: true;
+interface InlineToolbarItem extends ToolbarItemBase {
+  action: InlineFormatType
+  requiresSelection: true
 }
 
 /**
- * 段落目标的工具栏项
+ * 段落格式工具栏项（作用于整个段落）
  */
-interface ParagraphTargetToolbarItem extends ToolbarItemBase {
-  action: ParagraphTargetActionType;
-  requiresSelection: false;
+interface ParagraphToolbarItem extends ToolbarItemBase {
+  action: ParagraphFormatType
+  requiresSelection: false
 }
 
 /**
- * 浮动工具栏项：两种类型的联合
- * 这里使用 discriminated union，TypeScript 会强制类型安全
+ * 浮动工具栏项：行内格式 + 段落格式
+ *
+ * 使用 discriminated union，TypeScript 会强制类型安全
  */
-export type FloatingToolbarItem =
-  | SelectionRequiredToolbarItem
-  | ParagraphTargetToolbarItem;
+export type FloatingToolbarItem = InlineToolbarItem | ParagraphToolbarItem
 
 /**
- * 块菜单工具栏项
+ * 块级插入工具栏项
  */
 export interface BlockToolbarItem extends ToolbarItemBase {
-  action: BlockActionType;
+  action: BlockInsertType
 }
 
 /**
  * 所有工具栏项的通用类型
  */
-export type ToolbarItem = FloatingToolbarItem | BlockToolbarItem;
+export type ToolbarItem = FloatingToolbarItem | BlockToolbarItem
 
 /**
  * ToolbarConfig: 工具栏配置
@@ -389,13 +389,38 @@ export type ToolbarItem = FloatingToolbarItem | BlockToolbarItem;
  */
 export type ToolbarConfig =
   | {
-      position: 'floating';
-      items: FloatingToolbarItem[];
+      position: 'floating'
+      items: FloatingToolbarItem[]
     }
   | {
-      position: 'blockMenu';
-      items: BlockToolbarItem[];
-    };
+      position: 'blockMenu'
+      items: BlockToolbarItem[]
+    }
+
+// ============================================================================
+// Markdown 格式状态类型
+// ============================================================================
+
+/**
+ * FormatState: 当前光标位置的格式状态
+ *
+ * 用途：
+ * - 检测光标所在位置已应用的格式
+ * - 用于工具栏按钮的高亮显示
+ * - 帮助用户了解当前编辑位置的格式状态
+ *
+ * 示例：
+ * 光标在 "**加粗文本**" 内部时：
+ * { isBold: true, isItalic: false, ... }
+ */
+export interface FormatState {
+  isBold: boolean // 是否在加粗文本内
+  isItalic: boolean // 是否在斜体文本内
+  isCode: boolean // 是否在行内代码内
+  isHighlight: boolean // 是否在高亮文本内
+  headingLevel: 0 | 1 | 2 | 3 // 标题级别（0 = 非标题）
+  isQuote: boolean // 是否在引用块内
+}
 
 // ============================================================================
 // 插件系统
@@ -407,18 +432,18 @@ export type ToolbarConfig =
  * 允许第三方扩展编辑器功能
  */
 export interface EditorPlugin {
-  name: string;         // 插件名称
-  version?: string;     // 插件版本
+  name: string // 插件名称
+  version?: string // 插件版本
 
   // 生命周期 Hooks
   hooks?: {
-    beforeParse?: (markdown: string) => string;
-    afterParse?: (html: string) => string;
-    onToolbarAction?: (action: string) => void;
-  };
+    beforeParse?: (markdown: string) => string
+    afterParse?: (html: string) => string
+    onToolbarAction?: (action: string) => void
+  }
 
   // 自定义命令
-  commands?: Record<string, (args: any) => void>;
+  commands?: Record<string, (args: any) => void>
 }
 
 // ============================================================================
@@ -432,38 +457,38 @@ export interface EditorPlugin {
  */
 export interface EditorLocales {
   // 操作名称
-  bold?: string;
-  italic?: string;
-  code?: string;
-  link?: string;
-  heading1?: string;
-  heading2?: string;
-  heading3?: string;
-  quote?: string;
-  codeBlock?: string;
-  image?: string;
-  table?: string;
-  video?: string;
-  embedLink?: string;
-  newpart?: string;
+  bold?: string
+  italic?: string
+  code?: string
+  link?: string
+  heading1?: string
+  heading2?: string
+  heading3?: string
+  quote?: string
+  codeBlock?: string
+  image?: string
+  table?: string
+  video?: string
+  embedLink?: string
+  newpart?: string
 
   // 提示信息
-  selectTextToFormat?: string;
-  savingDraft?: string;
-  saveSuccess?: string;
-  saveFailed?: string;
-  [key: string]: string | undefined;
+  selectTextToFormat?: string
+  savingDraft?: string
+  saveSuccess?: string
+  saveFailed?: string
+  [key: string]: string | undefined
 }
 
 /**
  * PermissionConfig: 权限配置
  */
 export interface PermissionConfig {
-  canEdit?: boolean;                            // 是否可编辑
-  canUndo?: boolean;                            // 是否可撤销
-  canRedo?: boolean;                            // 是否可重做
-  // allowedActions?: (ToolbarActionType)[];       // 允许的操作白名单
-  // deniedActions?: (ToolbarActionType)[];        // 禁止的操作黑名单
+  canEdit?: boolean // 是否可编辑
+  canUndo?: boolean // 是否可撤销
+  canRedo?: boolean // 是否可重做
+  // allowedActions?: (ToolbarType)[];       // 允许的操作白名单
+  // deniedActions?: (ToolbarType)[];        // 禁止的操作黑名单
 }
 
 /**
@@ -471,28 +496,28 @@ export interface PermissionConfig {
  */
 export interface ToolbarStyleConfig {
   floating?: {
-    maxWidth?: number;
-    direction?: 'horizontal' | 'vertical';
-    offset?: { x: number; y: number };
-  };
+    maxWidth?: number
+    direction?: 'horizontal' | 'vertical'
+    offset?: { x: number; y: number }
+  }
   blockMenu?: {
-    width?: number;
-    side?: 'left' | 'right';
-  };
+    width?: number
+    side?: 'left' | 'right'
+  }
 }
 
 /**
  * ErrorHandlerConfig: 错误处理配置
  */
 export interface ErrorHandlerConfig {
-  onError?: (error: EditorErrorInfo) => void;
-  logErrors?: boolean;
+  onError?: (error: EditorErrorInfo) => void
+  logErrors?: boolean
   retryStrategies?: {
     [code: string]: {
-      maxRetries: number;
-      backoffMs: number;
-    };
-  };
+      maxRetries: number
+      backoffMs: number
+    }
+  }
 }
 
 /**
@@ -500,45 +525,45 @@ export interface ErrorHandlerConfig {
  */
 export interface EditorConfig {
   // ===== 基础配置 =====
-  title?: string;        // 初始标题
-  content?: string;      // 初始内容
-  placeholder?: string;  // 占位符文本
+  title?: string // 初始标题
+  content?: string // 初始内容
+  placeholder?: string // 占位符文本
 
   // ===== 功能开关 =====
-  readOnly?: boolean;    // 只读模式
-  spellCheck?: boolean;  // 拼写检查
+  readOnly?: boolean // 只读模式
+  spellCheck?: boolean // 拼写检查
 
   // ===== 工具栏配置 =====
   toolbars?: {
-    floating?: ToolbarConfig;
-    blockMenu?: ToolbarConfig;
-  };
+    floating?: ToolbarConfig
+    blockMenu?: ToolbarConfig
+  }
 
   // ===== 自动保存 =====
-  autoSave?: AutoSaveConfig;
+  autoSave?: AutoSaveConfig
 
   // ===== 撤销重做 =====
-  historySize?: number;  // 最多保留多少个操作（默认 50）
+  historySize?: number // 最多保留多少个操作（默认 50）
 
   // ===== 插件 =====
-  plugins?: EditorPlugin[];
+  plugins?: EditorPlugin[]
 
   // ===== 国际化 =====
-  locale?: EditorLocales;
+  locale?: EditorLocales
 
   // ===== 权限 =====
-  permissions?: PermissionConfig;
+  permissions?: PermissionConfig
 
   // ===== 样式 =====
-  toolbarStyle?: ToolbarStyleConfig;
+  toolbarStyle?: ToolbarStyleConfig
 
   // ===== 错误处理 =====
-  errorHandling?: ErrorHandlerConfig;
+  errorHandling?: ErrorHandlerConfig
 
   // ===== 事件回调 =====
   callbacks?: {
-    onContentChange?: (content: string) => void;
-    onSave?: (state: EditorState) => void;
-    onError?: (error: EditorErrorInfo) => void;
-  };
+    onContentChange?: (content: string) => void
+    onSave?: (state: EditorState) => void
+    onError?: (error: EditorErrorInfo) => void
+  }
 }

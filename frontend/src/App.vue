@@ -1,48 +1,61 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { Menu } from 'lucide-vue-next'
-import Sidebar from './components/Sidebar.vue'
-import { useSidebar } from '@/composables'
 
-// ============ Sidebar 管理 ============
-const { isSidebarOpen, openSidebar } = useSidebar()
-
-// 检测是否为移动设备
-const isMobile = ref(false)
-
-const checkMobile = (): void => {
-  isMobile.value = window.innerWidth < 768
-}
-
-onMounted(() => {
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
-})
 </script>
 
 <template>
-  <div class="flex h-screen bg-gray-50">
+  <div class="app-container">
     <!-- 侧边栏 -->
-    <Sidebar />
+    <!-- <Sidebar /> -->
 
     <!-- 主内容区域 -->
-    <main class="flex-1 overflow-auto flex flex-col">
-      <!-- 移动端菜单栏 -->
-      <div v-if="isMobile" class="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 z-30 flex items-center gap-3">
-        <button
-          @click="openSidebar"
-          class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          title="打开菜单"
-        >
-          <Menu :size="24" class="text-gray-700" />
-        </button>
-        <h1 class="text-lg font-bold text-gray-900">Blog</h1>
-      </div>
-
+    <main class="main-content">
       <!-- 页面内容 -->
       <router-view />
     </main>
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* =============================================================================
+   应用根容器
+   ============================================================================= */
+.app-container {
+  /* 启用 Flexbox 布局 - 让子元素（侧边栏和主内容区）可以水平排列 */
+  display: flex;
+
+  /* 高度占满整个视口 - 100vh = 100% 视口高度 */
+  height: 100vh;
+
+}
+
+/* =============================================================================
+   主内容区域
+   ============================================================================= */
+.main-content {
+  /*
+   * flex: 1 1 0% 是 flex-grow flex-shrink flex-basis 的简写
+   * - flex-grow: 1    → 允许元素占据剩余空间（如果有侧边栏，会填充剩余宽度）
+   * - flex-shrink: 1  → 允许元素在空间不足时收缩
+   * - flex-basis: 0%  → 初始大小为 0，完全由 flex-grow 决定最终大小
+   */
+  flex: 1 1 0%;
+
+  /*
+   * overflow: auto - 当内容超出容器高度时，自动显示滚动条
+   * 如果内容没超出，不显示滚动条
+   */
+  overflow: auto;
+
+  /*
+   * display: flex - 让 main-content 自己也成为 Flex 容器
+   * 目的：为内部的 <router-view> 提供 Flex 布局环境
+   */
+  display: flex;
+
+  /*
+   * flex-direction: column - 子元素按列（垂直）排列
+   * 效果：<router-view> 会从上到下垂直排列
+   */
+  flex-direction: column;
+}
+</style>

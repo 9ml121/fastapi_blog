@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>getAbsoluteOffset 一致性测试</title>
+    <style>
+      body {
+        font-family: 'Courier New', monospace;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .test-case {
+        background: white;
+        margin: 20px 0;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #4caf50;
+      }
+      .test-case.fail {
+        border-left-color: #f44336;
+      }
+      .test-name {
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+      .test-result {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 10px;
+        margin: 5px 0;
+        font-size: 14px;
+      }
+      .pass {
+        color: #4caf50;
+      }
+      .fail {
+        color: #f44336;
+      }
+      .editor {
+        border: 1px solid #ddd;
+        padding: 10px;
+        min-height: 50px;
+        margin: 10px 0;
+        background: #fafafa;
+      }
+      .summary {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        min-width: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>getAbsoluteOffset 与 getTextContent 一致性测试</h1>
+    <div class="summary" id="summary"></div>
+    <div id="results"></div>
+
+    <script type="module">
+      // 复制 getTextContent 函数
+      function getTextContent(root) {
+        let text = ''
+        function traverse(node) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            text += node.textContent || ''
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.nodeName === 'BR') {
+              // BR不产生字符
+            } else {
+              for (const child of node.childNodes) {
+                traverse(child)
+              }
+            }
+            if (node.nodeName === 'DIV' && node !== root && node.nextSibling) {
+              text += '\n'
+            }
+          }
+        }
+        traverse(root)
+        return text
+      }
+
+      // 复制修改后的 getAbsoluteOffset 函数
+      function getAbsoluteOffset(node, offset, root) {
+        let absoluteOffset = 0
+        let found = false
+
+        function traverse(currentNode) {
+          if (found) return
+
+          if (currentNode === node) {
+            absoluteOffset += offset
+            found = true
+            return
+          }
+
+          if (currentNode.nodeType === Node.ELEMENT_NODE) {
+            if (currentNode.nodeName === 'BR') {
+              // ✅ 修改：BR不产生任何偏移量
+              // 不做任何操作
+            } else {
+              for (const child of currentNode.childNodes) {
+                traverse(child)
+                if (found) return
+              }
+
+              if (
+                currentNode.nodeName === 'DIV' &&
+                currentNode !== root &&
+                currentNode.nextSibling
+              ) {
+                absoluteOffset += 1
+              }
+            }
+          } else if (currentNode.nodeType === Node.TEXT_NODE) {
+            absoluteOffset += currentNode.textContent?.length ?? 0
+          }
+        }
+
+        traverse(root)
+        return absoluteOffset
+      }
+
+      // 测试用例
+      const tests = [
+        {
+          name: '测试1: 单行文本 - 光标在文本中间',
+          html: '<div>Hello World</div>',
+          testPoints: [
+            { desc: '光标在H前', offset: 0 },
+            { desc: '光标在Hello后', offset: 5 },
+            { desc: '光标在行尾', offset: 11 },
+          ],
+        },
+        {
+          name: '测试2: 多行文本',
+          html: '<div>Hello</div><div>World</div>',
+          testPoints: [
+            { desc: '第一行开头', offset: 0 },
+            { desc: '第一行结尾', offset: 5 },
+            { desc: '第二行开头', offset: 6 },
+            { desc: '第二行结尾', offset: 11 },
+          ],
+        },
+        {
+          name: '测试3: 包含空行',
+          html: '<div>Hello</div><div><br></div><div>World</div>',
+          testPoints: [
+            { desc: 'Hello后', offset: 5 },
+            { desc: '空行位置', offset: 6 },
+            { desc: 'World前', offset: 7 },
+            { desc: 'World后', offset: 12 },
+          ],
+        },
+        {
+          name: '测试4: 连续空行',
+          html: '<div><br></div><div><br></div><div>Text</div>',
+          testPoints: [
+            { desc: '第一个空行', offset: 0 },
+            { desc: '第二个空行', offset: 1 },
+            { desc: 'Text开头', offset: 2 },
+            { desc: 'Text结尾', offset: 6 },
+          ],
+        },
+      ]
+
+      const resultsContainer = document.getElementById('results')
+      let passCount = 0
+      let failCount = 0
+
+      tests.forEach((test) => {
+        const editor = document.createElement('div')
+        editor.className = 'editor'
+        editor.contentEditable = 'true'
+        editor.innerHTML = test.html
+
+        const textContent = getTextContent(editor)
+
+        const testDiv = document.createElement('div')
+        testDiv.className = 'test-case'
+
+        let testHtml = `
+        <div class="test-name">${test.name}</div>
+        <div class="test-result">
+          <span>HTML:</span>
+          <code>${escapeHtml(test.html)}</code>
+        </div>
+        <div class="test-result">
+          <span>Text Content:</span>
+          <code>${escapeHtml(JSON.stringify(textContent))}</code>
+        </div>
+        <div class="test-result">
+          <span>Text Length:</span>
+          <code>${textContent.length}</code>
+        </div>
+      `
+
+        let allPassed = true
+
+        test.testPoints.forEach((point) => {
+          const char = textContent[point.offset]
+          const displayChar = char === '\n' ? '\\n' : char === undefined ? '(超出范围)' : char
+
+          // 验证：textContent[offset] 应该可以访问
+          const passed = point.offset <= textContent.length
+
+          if (passed) passCount++
+          else {
+            failCount++
+            allPassed = false
+          }
+
+          testHtml += `
+          <div class="test-result">
+            <span class="${passed ? 'pass' : 'fail'}">${point.desc} (offset ${point.offset}):</span>
+            <code class="${passed ? 'pass' : 'fail'}">
+              ${passed ? `✅ textContent[${point.offset}] = "${displayChar}"` : `❌ 超出范围`}
+            </code>
+          </div>
+        `
+        })
+
+        if (!allPassed) {
+          testDiv.classList.add('fail')
+        }
+
+        testDiv.innerHTML = testHtml
+        resultsContainer.appendChild(testDiv)
+        editor.remove()
+      })
+
+      // 显示摘要
+      const summary = document.getElementById('summary')
+      const totalTests = tests.reduce((sum, t) => sum + t.testPoints.length, 0)
+      summary.innerHTML = `
+      <h3>测试摘要</h3>
+      <div style="font-size: 16px; margin: 10px 0;">
+        总计: ${totalTests}<br>
+        <span class="pass">✅ 通过: ${passCount}</span><br>
+        <span class="fail">❌ 失败: ${failCount}</span>
+      </div>
+      <div style="font-size: 20px; font-weight: bold; margin-top: 15px;">
+        ${failCount === 0 ? '<span class="pass">全部通过! 🎉</span>' : '<span class="fail">有测试失败</span>'}
+      </div>
+    `
+
+      function escapeHtml(text) {
+        const div = document.createElement('div')
+        div.textContent = text
+        return div.innerHTML
+      }
+    </script>
+  </body>
+</html>

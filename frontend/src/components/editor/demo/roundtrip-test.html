@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>getNodeAndOffset 完整测试</title>
+    <style>
+      body {
+        font-family: 'Courier New', monospace;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .test-case {
+        background: white;
+        margin: 20px 0;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #4caf50;
+      }
+      .test-case.fail {
+        border-left-color: #f44336;
+      }
+      .test-name {
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+      .test-result {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        gap: 10px;
+        margin: 5px 0;
+        font-size: 14px;
+      }
+      .pass {
+        color: #4caf50;
+      }
+      .fail {
+        color: #f44336;
+      }
+      .summary {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        min-width: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>getNodeAndOffset 完整测试（往返一致性）</h1>
+    <div class="summary" id="summary"></div>
+    <div id="results"></div>
+
+    <script type="module">
+      // 复制修改后的三个函数
+      function getTextContent(root) {
+        let text = ''
+        function traverse(node) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            text += node.textContent || ''
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.nodeName === 'BR') {
+              // BR不产生字符
+            } else {
+              for (const child of node.childNodes) {
+                traverse(child)
+              }
+            }
+            if (node.nodeName === 'DIV' && node !== root && node.nextSibling) {
+              text += '\n'
+            }
+          }
+        }
+        traverse(root)
+        return text
+      }
+
+      function getAbsoluteOffset(node, offset, root) {
+        let absoluteOffset = 0
+        let found = false
+
+        function traverse(currentNode) {
+          if (found) return
+
+          if (currentNode === node) {
+            absoluteOffset += offset
+            found = true
+            return
+          }
+
+          if (currentNode.nodeType === Node.ELEMENT_NODE) {
+            if (currentNode.nodeName === 'BR') {
+              // BR不产生任何偏移量
+            } else {
+              for (const child of currentNode.childNodes) {
+                traverse(child)
+                if (found) return
+              }
+              if (
+                currentNode.nodeName === 'DIV' &&
+                currentNode !== root &&
+                currentNode.nextSibling
+              ) {
+                absoluteOffset += 1
+              }
+            }
+          } else if (currentNode.nodeType === Node.TEXT_NODE) {
+            absoluteOffset += currentNode.textContent?.length ?? 0
+          }
+        }
+
+        traverse(root)
+        return absoluteOffset
+      }
+
+      function getNodeAndOffset(absoluteOffset, root) {
+        let currentOffset = 0
+
+        function traverse(node) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const textLength = node.textContent?.length ?? 0
+            if (currentOffset + textLength >= absoluteOffset) {
+              return {
+                node: node,
+                offset: absoluteOffset - currentOffset,
+              }
+            }
+            currentOffset += textLength
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.nodeName === 'BR') {
+              // ✅ BR不累加offset
+              if (currentOffset === absoluteOffset) {
+                const parent = node.parentNode
+                const index = Array.from(parent.childNodes).indexOf(node)
+                return { node: parent, offset: index }
+              }
+            } else {
+              for (const child of node.childNodes) {
+                const result = traverse(child)
+                if (result) return result
+              }
+              if (node.nodeName === 'DIV' && node !== root && node.nextSibling) {
+                currentOffset += 1
+              }
+            }
+          }
+          return null
+        }
+
+        return traverse(root)
+      }
+
+      // 测试用例
+      const tests = [
+        {
+          name: '测试1: 单行文本 - 往返一致性',
+          html: '<div>Hello World</div>',
+          testOffsets: [0, 5, 11],
+        },
+        {
+          name: '测试2: 多行文本 - 往返一致性',
+          html: '<div>Hello</div><div>World</div>',
+          testOffsets: [0, 5, 6, 11],
+        },
+        {
+          name: '测试3: 包含空行 - 关键测试',
+          html: '<div>Hello</div><div><br></div><div>World</div>',
+          testOffsets: [0, 5, 6, 7, 12],
+        },
+        {
+          name: '测试4: 连续空行',
+          html: '<div><br></div><div><br></div><div>Text</div>',
+          testOffsets: [0, 1, 2, 6],
+        },
+        {
+          name: '测试5: 复杂场景 - 空行在各个位置',
+          html: '<div><br></div><div>A</div><div><br></div><div>B</div><div><br></div>',
+          testOffsets: [0, 1, 2, 3, 4, 5],
+        },
+      ]
+
+      const resultsContainer = document.getElementById('results')
+      let passCount = 0
+      let failCount = 0
+
+      tests.forEach((test) => {
+        const editor = document.createElement('div')
+        editor.contentEditable = 'true'
+        editor.innerHTML = test.html
+
+        const textContent = getTextContent(editor)
+
+        const testDiv = document.createElement('div')
+        testDiv.className = 'test-case'
+
+        let testHtml = `
+        <div class="test-name">${test.name}</div>
+        <div class="test-result">
+          <span>HTML:</span>
+          <code>${escapeHtml(test.html)}</code>
+        </div>
+        <div class="test-result">
+          <span>Text Content:</span>
+          <code>${escapeHtml(JSON.stringify(textContent))}</code>
+        </div>
+        <div class="test-result">
+          <span>Length:</span>
+          <code>${textContent.length}</code>
+        </div>
+        <div style="margin-top: 10px; font-weight: bold;">往返测试结果:</div>
+      `
+
+        let allPassed = true
+
+        test.testOffsets.forEach((offset) => {
+          // 往返测试：offset -> node -> offset
+          const nodeInfo = getNodeAndOffset(offset, editor)
+
+          if (!nodeInfo) {
+            failCount++
+            allPassed = false
+            testHtml += `
+            <div class="test-result">
+              <span class="fail">Offset ${offset}:</span>
+              <code class="fail">❌ getNodeAndOffset返回null</code>
+            </div>
+          `
+            return
+          }
+
+          const returnedOffset = getAbsoluteOffset(nodeInfo.node, nodeInfo.offset, editor)
+          const passed = returnedOffset === offset
+
+          if (passed) passCount++
+          else {
+            failCount++
+            allPassed = false
+          }
+
+          const char = textContent[offset]
+          const displayChar = char === '\n' ? '\\n' : char === undefined ? '(end)' : char
+
+          testHtml += `
+          <div class="test-result">
+            <span class="${passed ? 'pass' : 'fail'}">Offset ${offset} → "${displayChar}":</span>
+            <code class="${passed ? 'pass' : 'fail'}">
+              ${
+                passed
+                  ? `✅ 往返一致 (node: ${nodeInfo.node.nodeName}, offset: ${nodeInfo.offset})`
+                  : `❌ 返回 ${returnedOffset} (expected ${offset})`
+              }
+            </code>
+          </div>
+        `
+        })
+
+        if (!allPassed) {
+          testDiv.classList.add('fail')
+        }
+
+        testDiv.innerHTML = testHtml
+        resultsContainer.appendChild(testDiv)
+        editor.remove()
+      })
+
+      // 显示摘要
+      const summary = document.getElementById('summary')
+      const totalTests = tests.reduce((sum, t) => sum + t.testOffsets.length, 0)
+      summary.innerHTML = `
+      <h3>测试摘要</h3>
+      <div style="font-size: 16px; margin: 10px 0;">
+        总计: ${totalTests}<br>
+        <span class="pass">✅ 通过: ${passCount}</span><br>
+        <span class="fail">❌ 失败: ${failCount}</span>
+      </div>
+      <div style="font-size: 20px; font-weight: bold; margin-top: 15px;">
+        ${failCount === 0 ? '<span class="pass">全部通过! 🎉</span>' : '<span class="fail">有测试失败</span>'}
+      </div>
+    `
+
+      function escapeHtml(text) {
+        const div = document.createElement('div')
+        div.textContent = text
+        return div.innerHTML
+      }
+    </script>
+  </body>
+</html>
