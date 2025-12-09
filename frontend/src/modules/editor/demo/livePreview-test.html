@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="../styles/livePreview.css" />
+    <meta charset="UTF-8" />
+    <script type="module">
+      import { detectLineType, updateLineTypes } from '../composables/useLivePreview.ts'
+
+      // 挂载到 window 供控制台使用
+      window.testUpdateLineTypes = () => {
+        const editor = document.querySelector('.editor-editable')
+        updateLineTypes(editor)
+        console.log('已更新所有行的 data-line-type 属性')
+      }
+
+      // 挂载到 window 供控制台使用
+      window.detectLineType = detectLineType
+      window.updateLineTypes = updateLineTypes
+
+      console.log('✅ Live Preview 函数已加载，可在控制台使用：')
+      console.log('  - detectLineType("## 标题")')
+      console.log('  - updateLineTypes(document.querySelector(".editor-editable"))')
+    </script>
+  </head>
+  <body>
+    <button onclick="testUpdateLineTypes()">测试 updateLineTypes</button>
+    <div class="editor-editable" style="max-width: 800px; margin: 0 auto; padding: 40px">
+      <div># Heading 1</div>
+      <div>## Heading 2</div>
+      <div>### Heading 3</div>
+      <div>#### Heading 4</div>
+      <div>> Quote</div>
+      <div>>Quote</div>
+      <div>1. ordered list</div>
+      <div>2. ordered list</div>
+      <div>- unordered list</div>
+      <div>- unordered list</div>
+      <div>```javascript const foo = 'bar' ```</div>
+    </div>
+  </body>
+</html>

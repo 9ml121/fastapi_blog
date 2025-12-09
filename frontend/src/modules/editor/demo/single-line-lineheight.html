@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>单行标题的 line-height 影响演示</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 40px;
+      background: #f5f5f5;
+    }
+
+    .demo-box {
+      background: white;
+      padding: 30px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #2563eb;
+    }
+
+    /* 给标题添加背景色，方便看出元素的实际高度 */
+    .title-demo {
+      font-size: 32px;
+      font-weight: 700;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 0 15px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+    .line-height-1 {
+      line-height: 1.0;
+    }
+
+    .line-height-1-5 {
+      line-height: 1.5;
+    }
+
+    .line-height-2 {
+      line-height: 2.0;
+    }
+
+    /* 带边框的演示，更明显地看出高度差异 */
+    .bordered {
+      border: 3px solid #ef4444;
+      display: inline-block;
+      margin-bottom: 15px;
+    }
+
+    code {
+      background: #1f2937;
+      color: #10b981;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .info-box {
+      background: #dbeafe;
+      border-left: 4px solid #2563eb;
+      padding: 15px;
+      margin: 20px 0;
+    }
+
+    /* 标尺效果 */
+    .ruler {
+      position: relative;
+      display: inline-block;
+    }
+
+    .ruler::before,
+    .ruler::after {
+      content: '';
+      position: absolute;
+      left: -30px;
+      right: -30px;
+      border-top: 2px dashed #ef4444;
+    }
+
+    .ruler::before {
+      top: 0;
+    }
+
+    .ruler::after {
+      bottom: 0;
+    }
+
+    .height-label {
+      position: absolute;
+      left: -80px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #ef4444;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 12px;
+      text-align: left;
+    }
+
+    th {
+      background: #f3f4f6;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="demo-box">
+    <h2>📏 单行标题的 line-height 影响演示</h2>
+    <p><strong>关键发现：</strong>即使标题只有一行，<code>line-height</code> 仍然会影响元素的<strong>总高度</strong>！</p>
+  </div>
+
+  <!-- 演示1：基础对比 -->
+  <div class="demo-box">
+    <h2>对比1：相同文字，不同 line-height</h2>
+    <p>下面三个标题的文字完全相同（都是单行），但 line-height 不同：</p>
+
+    <div style="margin: 30px 0;">
+      <div><code>line-height: 1.0</code></div>
+      <h1 class="title-demo line-height-1">这是单行标题</h1>
+    </div>
+
+    <div style="margin: 30px 0;">
+      <div><code>line-height: 1.5</code></div>
+      <h1 class="title-demo line-height-1-5">这是单行标题</h1>
+    </div>
+
+    <div style="margin: 30px 0;">
+      <div><code>line-height: 2.0</code></div>
+      <h1 class="title-demo line-height-2">这是单行标题</h1>
+    </div>
+
+    <div class="info-box">
+      <strong>👀 观察重点：</strong>
+      <ul>
+        <li>文字内容完全相同，都只有一行</li>
+        <li>但是标题的<strong>背景高度不同</strong>（line-height 越大，背景越高）</li>
+        <li>文字在背景中的<strong>垂直位置</strong>也不同（自动居中）</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 演示2：带边框的视觉对比 -->
+  <div class="demo-box">
+    <h2>对比2：边框显示实际高度</h2>
+    <p>红色边框标记了元素的实际占用空间：</p>
+
+    <div style="margin: 30px 0;">
+      <div><code>line-height: 1.0</code> → 元素高度 = 32px × 1.0 = <strong>32px</strong></div>
+      <div class="bordered">
+        <h1 class="title-demo line-height-1">单行文字</h1>
+      </div>
+    </div>
+
+    <div style="margin: 30px 0;">
+      <div><code>line-height: 1.5</code> → 元素高度 = 32px × 1.5 = <strong>48px</strong></div>
+      <div class="bordered">
+        <h1 class="title-demo line-height-1-5">单行文字</h1>
+      </div>
+    </div>
+
+    <div style="margin: 30px 0;">
+      <div><code>line-height: 2.0</code> → 元素高度 = 32px × 2.0 = <strong>64px</strong></div>
+      <div class="bordered">
+        <h1 class="title-demo line-height-2">单行文字</h1>
+      </div>
+    </div>
+  </div>
+
+  <!-- 演示3：标尺测量 -->
+  <div class="demo-box">
+    <h2>对比3：标尺测量实际高度</h2>
+    <p>红色虚线标记元素的顶部和底部，更清楚地看出高度差异：</p>
+
+    <div style="margin: 60px 0; margin-left: 100px;">
+      <div style="position: relative;">
+        <div class="ruler">
+          <h1 class="title-demo line-height-1" style="margin: 0;">line-height: 1.0</h1>
+          <span class="height-label">32px</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin: 60px 0; margin-left: 100px;">
+      <div style="position: relative;">
+        <div class="ruler">
+          <h1 class="title-demo line-height-1-5" style="margin: 0;">line-height: 1.5</h1>
+          <span class="height-label">48px</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin: 60px 0; margin-left: 100px;">
+      <div style="position: relative;">
+        <div class="ruler">
+          <h1 class="title-demo line-height-2" style="margin: 0;">line-height: 2.0</h1>
+          <span class="height-label">64px</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 演示4：实际影响 -->
+  <div class="demo-box">
+    <h2>实际影响：line-height 在哪些方面起作用？</h2>
+    
+    <table>
+      <tr>
+        <th>影响方面</th>
+        <th>说明</th>
+        <th>单行生效？</th>
+      </tr>
+      <tr>
+        <td><strong>1. 元素总高度</strong></td>
+        <td>元素的实际占用高度 = font-size × line-height</td>
+        <td>✅ 生效</td>
+      </tr>
+      <tr>
+        <td><strong>2. 垂直居中</strong></td>
+        <td>文字会在 line-height 定义的空间中自动垂直居中</td>
+        <td>✅ 生效</td>
+      </tr>
+      <tr>
+        <td><strong>3. 点击区域</strong></td>
+        <td>可点击区域的高度（对于链接等元素）</td>
+        <td>✅ 生效</td>
+      </tr>
+      <tr>
+        <td><strong>4. 行与行间距</strong></td>
+        <td>多行文本时，行与行之间的间距</td>
+        <td>❌ 单行不涉及</td>
+      </tr>
+    </table>
+
+    <div class="info-box">
+      <strong>💡 关键结论：</strong><br>
+      即使是单行文本，line-height 也会影响元素的<strong>高度、垂直对齐、点击区域</strong>等。<br>
+      只是"行与行之间的间距"这个效果在单行时看不到，但其他效果都存在！
+    </div>
+  </div>
+
+  <!-- 演示5：实际应用场景 -->
+  <div class="demo-box">
+    <h2>应用场景：为什么单行标题也需要设置 line-height？</h2>
+
+    <div style="margin: 20px 0;">
+      <h3>场景1：按钮的垂直居中</h3>
+      <div style="display: flex; gap: 20px; align-items: flex-start;">
+        <button style="height: 40px; line-height: 1.0; padding: 0 20px; font-size: 16px; background: #ef4444; color: white; border: none; border-radius: 4px;">
+          line-height: 1.0<br>(文字偏上)
+        </button>
+        <button style="height: 40px; line-height: 40px; padding: 0 20px; font-size: 16px; background: #10b981; color: white; border: none; border-radius: 4px;">
+          line-height: 40px<br>(完美居中)
+        </button>
+      </div>
+    </div>
+
+    <div style="margin: 30px 0;">
+      <h3>场景2：导航菜单的可点击区域</h3>
+      <div style="background: #1f2937; padding: 10px;">
+        <a href="#" style="color: white; text-decoration: none; font-size: 16px; line-height: 1.0; padding: 0 15px; display: inline-block; background: rgba(255,255,255,0.1);">
+          line-height: 1.0 (小点击区域)
+        </a>
+        <a href="#" style="color: white; text-decoration: none; font-size: 16px; line-height: 2.5; padding: 0 15px; display: inline-block; background: rgba(255,255,255,0.1); margin-left: 20px;">
+          line-height: 2.5 (大点击区域)
+        </a>
+      </div>
+      <p style="font-size: 14px; color: #6b7280;">💡 鼠标悬停在链接上，感受点击区域的大小差异</p>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="demo-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <h2 style="color: white;">✅ 最终结论</h2>
+    <p style="font-size: 18px; line-height: 1.8;">
+      <strong>即使标题只有一行、没有换行，line-height 仍然会：</strong>
+    </p>
+    <ol style="font-size: 16px; line-height: 1.8;">
+      <li>影响元素的<strong>总高度</strong>（font-size × line-height）</li>
+      <li>控制文字的<strong>垂直居中</strong>位置</li>
+      <li>决定<strong>可点击区域</strong>的大小（对于链接、按钮等）</li>
+      <li>影响与其他元素的<strong>垂直对齐</strong></li>
+    </ol>
+    <p style="font-size: 16px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 4px; margin-top: 20px;">
+      <strong>📌 记住：</strong>line-height 不仅仅是"行间距"，它定义的是<strong>"行盒的高度"</strong>，即使只有一行也会生效！
+    </p>
+  </div>
+
+</body>
+</html>

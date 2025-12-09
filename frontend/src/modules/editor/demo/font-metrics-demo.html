@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>为什么 line-height: 1.0 选中区域仍然比文字高？</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 40px;
+      background: #f5f5f5;
+      line-height: 1.6;
+    }
+
+    .demo-box {
+      background: white;
+      padding: 30px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #2563eb;
+    }
+
+    code {
+      background: #1f2937;
+      color: #10b981;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+
+    /* 演示1：可选中的文本 */
+    .selectable-demo {
+      font-size: 48px;
+      line-height: 1.0;
+      background: #fef3c7;
+      border: 3px solid #f59e0b;
+      display: inline-block;
+      padding: 0 10px;
+      margin: 20px 0;
+      user-select: text;
+    }
+
+    /* 演示2：字体度量可视化 */
+    .font-metrics-visual {
+      position: relative;
+      display: inline-block;
+      font-size: 100px;
+      line-height: 1.0;
+      padding: 0;
+      margin: 40px 0;
+    }
+
+    .baseline {
+      position: absolute;
+      left: -20px;
+      right: -20px;
+      border-bottom: 2px solid #ef4444;
+      top: 50%;
+      pointer-events: none;
+    }
+
+    .baseline::before {
+      content: 'Baseline（基线）';
+      position: absolute;
+      right: -150px;
+      top: -10px;
+      color: #ef4444;
+      font-size: 12px;
+    }
+
+    /* 演示3：字体盒子可视化 */
+    .text-box-demo {
+      font-size: 80px;
+      line-height: 1.0;
+      background: linear-gradient(to bottom, 
+        rgba(239, 68, 68, 0.2) 0%,
+        rgba(239, 68, 68, 0.2) 15%,
+        rgba(59, 130, 246, 0.2) 15%,
+        rgba(59, 130, 246, 0.2) 85%,
+        rgba(239, 68, 68, 0.2) 85%,
+        rgba(239, 68, 68, 0.2) 100%
+      );
+      border: 3px dashed #6b7280;
+      display: inline-block;
+      padding: 0;
+      margin: 20px 0;
+    }
+
+    .info-box {
+      background: #dbeafe;
+      border-left: 4px solid #2563eb;
+      padding: 15px;
+      margin: 20px 0;
+    }
+
+    .warning-box {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 15px;
+      margin: 20px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 12px;
+      text-align: left;
+    }
+
+    th {
+      background: #f3f4f6;
+      font-weight: 600;
+    }
+
+    .diagram {
+      background: white;
+      border: 2px solid #e5e7eb;
+      padding: 30px;
+      margin: 20px 0;
+      text-align: center;
+      font-family: monospace;
+    }
+
+    .diagram-line {
+      border-top: 2px dashed #6b7280;
+      margin: 5px 0;
+      position: relative;
+    }
+
+    .diagram-label {
+      position: absolute;
+      left: -180px;
+      top: -10px;
+      font-size: 12px;
+      color: #6b7280;
+      width: 160px;
+      text-align: right;
+    }
+
+    ::selection {
+      background: rgba(59, 130, 246, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="demo-box">
+    <h2>🔍 核心问题</h2>
+    <p style="font-size: 18px;">
+      为什么 <code>line-height: 1.0</code> 时，用鼠标选中文本，选中区域仍然比可见文字高一点点？
+    </p>
+  </div>
+
+  <!-- 演示1：亲自试试 -->
+  <div class="demo-box">
+    <h2>演示1：请用鼠标选中下面的文字</h2>
+    <p>下面的文字设置了 <code>line-height: 1.0</code>，请用鼠标拖动选中它：</p>
+    
+    <div class="selectable-demo">
+      请选中这段文字 ABCgjpqy
+    </div>
+
+    <div class="warning-box">
+      <strong>👀 仔细观察：</strong>
+      <ul>
+        <li>蓝色选中区域的<strong>上下边界</strong>比可见的文字要<strong>高一点点</strong></li>
+        <li>特别是在 <code>g、j、p、q、y</code> 这些字母的下部（descender）</li>
+        <li>即使 line-height 是 1.0，选中区域仍然包含了"额外空间"</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 演示2：字体度量原理 -->
+  <div class="demo-box">
+    <h2>原理解释：字体的内置度量（Font Metrics）</h2>
+    
+    <div class="info-box">
+      <p><strong>关键概念：</strong>font-size 设置的不是"可见文字的高度"，而是字体的<strong>"em-square"（字体设计框）</strong>的高度。</p>
+    </div>
+
+    <div class="diagram">
+      <div style="position: relative; display: inline-block; padding: 40px 0; margin-left: 200px;">
+        <div class="diagram-line" style="border-color: #8b5cf6;">
+          <span class="diagram-label" style="color: #8b5cf6;">Ascender（上伸区）</span>
+        </div>
+        <div style="height: 30px;"></div>
+        <div class="diagram-line" style="border-color: #10b981;">
+          <span class="diagram-label" style="color: #10b981;">Cap Height（大写字母顶）</span>
+        </div>
+        <div style="height: 25px;"></div>
+        <div class="diagram-line" style="border-color: #f59e0b;">
+          <span class="diagram-label" style="color: #f59e0b;">x-Height（小写字母高）</span>
+        </div>
+        <div style="height: 20px;"></div>
+        <div class="diagram-line" style="border-color: #ef4444; border-width: 3px;">
+          <span class="diagram-label" style="color: #ef4444; font-weight: bold;">Baseline（基线）</span>
+        </div>
+        <div style="height: 15px;"></div>
+        <div class="diagram-line" style="border-color: #ec4899;">
+          <span class="diagram-label" style="color: #ec4899;">Descender（下伸区）</span>
+        </div>
+        
+        <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 0; font-size: 80px; line-height: 1.0;">
+          ABgpqy
+        </div>
+      </div>
+    </div>
+
+    <table>
+      <tr>
+        <th>字体度量</th>
+        <th>说明</th>
+        <th>典型字符</th>
+      </tr>
+      <tr>
+        <td><strong>Ascender（上伸区）</strong></td>
+        <td>字母顶部超出 x-height 的部分</td>
+        <td>b, d, f, h, k, l, t</td>
+      </tr>
+      <tr>
+        <td><strong>Cap Height</strong></td>
+        <td>大写字母的高度</td>
+        <td>A, B, C, D...</td>
+      </tr>
+      <tr>
+        <td><strong>x-Height</strong></td>
+        <td>小写字母（无上下伸部）的高度</td>
+        <td>a, c, e, m, n, o, s...</td>
+      </tr>
+      <tr>
+        <td><strong>Baseline（基线）</strong></td>
+        <td>字母"坐"在上面的那条线</td>
+        <td>所有字母对齐的底线</td>
+      </tr>
+      <tr>
+        <td><strong>Descender（下伸区）</strong></td>
+        <td>字母底部伸出基线的部分</td>
+        <td>g, j, p, q, y</td>
+      </tr>
+      <tr style="background: #fef3c7;">
+        <td><strong>Line Gap（行间隙）</strong></td>
+        <td><strong>字体自带的上下预留空间</strong></td>
+        <td>⚠️ 即使 line-height: 1.0 也存在</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 演示3：实际计算 -->
+  <div class="demo-box">
+    <h2>实际计算：line-height: 1.0 的真实含义</h2>
+
+    <div class="info-box">
+      <p><strong>误解：</strong>line-height: 1.0 = 选中区域紧贴可见文字</p>
+      <p><strong>真相：</strong>line-height: 1.0 = 行高等于 font-size，但 font-size 包含了字体的所有度量空间</p>
+    </div>
+
+    <div style="background: #f9fafb; padding: 20px; border-radius: 8px; font-family: monospace; margin: 20px 0;">
+      <div><strong>当设置 font-size: 100px 时：</strong></div>
+      <div style="margin-top: 10px;">
+        总高度（em-square）= 100px<br>
+        ├─ 上方预留空间（Line Gap + Ascender 超出部分）≈ 10-15px<br>
+        ├─ 可见字符区域 ≈ 70-80px<br>
+        └─ 下方预留空间（Line Gap + Descender）≈ 10-15px
+      </div>
+      <div style="margin-top: 15px; color: #ef4444;">
+        <strong>→ 即使 line-height: 1.0，总高度仍然是 100px</strong>
+      </div>
+      <div style="margin-top: 5px; color: #ef4444;">
+        <strong>→ 选中区域包含了所有 100px 空间</strong>
+      </div>
+    </div>
+
+    <div class="text-box-demo">
+      ABgpqy
+    </div>
+    <p style="font-size: 14px; color: #6b7280;">
+      ↑ 红色区域 = 字体的上下预留空间（Line Gap）<br>
+      ↑ 蓝色区域 = 可见字符实际占用的空间
+    </p>
+  </div>
+
+  <!-- 演示4：不同字体的差异 -->
+  <div class="demo-box">
+    <h2>不同字体的差异</h2>
+    <p>不同字体的 Line Gap（预留空间）大小不同，所以选中区域的"额外高度"也不同：</p>
+
+    <div style="margin: 20px 0;">
+      <div><code>font-family: Arial</code></div>
+      <div style="font-family: Arial; font-size: 48px; line-height: 1.0; background: #fef3c7; display: inline-block;">
+        请选中这段文字 gjpqy
+      </div>
+    </div>
+
+    <div style="margin: 20px 0;">
+      <div><code>font-family: Georgia</code></div>
+      <div style="font-family: Georgia; font-size: 48px; line-height: 1.0; background: #fef3c7; display: inline-block;">
+        请选中这段文字 gjpqy
+      </div>
+    </div>
+
+    <div style="margin: 20px 0;">
+      <div><code>font-family: 'Courier New'</code></div>
+      <div style="font-family: 'Courier New'; font-size: 48px; line-height: 1.0; background: #fef3c7; display: inline-block;">
+        请选中这段文字 gjpqy
+      </div>
+    </div>
+
+    <p style="font-size: 14px; color: #6b7280;">
+      💡 试着选中上面不同字体的文字，你会发现选中区域的高度略有不同
+    </p>
+  </div>
+
+  <!-- 总结 -->
+  <div class="demo-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <h2 style="color: white;">✅ 最终答案</h2>
+    
+    <div style="font-size: 18px; line-height: 1.8;">
+      <p><strong>为什么 line-height: 1.0 选中区域仍然比文字高？</strong></p>
+      
+      <ol style="margin: 20px 0;">
+        <li><strong>字体自带预留空间</strong>：每个字体都有 Line Gap、Ascender、Descender 等度量参数</li>
+        <li><strong>font-size 不是文字高度</strong>：它是字体的 em-square（设计框）高度，包含了所有度量空间</li>
+        <li><strong>line-height: 1.0 的含义</strong>：行高 = font-size，而不是"行高 = 可见文字高度"</li>
+        <li><strong>选中区域的渲染</strong>：浏览器选中时会包含字体的完整度量空间，包括上下预留部分</li>
+      </ol>
+
+      <div style="background: rgba(0,0,0,0.2); padding: 20px; border-radius: 8px; margin-top: 20px;">
+        <strong>📌 记住：</strong><br>
+        即使 line-height: 1.0，字体的"隐形空间"依然存在。<br>
+        这是字体设计的内在特性，无法通过 CSS 完全消除。<br>
+        如果要完全消除，需要使用 <code>line-height: 0</code> 或负值（但会导致文字重叠）。
+      </div>
+    </div>
+  </div>
+
+  <!-- 额外：如何减少这个空间 -->
+  <div class="demo-box">
+    <h2>💡 如何减少选中区域的额外空间？</h2>
+    
+    <table>
+      <tr>
+        <th>方法</th>
+        <th>效果</th>
+        <th>副作用</th>
+      </tr>
+      <tr>
+        <td><code>line-height: 0.8</code></td>
+        <td>减少上下空间</td>
+        <td>⚠️ 多行文本会重叠</td>
+      </tr>
+      <tr>
+        <td>选择 Line Gap 更小的字体</td>
+        <td>天然的紧凑效果</td>
+        <td>需要测试不同字体</td>
+      </tr>
+      <tr>
+        <td><code>transform: scale(1.2)</code></td>
+        <td>放大视觉效果</td>
+        <td>不改变实际布局空间</td>
+      </tr>
+      <tr style="background: #d1fae5;">
+        <td><strong>接受现状</strong></td>
+        <td>保持正常的字体度量</td>
+        <td>✅ 最佳实践</td>
+      </tr>
+    </table>
+
+    <div class="info-box">
+      <strong>推荐：</strong>在大多数情况下，这一点点额外空间是<strong>正常且必要的</strong>，它确保了不同字符（包括上下伸部）的正确显示。不需要刻意去消除它。
+    </div>
+  </div>
+
+</body>
+</html>

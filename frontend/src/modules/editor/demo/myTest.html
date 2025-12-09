@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+
+  <body>
+    <div id="editor" contenteditable>Hello World, this is a test</div>
+    <button onclick="checkSelection()">Check Selection</button>
+    <script>
+      function checkSelection() {
+        const editor = document.getElementById('editor')
+        const sel = window.getSelection()
+
+        if (sel.rangeCount === 0) {
+          console.log('请先选中一些文本')
+        } else {
+          const range = sel.getRangeAt(0)
+          console.log('你选中了:', sel.toString())
+          console.log('选中的长度:', sel.toString().length)
+
+          // 判断是否反向选中
+          if (sel.anchorOffset > sel.focusOffset) {
+            console.log('你是从右往左反向选中的')
+          } else {
+            console.log('你是从左往右正向选中的')
+          }
+        }
+      }
+
+
+    </script>
+  </body>
+</html>

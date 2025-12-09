@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>line-height vs margin 对比演示</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 40px;
+      background: #f5f5f5;
+    }
+
+    .demo-section {
+      background: white;
+      padding: 30px;
+      margin-bottom: 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .demo-section h2 {
+      margin-top: 0;
+      color: #2563eb;
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 10px;
+    }
+
+    /* 演示1：line-height 的作用（元素内部） */
+    .demo1-box {
+      display: inline-block;
+      background: #dbeafe;
+      border: 2px solid #2563eb;
+      margin-bottom: 20px;
+    }
+
+    .demo1-small {
+      font-size: 20px;
+      line-height: 1.0;  /* 紧凑 */
+      background: #fef3c7;
+    }
+
+    .demo1-normal {
+      font-size: 20px;
+      line-height: 1.5;  /* 正常 */
+      background: #d1fae5;
+    }
+
+    .demo1-large {
+      font-size: 20px;
+      line-height: 2.0;  /* 宽松 */
+      background: #fecaca;
+    }
+
+    /* 演示2：margin 的作用（元素之间） */
+    .demo2-box {
+      background: #e0e7ff;
+      border: 2px solid #4f46e5;
+      padding: 10px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .demo2-no-margin {
+      margin: 0;
+    }
+
+    .demo2-small-margin {
+      margin-bottom: 10px;
+    }
+
+    .demo2-large-margin {
+      margin-bottom: 40px;
+    }
+
+    /* 演示3：多行文本中的 line-height */
+    .demo3-box {
+      width: 400px;
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      padding: 15px;
+      font-size: 16px;
+    }
+
+    .demo3-tight {
+      line-height: 1.0;
+    }
+
+    .demo3-loose {
+      line-height: 2.0;
+    }
+
+    /* 可视化辅助线 */
+    .with-lines {
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 19px,
+        #ef4444 19px,
+        #ef4444 20px
+      );
+    }
+
+    .highlight-bg {
+      background-color: rgba(59, 130, 246, 0.1);
+    }
+
+    code {
+      background: #1f2937;
+      color: #10b981;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+
+    .label {
+      display: inline-block;
+      background: #374151;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 演示1：line-height 控制元素内部的行间距 -->
+  <div class="demo-section">
+    <h2>📏 演示1：line-height - 控制元素内部的垂直空间</h2>
+    <p><strong>概念：</strong><code>line-height</code> 决定每一行文本的高度，是元素<strong>内部</strong>的属性。</p>
+    
+    <div class="label">line-height: 1.0 (紧凑)</div>
+    <div class="demo1-box demo1-small">
+      第一行文本<br>
+      第二行文本<br>
+      第三行文本
+    </div>
+
+    <br><br>
+
+    <div class="label">line-height: 1.5 (正常)</div>
+    <div class="demo1-box demo1-normal">
+      第一行文本<br>
+      第二行文本<br>
+      第三行文本
+    </div>
+
+    <br><br>
+
+    <div class="label">line-height: 2.0 (宽松)</div>
+    <div class="demo1-box demo1-large">
+      第一行文本<br>
+      第二行文本<br>
+      第三行文本
+    </div>
+
+    <p><strong>👀 观察：</strong>line-height 越大，行与行之间的空间越大，但<strong>元素之间没有间距</strong>（它们紧贴在一起）。</p>
+  </div>
+
+  <!-- 演示2：margin 控制元素之间的间距 -->
+  <div class="demo-section">
+    <h2>📦 演示2：margin - 控制元素之间的间距</h2>
+    <p><strong>概念：</strong><code>margin</code> 决定元素与其他元素之间的距离，是元素<strong>外部</strong>的属性。</p>
+    
+    <div class="label">margin-bottom: 0</div>
+    <div class="demo2-box demo2-no-margin">第一个盒子（无 margin）</div>
+    <div class="demo2-box demo2-no-margin">第二个盒子（无 margin）</div>
+
+    <br><br>
+
+    <div class="label">margin-bottom: 10px</div>
+    <div class="demo2-box demo2-small-margin">第一个盒子（小 margin）</div>
+    <div class="demo2-box demo2-small-margin">第二个盒子（小 margin）</div>
+
+    <br><br>
+
+    <div class="label">margin-bottom: 40px</div>
+    <div class="demo2-box demo2-large-margin">第一个盒子（大 margin）</div>
+    <div class="demo2-box demo2-large-margin">第二个盒子（大 margin）</div>
+
+    <p><strong>👀 观察：</strong>margin 越大，盒子之间的空间越大，但<strong>盒子内部的行间距不变</strong>。</p>
+  </div>
+
+  <!-- 演示3：两者的组合效果 -->
+  <div class="demo-section">
+    <h2>🎨 演示3：line-height + margin 组合</h2>
+    <p><strong>关键区别：</strong></p>
+    <ul>
+      <li><code>line-height</code> - 影响<strong>元素内部</strong>的行与行之间</li>
+      <li><code>margin</code> - 影响<strong>元素与元素</strong>之间</li>
+    </ul>
+
+    <div class="label">紧凑的行高 (1.0) + 大的 margin (30px)</div>
+    <div class="demo3-box demo3-tight" style="margin-bottom: 30px;">
+      这是一段多行文本。注意行与行之间很紧凑，因为 line-height 是 1.0。
+      但是这个盒子与下一个盒子之间会有很大的间距，因为 margin-bottom 是 30px。
+    </div>
+
+    <div class="label">宽松的行高 (2.0) + 小的 margin (5px)</div>
+    <div class="demo3-box demo3-loose" style="margin-bottom: 5px;">
+      这是另一段多行文本。注意行与行之间很宽松，因为 line-height 是 2.0。
+      但是这个盒子与下一个盒子之间只有很小的间距，因为 margin-bottom 只有 5px。
+    </div>
+
+    <div class="demo2-box" style="margin: 0;">下一个元素（用于观察间距）</div>
+  </div>
+
+  <!-- 演示4：实际的可视化对比 -->
+  <div class="demo-section">
+    <h2>🔍 演示4：带辅助线的可视化</h2>
+    <p>红色横线间距 = 20px，帮助你看清实际的空间分布。</p>
+
+    <div style="margin-bottom: 40px;">
+      <div class="label">line-height: 2.0 (行高 = 字体 × 2)</div>
+      <div class="with-lines" style="padding: 10px;">
+        <div style="font-size: 20px; line-height: 2.0; margin: 0; background: rgba(34, 197, 94, 0.2);">
+          第一行：行高 40px<br>
+          第二行：行高 40px<br>
+          第三行：行高 40px
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="label">margin: 40px 0 (元素外边距 40px)</div>
+      <div class="with-lines" style="padding: 10px;">
+        <div style="font-size: 20px; line-height: 1.0; margin: 40px 0; background: rgba(59, 130, 246, 0.2);">
+          单行文本（行高紧凑，但上下有 40px margin）
+        </div>
+        <div style="font-size: 20px; line-height: 1.0; margin: 40px 0; background: rgba(239, 68, 68, 0.2);">
+          下一个元素（与上面元素间距 = margin 折叠后的 40px）
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结 -->
+  <div class="demo-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <h2 style="color: white; border-color: white;">💡 核心总结</h2>
+    <table style="width: 100%; color: white;">
+      <tr style="background: rgba(255,255,255,0.1);">
+        <th style="padding: 12px; text-align: left;">属性</th>
+        <th style="padding: 12px; text-align: left;">作用区域</th>
+        <th style="padding: 12px; text-align: left;">影响对象</th>
+        <th style="padding: 12px; text-align: left;">典型用途</th>
+      </tr>
+      <tr>
+        <td style="padding: 12px;"><code style="background: rgba(0,0,0,0.3); color: #10b981;">line-height</code></td>
+        <td style="padding: 12px;">元素<strong>内部</strong></td>
+        <td style="padding: 12px;">行与行之间</td>
+        <td style="padding: 12px;">控制文本行间距、阅读舒适度</td>
+      </tr>
+      <tr style="background: rgba(255,255,255,0.1);">
+        <td style="padding: 12px;"><code style="background: rgba(0,0,0,0.3); color: #10b981;">margin</code></td>
+        <td style="padding: 12px;">元素<strong>外部</strong></td>
+        <td style="padding: 12px;">元素与元素之间</td>
+        <td style="padding: 12px;">控制元素间距、布局分隔</td>
+      </tr>
+    </table>
+
+    <p style="margin-top: 20px; font-size: 18px;">
+      <strong>记忆口诀：</strong><br>
+      📝 line-height 管"内部"，一行文本有多高<br>
+      📦 margin 管"外部"，盒子之间隔多远
+    </p>
+  </div>
+
+</body>
+</html>
