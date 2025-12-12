@@ -634,7 +634,7 @@ const livePreview = useLivePreview(readerRef, {
 **验收标准**：
 
 - ✅ 手动添加 `data-line-type` 后，样式正确显示
-- ✅ 符号颜色为 #9CA3AF
+- ✅ 符号颜色为 `#9CA3AF`
 - ✅ 不使用 JS，纯 CSS 测试通过
 
 ---

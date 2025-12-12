@@ -1,5 +1,24 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
+import { useAuthStore } from '@/modules/auth/auth.store'
 
+// 激活 store
+const authStore = useAuthStore()
+
+onMounted(async () => {
+  console.log('=== 登录测试 ===')
+  try {
+    await authStore.login({
+      username: 'admin@example.com', // 替换
+      password: 'admin123', // 替换
+    })
+    console.log('✅ 登录成功!')
+    console.log('Token:', authStore.token)
+    console.log('isLoggedIn:', authStore.isLoggedIn)
+  } catch (error) {
+    console.log('❌ 登录失败:', error)
+  }
+})
 </script>
 
 <template>
@@ -25,7 +44,6 @@
 
   /* 高度占满整个视口 - 100vh = 100% 视口高度 */
   height: 100vh;
-
 }
 
 /* =============================================================================
@@ -40,22 +58,13 @@
    */
   flex: 1 1 0%;
 
-  /*
-   * overflow: auto - 当内容超出容器高度时，自动显示滚动条
-   * 如果内容没超出，不显示滚动条
-   */
+  /* 当内容超出容器高度时，自动显示滚动条,如果内容没超出，不显示滚动条 */
   overflow: auto;
 
-  /*
-   * display: flex - 让 main-content 自己也成为 Flex 容器
-   * 目的：为内部的 <router-view> 提供 Flex 布局环境
-   */
+  /* 作为 Flex 容器，为内部的 <router-view> 提供 Flex 布局环境 */
   display: flex;
 
-  /*
-   * flex-direction: column - 子元素按列（垂直）排列
-   * 效果：<router-view> 会从上到下垂直排列
-   */
+  /* 子元素按列（垂直）排列 */
   flex-direction: column;
 }
 </style>

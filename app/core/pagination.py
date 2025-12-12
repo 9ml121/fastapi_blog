@@ -24,7 +24,7 @@ from app.core.exceptions import InvalidParametersError
 from app.db.database import Base
 
 # 分页响应中数据项的类型， ItemType只能是 pydantic 模型，不能是 sqlalchemy 模型
-ItemType = TypeVar("ItemType")
+ItemType = TypeVar("ItemType", bound=BaseModel)
 # SQLAlchemy 模型类型（如 Post）
 ModelType = TypeVar("ModelType", bound=Base)
 

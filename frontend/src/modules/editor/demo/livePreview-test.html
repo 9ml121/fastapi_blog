@@ -4,7 +4,7 @@
     <link rel="stylesheet" href="../styles/livePreview.css" />
     <meta charset="UTF-8" />
     <script type="module">
-      import { detectLineType, updateLineTypes } from '../composables/useLivePreview.ts'
+      import { detectLineType, useLivePreview } from '../composables/useLivePreview.ts'
 
       // 挂载到 window 供控制台使用
       window.testUpdateLineTypes = () => {
@@ -15,7 +15,7 @@
 
       // 挂载到 window 供控制台使用
       window.detectLineType = detectLineType
-      window.updateLineTypes = updateLineTypes
+      window.updateLineTypes = useLivePreview().updateLineTypes
 
       console.log('✅ Live Preview 函数已加载，可在控制台使用：')
       console.log('  - detectLineType("## 标题")')
