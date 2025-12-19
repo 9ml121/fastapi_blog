@@ -20,11 +20,11 @@
 
 - Python 3.11+
 - uv 包管理器
-- Docker (用于 PostgreSQL)
+- Docker (用于 PostgreSQL 和 Redis)
 
-### 2. 启动数据库
+### 2. 启动数据库 和 redis
 
-使用 Docker Compose 启动 PostgreSQL 数据库：
+使用 Docker Compose 启动 PostgreSQL 数据库 和 redis：
 
 ```bash
 # 启动数据库容器
@@ -43,6 +43,11 @@ docker-compose logs postgres
 - 数据库: blogdb
 - 用户名: root
 - 密码: Password123@pg
+
+Redis 配置信息：
+
+- 主机: localhost:6379
+- 无密码认证（开发环境）
 
 ### 3. 安装项目依赖
 
@@ -141,14 +146,6 @@ fastapi_blog/
 ├── .env                   # 环境变量
 └── README.md              # 项目说明
 ```
-
-## 开发规范
-
-- 使用 uv 管理所有依赖
-- 遵循 FastAPI 最佳实践
-- 代码提交前运行 ruff 检查
-- 测试覆盖率保持在 70% 以上
-- 数据库模型使用 UUID 作为主键
 
 ## 常见问题
 

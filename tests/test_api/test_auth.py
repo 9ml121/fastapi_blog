@@ -13,7 +13,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.crud import user as crud_user
+from app.crud import user as user_crud
 from app.schemas.user import UserCreate
 
 
@@ -49,7 +49,7 @@ class TestUserRegister:
         assert "id" in data
 
         # 验证数据库
-        db_user = crud_user.get_user_by_email(session, email=test_user_data["email"])
+        db_user = user_crud.get_user_by_email(session, email=test_user_data["email"])
         assert db_user is not None
         assert db_user.username == test_user_data["username"]
 
@@ -57,7 +57,7 @@ class TestUserRegister:
         self, client: TestClient, session: Session, test_user_data: dict
     ):
         """测试注册重复邮箱 - 应该返回 409"""
-        crud_user.create_user(session, user_in=UserCreate(**test_user_data))
+        user_crud.create_user(session, user_in=UserCreate(**test_user_data))
 
         response = client.post("/api/v1/auth/register", json=test_user_data)
 
@@ -70,7 +70,7 @@ class TestUserRegister:
         self, client: TestClient, session: Session, test_user_data: dict
     ):
         """测试注册重复用户名 - 应该返回 409"""
-        crud_user.create_user(session, user_in=UserCreate(**test_user_data))
+        user_crud.create_user(session, user_in=UserCreate(**test_user_data))
 
         new_data = test_user_data.copy()
         new_data["email"] = "different@example.com"
@@ -151,7 +151,7 @@ class TestUserLogin:
         self, client: TestClient, session: Session, test_user_data: dict
     ):
         """测试成功登录"""
-        crud_user.create_user(session, user_in=UserCreate(**test_user_data))
+        user_crud.create_user(session, user_in=UserCreate(**test_user_data))
 
         response = client.post(
             "/api/v1/auth/login",
@@ -170,7 +170,7 @@ class TestUserLogin:
         self, client: TestClient, session: Session, test_user_data: dict
     ):
         """测试使用邮箱登录"""
-        crud_user.create_user(session, user_in=UserCreate(**test_user_data))
+        user_crud.create_user(session, user_in=UserCreate(**test_user_data))
 
         response = client.post(
             "/api/v1/auth/login",
@@ -194,7 +194,7 @@ class TestUserLogin:
     ):
         """测试错误密码登录 - 应该返回 401"""
         # 先使用 crud_user.create_user() 创建用户
-        crud_user.create_user(session, user_in=UserCreate(**test_user_data))
+        user_crud.create_user(session, user_in=UserCreate(**test_user_data))
 
         # 使用错误的密码登录（例如 "WrongPassword123"）
         response = client.post(
@@ -238,7 +238,7 @@ class TestGetCurrentUser:
         self, client: TestClient, session: Session, test_user_data: dict
     ) -> dict:
         """创建用户并返回认证 headers"""
-        crud_user.create_user(session, user_in=UserCreate(**test_user_data))
+        user_crud.create_user(session, user_in=UserCreate(**test_user_data))
 
         response = client.post(
             "/api/v1/auth/login",

@@ -117,7 +117,6 @@ export function useHistory() {
   const clearHistory = (): void => {
     historyState.transactions = []
     historyState.currentIndex = -1
-    console.log('[useHistory] 历史记录已清空')
   }
 
   // 6️⃣ 核心方法：获取历史栈信息（调试用)

@@ -10,6 +10,8 @@ User CRUD - 用户数据操作层
 4. 删除操作使用软删除（设置 deleted_at）
 """
 
+import random
+import string
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -18,30 +20,52 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import (
     EmailAlreadyExistsError,
     InvalidPasswordError,
+    InvalidVerificationCodeError,
     ResourceNotFoundError,
     UsernameAlreadyExistsError,
 )
 from app.core.security import hash_password, verify_password
+from app.db.redis_client import verify_code
 from app.models.user import User
 from app.schemas.user import UserCreate, UserProfileUpdate, UserUpdate
 
 
-#  =================================== 用户查询 ===================================
+#  ===================== 辅助函数 ===================
+def _generate_unique_username(db: Session, email: str) -> str:
+    """基于邮箱生成唯一的用户名"""
+    # 1. 提取邮箱前缀 (split 是分割字符串，[0] 取第一部分)
+    # email: "zhang.san@example.com" -> prefix: "zhang.san"
+    prefix = email.split("@")[0]
+
+    # 2. 清理非法字符 (可选，但推荐)
+    # 将 "." 替换为 "_"，确保符合 URL 规范
+    # "zhang.san" -> "zhang_san"
+    base_username = prefix.replace(".", "_")
+
+    # 3. 第一次尝试：直接用前缀
+    candidate = base_username
+
+    if not get_user_by_username(db, username=candidate):
+        return candidate
+
+    # 4. 如果冲突，开始循环尝试追加随机后缀
+    while True:
+        # 生成 4 位随机字符 (数字+小写字母)，如 "8a2b"
+        random_suffix = "".join(
+            random.choices(string.ascii_lowercase + string.digits, k=4)
+        )
+
+        # 拼接：zhang_san_8a2b
+        candidate = f"{base_username}_{random_suffix}"
+
+        # 再次查库
+        if not get_user_by_username(db, username=candidate):
+            return candidate
+
+
+#  ===================== 用户查询 ===================
 def get_user_by_id(db: Session, user_id: UUID) -> User | None:
-    """通过用户 ID 查询用户（主键查询）
-
-    设计要点：
-    - 主键查询性能最优（数据库索引）
-    - 常用于从 JWT token 解析出 user_id 后查询用户
-    - 过滤软删除用户（deleted_at.is_(None)）
-
-    Args:
-        db: 数据库会话对象
-        user_id: 用户 UUID
-
-    Returns:
-        User 模型对象或 None
-    """
+    """通过用户 ID 查询用户（主键查询）"""
     return (
         db.query(User)
         .filter(
@@ -53,20 +77,7 @@ def get_user_by_id(db: Session, user_id: UUID) -> User | None:
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
-    """通过邮箱地址查询用户
-
-    设计要点：
-    - 邮箱有唯一约束和索引，查询性能好
-    - 用于登录（邮箱登录）、注册时检查重复
-    - 过滤软删除用户
-
-    Args:
-        db: 数据库会话对象
-        email: 要查询的邮箱地址
-
-    Returns:
-        User 模型对象或 None
-    """
+    """通过邮箱地址查询用户"""
     return (
         db.query(User)
         .filter(
@@ -78,20 +89,7 @@ def get_user_by_email(db: Session, email: str) -> User | None:
 
 
 def get_user_by_username(db: Session, username: str) -> User | None:
-    """通过用户名查询用户
-
-    设计要点：
-    - 用户名有唯一约束和索引
-    - 用于登录（用户名登录）、注册时检查重复
-    - 过滤软删除用户
-
-    Args:
-        db: 数据库会话对象
-        username: 用户名
-
-    Returns:
-        User 模型对象或 None
-    """
+    """通过用户名查询用户"""
     return (
         db.query(User)
         .filter(
@@ -104,37 +102,41 @@ def get_user_by_username(db: Session, username: str) -> User | None:
 
 #  =================================== 用户创建 ===================================
 def create_user(db: Session, *, user_in: UserCreate) -> User:
-    """创建新用户（用户注册）
+    """创建新用户
 
-    Args:
-        db: 数据库会话对象
-        user_in: Pydantic UserCreate schema 对象，包含新用户信息
-
-    Returns:
-        新创建的 User 模型对象
+    description: 包含验证码验证、邮箱唯一性检查、用户名生成、密码哈希逻辑
     """
-    # 1.检查邮箱是否已存在
-    if user_in.email:
-        existing_user = get_user_by_email(db, email=user_in.email)
-        if existing_user:
-            raise EmailAlreadyExistsError(email=user_in.email)
+    # 1. 验证码校验
+    if not verify_code(email=user_in.email, code=user_in.verification_code):
+        raise InvalidVerificationCodeError()
 
-    # 2.检查用户名是否已存在
-    if user_in.username:
-        existing_user = get_user_by_username(db, username=user_in.username)
-        if existing_user:
-            raise UsernameAlreadyExistsError(username=user_in.username)
+    # 2.检查邮箱唯一性
+    if get_user_by_email(db, email=user_in.email):
+        raise EmailAlreadyExistsError(email=user_in.email)
 
-    # 3. 从输入的 schema 中提取不含密码的数据
-    user_data = user_in.model_dump(exclude={"password"})
+    # 3. 生成唯一的用户名
+    username = _generate_unique_username(db, email=user_in.email)
 
-    # 4. 对密码进行哈希处理
+    # === 生成默认头像 URL ===
+    # 使用 ui-avatars，背景随机，颜色白色：https://ui-avatars.com/
+    # 也可以换成 DiceBear: https://dicebear.com
+    # avatar_url = f"https://ui-avatars.com/api/?name={username}&background=random&color=fff"
+    avatar_url = f"https://api.dicebear.com/9.x/adventurer/svg?seed={username}"
+
+    # 4. 处理密码与数据转换(排除 schema 中有但 model 中没有的字段)
+    user_data = user_in.model_dump(exclude={"password", "verification_code"})
     hashed_password = hash_password(user_in.password)
 
-    # 5. 创建 SQLAlchemy User 模型实例
-    db_user = User(**user_data, password_hash=hashed_password)
+    # 5. 创建模型实例并存库
+    db_user = User(
+        **user_data,
+        username=username,
+        avatar=avatar_url,
+        password_hash=hashed_password,
+        is_active=True,
+        is_verified=True,
+    )
 
-    # 6. 将实例添加到数据库会话、提交事务、刷新实例
     db.add(db_user)
     db.commit()
     db.refresh(db_user)

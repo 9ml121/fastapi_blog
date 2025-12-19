@@ -19,6 +19,7 @@
 ### 1.1 HTTP 的无状态特性
 
 **问题场景**：
+
 ```
 用户 A 第一次访问：
 GET /api/posts  → 服务器返回文章列表
@@ -28,11 +29,13 @@ GET /api/posts  → 服务器不知道这是同一个用户！
 ```
 
 **HTTP 协议的特点**：
+
 - ❌ **无状态**：每次请求都是独立的，服务器不记得上次是谁访问的
 - ❌ **无记忆**：不知道用户是否登录过
 - ❌ **不安全**：任何人都可以访问公开接口
 
 **需要解决的问题**：
+
 1. 如何识别用户身份？（Authentication - 认证）
 2. 如何记住用户登录状态？（Session Management - 会话管理）
 3. 如何保护敏感数据？（Authorization - 授权）
@@ -87,11 +90,13 @@ GET /api/posts  → 服务器不知道这是同一个用户！
 ```
 
 **优点**：
+
 - ✅ 服务器完全控制（可随时撤销 session）
 - ✅ 安全性好（session 数据在服务器端）
 - ✅ 浏览器自动处理 Cookie
 
 **缺点**：
+
 - ❌ **服务器有状态**：需要存储 session（内存/Redis/数据库）
 - ❌ **扩展性差**：多服务器需要共享 session（粘性会话/集中式存储）
 - ❌ **跨域问题**：Cookie 不支持跨域
@@ -123,6 +128,7 @@ GET /api/posts  → 服务器不知道这是同一个用户！
 ```
 
 **优点**：
+
 - ✅ **无状态**：服务器不需要存储 session
 - ✅ **可扩展**：多服务器无需共享状态
 - ✅ **跨域友好**：通过 HTTP Header 传递
@@ -130,6 +136,7 @@ GET /api/posts  → 服务器不知道这是同一个用户！
 - ✅ **自包含**：Token 包含所有用户信息
 
 **缺点**：
+
 - ❌ **无法主动撤销**：Token 在有效期内始终有效
 - ❌ **Token 较大**：比 session_id 占用更多带宽
 - ❌ **安全依赖密钥**：密钥泄露所有 Token 失效
@@ -147,6 +154,7 @@ GET /api/posts  → 服务器不知道这是同一个用户！
 | **安全性** | 高（数据在服务器） | 中（依赖密钥安全） |
 
 **选择建议**：
+
 - **传统 Web 应用**：Session-Cookie（单体应用、强管理需求）
 - **现代 Web/移动应用**：JWT Token（微服务、跨域、APP）
 - **混合方案**：短期 JWT + 长期 Refresh Token
@@ -158,6 +166,7 @@ GET /api/posts  → 服务器不知道这是同一个用户！
 ### 3.1 JWT 结构详解
 
 **完整的 JWT Token**：
+
 ```
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMDAsInVzZXJuYW1lIjoiemhhbmdzYW4iLCJleHAiOjE3Mjg5ODk2MDB9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
 ```
@@ -180,11 +189,13 @@ Header.Payload.Signature
 ```
 
 **Base64 编码后**：
+
 ```
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
 ```
 
 **作用**：
+
 - 声明 Token 类型（JWT）
 - 声明签名算法（用于验证）
 
@@ -204,6 +215,7 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
 ```
 
 **Base64 编码后**：
+
 ```
 eyJ1c2VyX2lkIjoxMDAsInVzZXJuYW1lIjoiemhhbmdzYW4iLCJleHAiOjE3Mjg5ODk2MDB9
 ```
@@ -221,6 +233,7 @@ eyJ1c2VyX2lkIjoxMDAsInVzZXJuYW1lIjoiemhhbmdzYW4iLCJleHAiOjE3Mjg5ODk2MDB9
 | `jti` | JWT ID          | Token 唯一标识      | "uuid-xxx"        |
 
 **自定义字段（Private Claims）**：
+
 - 可以添加任何业务数据（user_id、username、role 等）
 - ⚠️ **注意**：Payload 是 Base64 编码，**不是加密**，任何人都可以解码查看！
 
@@ -229,6 +242,7 @@ eyJ1c2VyX2lkIjoxMDAsInVzZXJuYW1lIjoiemhhbmdzYW4iLCJleHAiOjE3Mjg5ODk2MDB9
 #### **Part 3: Signature（签名）**
 
 **生成过程**：
+
 ```javascript
 // 1. 组合 Header 和 Payload（Base64 编码后）
 const data = base64(header) + "." + base64(payload)
@@ -241,6 +255,7 @@ const encodedSignature = base64(signature)
 ```
 
 **示例**：
+
 ```python
 import hmac
 import hashlib
@@ -265,6 +280,7 @@ print(encoded_signature)  # SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
 ```
 
 **签名的作用**：
+
 - ✅ **防篡改**：任何人修改 Header 或 Payload，签名就会失效
 - ✅ **验证来源**：只有知道密钥的服务器才能生成有效签名
 - ✅ **完整性**：确保 Token 没有被修改
@@ -306,6 +322,7 @@ def verify_jwt(token: str, secret_key: str) -> dict | None:
 ```
 
 **验证步骤**：
+
 1. ✅ **格式检查**：是否是 `Header.Payload.Signature` 格式
 2. ✅ **签名验证**：重新计算签名并比对（防篡改）
 3. ✅ **过期检查**：检查 `exp` 字段
@@ -457,11 +474,13 @@ async def get_posts(current_user: User = Depends(get_current_user)):
 #### **威胁 1：Token 泄露**
 
 **场景**：
+
 - XSS 攻击：恶意脚本窃取 localStorage 中的 Token
 - 中间人攻击：HTTP 传输被截获
 - 日志泄露：Token 被记录到日志文件
 
 **防护措施**：
+
 ```javascript
 // ❌ 错误：存储在 localStorage（易受 XSS 攻击）
 localStorage.setItem("token", token)
@@ -477,10 +496,12 @@ document.cookie = `token=${token}; HttpOnly; Secure; SameSite=Strict`
 #### **威胁 2：Token 篡改**
 
 **场景**：
+
 - 攻击者尝试修改 Payload 提升权限
 - 修改过期时间延长有效期
 
 **示例攻击**：
+
 ```javascript
 // 原始 Token Payload
 {
@@ -498,6 +519,7 @@ document.cookie = `token=${token}; HttpOnly; Secure; SameSite=Strict`
 ```
 
 **防护措施**：
+
 - ✅ **签名验证**：任何修改都会导致签名失效
 - ✅ **密钥保密**：SECRET_KEY 绝对不能泄露
 - ✅ **算法固定**：防止 `alg: "none"` 攻击
@@ -505,10 +527,12 @@ document.cookie = `token=${token}; HttpOnly; Secure; SameSite=Strict`
 #### **威胁 3：重放攻击**
 
 **场景**：
+
 - 攻击者截获有效 Token
 - 在过期前重复使用
 
 **防护措施**：
+
 ```python
 # ✅ 方案1：添加 jti（JWT ID）+ 黑名单
 payload = {
@@ -545,6 +569,7 @@ SECRET_KEY = secrets.token_urlsafe(32)
 ```
 
 **密钥管理**：
+
 ```bash
 # ✅ 使用环境变量（不要硬编码）
 # .env 文件
@@ -566,6 +591,7 @@ settings = Settings()  # 从环境变量加载
 ```
 
 **密钥轮换**：
+
 ```python
 # ✅ 支持多密钥验证（密钥轮换）
 CURRENT_SECRET_KEY = "new-key"
@@ -630,6 +656,7 @@ async def verify_token(token: str):
 ```
 
 **优缺点**：
+
 - ✅ 可以立即撤销 Token
 - ❌ 引入了状态（Redis），失去了无状态优势
 - ❌ 需要额外的存储和查询
@@ -688,6 +715,7 @@ async def logout(refresh_token: str):
 ```
 
 **流程**：
+
 ```
 1. 用户登录 → 获得 Access Token (15分钟) + Refresh Token (7天)
 2. 访问 API → 使用 Access Token
@@ -696,6 +724,7 @@ async def logout(refresh_token: str):
 ```
 
 **优缺点**：
+
 - ✅ 平衡了安全性和可用性
 - ✅ Refresh Token 可撤销（存储在数据库）
 - ✅ Access Token 短期，泄露影响小
@@ -891,6 +920,7 @@ async function refreshToken() {
 ### 何时使用 JWT？
 
 **✅ 适合 JWT 的场景**：
+
 - 微服务架构（多服务器无状态）
 - 跨域 API（前后端分离）
 - 移动应用（原生 APP）
@@ -898,12 +928,14 @@ async function refreshToken() {
 - 短期 Token（几分钟到几小时）
 
 **❌ 不适合 JWT 的场景**：
+
 - 需要频繁撤销 Token
 - 长期会话（几天到几周）
 - 高敏感操作（支付、修改密码）
 - 实时性要求高（即时撤销）
 
 **推荐方案**：
+
 - **短期 JWT (15分钟) + Refresh Token (7天)**：平衡安全和体验
 - **敏感操作二次验证**：如修改密码需要再次输入旧密码
 
@@ -931,6 +963,7 @@ async function refreshToken() {
 ---
 
 **记住核心要点**：
+
 - JWT = Header.Payload.Signature
 - Payload 不加密，不放敏感数据
 - 签名防篡改，密钥要保密
@@ -940,6 +973,7 @@ async function refreshToken() {
 ### 配置 JWT 相关的环境变量和设置
 
   在应用中添加 JWT 所需的配置项，包括：
+
   1. SECRET_KEY - 用于签名 JWT 的密钥
   2. ALGORITHM - 加密算法（HS256）
   3. ACCESS_TOKEN_EXPIRE_MINUTES - Token 过期时间
@@ -951,35 +985,35 @@ async function refreshToken() {
 
 #### 1. SECRET_KEY（密钥）
 
-  - 作用：JWT 签名的核心，防止 token 被篡改
-  - 原理：使用 HMAC-SHA256 算法时，需要一个密钥来生成签名
+- 作用：JWT 签名的核心，防止 token 被篡改
+- 原理：使用 HMAC-SHA256 算法时，需要一个密钥来生成签名
   signature = HMAC-SHA256(
       secret_key,
       base64UrlEncode(header) + "." + base64UrlEncode(payload)
   )
-  - 安全要求：
-    - 足够长（建议 32+ 字符）
-    - 足够随机（使用加密安全的随机数生成器）
-    - 绝对保密（不能泄露，不能提交到 Git）
+- 安全要求：
+  - 足够长（建议 32+ 字符）
+  - 足够随机（使用加密安全的随机数生成器）
+  - 绝对保密（不能泄露，不能提交到 Git）
 
 #### 2. ALGORITHM（算法）
 
-  - 作用：指定 JWT 使用的加密算法
-  - 常见选择：
-    - HS256（HMAC-SHA256）- 对称加密，需要密钥
-    - RS256（RSA-SHA256）- 非对称加密，需要公钥/私钥对
-  - 我们的选择：HS256（简单、高效、适合单体应用）
+- 作用：指定 JWT 使用的加密算法
+- 常见选择：
+  - HS256（HMAC-SHA256）- 对称加密，需要密钥
+  - RS256（RSA-SHA256）- 非对称加密，需要公钥/私钥对
+- 我们的选择：HS256（简单、高效、适合单体应用）
 
 #### 3. ACCESS_TOKEN_EXPIRE_MINUTES（过期时间）
 
-  - 作用：控制 token 的有效期
-  - 平衡考虑：
-    - 太短：用户频繁需要重新登录，体验差
-    - 太长：token 被盗后危害时间长，安全性差
-  - 业界实践：
-    - 短期 token：15-60 分钟（需要刷新机制）
-    - 长期 token：7-30 天（"记住我"功能）
-    - 我们先用 30 分钟（适合学习和开发）
+- 作用：控制 token 的有效期
+- 平衡考虑：
+  - 太短：用户频繁需要重新登录，体验差
+  - 太长：token 被盗后危害时间长，安全性差
+- 业界实践：
+  - 短期 token：15-60 分钟（需要刷新机制）
+  - 长期 token：7-30 天（"记住我"功能）
+  - 我们先用 30 分钟（适合学习和开发）
 
   ---
   📝 实施步骤
@@ -996,9 +1030,10 @@ async function refreshToken() {
   3. 生产环境：必须使用加密安全的随机密钥
 
   为什么 SECRET_KEY 这么重要？
-  - 如果密钥泄露 → 攻击者可以伪造任何用户的 token
-  - 如果密钥太弱 → 可以通过暴力破解获得
-  - 如果多环境共用 → 测试环境的 token 可以在生产环境使用
+
+- 如果密钥泄露 → 攻击者可以伪造任何用户的 token
+- 如果密钥太弱 → 可以通过暴力破解获得
+- 如果多环境共用 → 测试环境的 token 可以在生产环境使用
 
   实用技巧：在 .env.example 中提供生成命令（我们已经做到了✅）
   生成随机密钥：`python -c "import secrets; print(secrets.token_urlsafe(32))"`

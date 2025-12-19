@@ -17,7 +17,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.crud import user as crud_user
+from app.crud import user as user_crud
 from app.models.user import User, UserRole
 from app.schemas.user import UserCreate
 
@@ -161,7 +161,7 @@ class TestUpdateCurrentUserProfile:
     ):
         """✅ 异常数据：邮箱冲突 - 新邮箱已被其他用户占用"""
         # 创建另一个用户
-        other_user = crud_user.create_user(
+        other_user = user_crud.create_user(
             session,
             user_in=UserCreate(
                 username="otheruser",
@@ -340,7 +340,7 @@ def admin_user(session: Session) -> User:
         username="admin",
         nickname="管理员",
     )
-    admin = crud_user.create_user(db=session, user_in=admin_in)
+    admin = user_crud.create_user(db=session, user_in=admin_in)
     admin.role = UserRole.ADMIN
     session.commit()
     return admin
@@ -366,7 +366,7 @@ def normal_user(session: Session) -> User:
         username="testuser",
         nickname="测试用户",
     )
-    return crud_user.create_user(db=session, user_in=user_in)
+    return user_crud.create_user(db=session, user_in=user_in)
 
 
 @pytest.fixture
@@ -378,7 +378,7 @@ def another_user(session: Session) -> User:
         username="anotheruser",
         nickname="另一个用户",
     )
-    return crud_user.create_user(db=session, user_in=user_in)
+    return user_crud.create_user(db=session, user_in=user_in)
 
 
 @pytest.fixture

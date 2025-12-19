@@ -153,8 +153,8 @@ def create_user(user_data: UserCreate, db: Session):
 
 **核心原则**：
 
--   Schema 关注"数据如何从外部进入系统"和"数据如何展示给外部"
--   Model 关注"数据如何在数据库中存储"
+- Schema 关注"数据如何从外部进入系统"和"数据如何展示给外部"
+- Model 关注"数据如何在数据库中存储"
 
 ---
 
@@ -539,13 +539,13 @@ class UserProfile(BaseModel):
 >
 > 你可能注意到有两种方式可以约束字符串和整数：
 >
-> 1.  **`constr`/`conint` 风格**: `name: constr(min_length=1)`
-> 2.  **`Field` 风格**: `name: str = Field(min_length=1)`
+> 1. **`constr`/`conint` 风格**: `name: constr(min_length=1)`
+> 2. **`Field` 风格**: `name: str = Field(min_length=1)`
 >
 > **区别**：
 >
-> -   `constr` 是一个返回“带约束的类型”的函数，是 Pydantic V1 的旧风格。
-> -   `Field` 是 Pydantic V2 推荐的现代风格，它将约束作为字段的元数据，更清晰、功能更强大（如支持 `description`, `example` 等）。
+> - `constr` 是一个返回“带约束的类型”的函数，是 Pydantic V1 的旧风格。
+> - `Field` 是 Pydantic V2 推荐的现代风格，它将约束作为字段的元数据，更清晰、功能更强大（如支持 `description`, `example` 等）。
 >
 > **结论：在我们的项目中，应优先使用 `Field` 风格。**
 
@@ -1138,18 +1138,18 @@ except ValidationError as e:
 
 阅读完本文档后，你应该能够：
 
--   ✅ 理解为什么需要独立的数据验证层
--   ✅ 区分 Pydantic Schema 和 SQLAlchemy Model 的职责
--   ✅ 设计符合 RESTful 规范的 Schema 结构
--   ✅ 使用验证器实现复杂的数据验证逻辑
--   ✅ 在 FastAPI 中正确使用 Pydantic
--   ✅ 根据模型用途选择合适的 ConfigDict 配置
--   ✅ 识别和避免 Schema 设计中的安全陷阱
+- ✅ 理解为什么需要独立的数据验证层
+- ✅ 区分 Pydantic Schema 和 SQLAlchemy Model 的职责
+- ✅ 设计符合 RESTful 规范的 Schema 结构
+- ✅ 使用验证器实现复杂的数据验证逻辑
+- ✅ 在 FastAPI 中正确使用 Pydantic
+- ✅ 根据模型用途选择合适的 ConfigDict 配置
+- ✅ 识别和避免 Schema 设计中的安全陷阱
 
 ---
 
 ## 参考资源
 
--   [Pydantic 官方文档](https://docs.pydantic.dev/)
--   [FastAPI 数据验证教程](https://fastapi.tiangolo.com/tutorial/body/)
--   [Pydantic V2 迁移指南](https://docs.pydantic.dev/latest/migration/)
+- [Pydantic 官方文档](https://docs.pydantic.dev/)
+- [FastAPI 数据验证教程](https://fastapi.tiangolo.com/tutorial/body/)
+- [Pydantic V2 迁移指南](https://docs.pydantic.dev/latest/migration/)

@@ -48,6 +48,22 @@ class AppError(Exception):
 
 
 # ============ 认证相关异常 ============
+class InvalidVerificationCodeError(AppError):
+    """无效验证码异常
+
+    使用场景：用户注册或修改敏感信息时，填写的验证码错误或已过期
+
+    Example:
+        >>> if not verify_code(email, code):
+        >>>     raise InvaidVerificationCodeError()
+    """
+
+    def __init__(self, message: str = "验证码无效或已过期"):
+        super().__init__(
+            code="INVALID_VERIFICATION_CODE",
+            message=message,
+            status_code=400,
+        )
 
 
 class EmailAlreadyExistsError(AppError):

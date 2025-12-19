@@ -21,7 +21,7 @@ from app.core.security import create_access_token
 from app.crud import comment as comment_crud
 from app.crud import follow as follow_crud
 from app.db.database import Base
-from app.models import Comment, Post, PostView, Tag, User  # noqa: F401
+from app.models import Comment, Post, PostView, User
 from app.models.notification import Notification
 from app.models.post import PostStatus
 from app.models.user import UserRole

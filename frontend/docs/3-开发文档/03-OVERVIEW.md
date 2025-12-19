@@ -143,4 +143,43 @@ fastapi_blog/
 
 ---
 
-# 📍 Next: 待定（后端/其他前端功能）
+## Phase 3: 登录功能开发
+
+**目标**：实现完整的用户登录功能，包括前端 UI 和 API 对接
+
+### 1. 前端 UI 组件
+
+- ✅ 登录页面基础布局（`LoginView.vue`）
+- ✅ 品牌 Logo 组件（`BrandLogo.vue`）
+- ✅ 输入框组件（`FormInput.vue`）
+- ✅ 密码可见性切换
+- ✅ 登录按钮加载状态动画
+- ✅ 错误提示显示
+
+### 2. 认证模块 (`modules/auth/`)
+
+- ✅ Token 管理工具（`token.ts`）
+- ✅ Axios 实例 + 拦截器（`api.ts`）
+- ✅ Pinia Auth Store（`auth.store.ts`）
+
+### 3. API 对接
+
+- ✅ 登录 API 调用（OAuth2 表单格式）
+- ✅ 登录成功跳转（`router.push`）
+- ✅ 401 错误区分处理（登录失败 vs Token 过期）
+
+### 4. 路由守卫
+
+- ✅ 全局前置守卫（`beforeEach`）
+- ✅ 路由 meta 权限标记（`requiresAuth`）
+- ✅ 未登录重定向到登录页
+
+### 相关文档
+
+- [登录功能 PRD](../1-需求文档/01-登录功能PRD.md)
+- [登录功能概设](../2-设计文档/登录功能/登录功能概设.md)
+- [登录页面 UI 设计](../2-设计文档/登录功能/登录页面UI设计.md)
+
+---
+
+# 📍 Next: 待定（注册功能 / 文章管理 / 其他）

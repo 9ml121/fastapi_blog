@@ -7,10 +7,10 @@
  * 4. slots	 自定义前缀/后缀图标
  */
 
-// 1. 定义 Props
-// defineProps<{
-//   modelValue: string
-// }>()
+// 禁用属性自动继承，手动通过 v-bind="$attrs" 绑定到 input 上
+defineOptions({
+  inheritAttrs: false,
+})
 
 const props = withDefaults(
   defineProps<{
@@ -23,19 +23,6 @@ const props = withDefaults(
   },
 )
 
-// 2. 定义 Emits - 发射更新事件
-// const emit = defineEmits<{
-//   (e:'update:modelValue', value: string): void;
-// }>();
-
-// const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
-
-// 3. 处理输入事件
-// const handleInput = (event: Event) => {
-//   const target = event.target as HTMLInputElement
-//   emit('update:modelValue', target.value)
-// }
-
 const modelValue = defineModel<string>({ required: true })
 </script>
 
@@ -47,9 +34,9 @@ const modelValue = defineModel<string>({ required: true })
     </div>
 
     <!-- 输入框 -->
-    <!-- <input class="input-inner" :value="modelValue" @input="handleInput" /> -->
     <input
       class="input-inner"
+      v-bind="$attrs"
       v-model="modelValue"
       :type="props.type"
       :placeholder="props.placeholder"
@@ -64,18 +51,21 @@ const modelValue = defineModel<string>({ required: true })
 
 <style scoped>
 .input-wrapper {
-  display: flex; /* 水平排列 */
-  align-items: center; /* 垂直居中 */
+  display: flex;
+  align-items: center;
   width: 100%;
-  height: 48px;
-  border: 1px solid #e5e7eb;
+  height: 45px;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
+  background-color: var(--color-bg-input);
+  transition: all 0.3s ease;
 }
 
-/* 聚焦状态：边框变蓝 + 浅蓝光晕 */
+/*子元素获得焦点时 ：边框变蓝 + 浅蓝光晕 */
 .input-wrapper:focus-within {
-  border-color: #3b82f6; /* 聚焦时边框变蓝 */
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  background-color: transparent;
 }
 
 .input-inner {
@@ -83,20 +73,21 @@ const modelValue = defineModel<string>({ required: true })
   height: 100%;
   border: none;
   outline: none;
-  padding: 0 16px;
+  padding: 0.75rem 1rem;
+  background-color: transparent; /* 关键：设为透明，让 wrapper 的背景色透出来 */
 }
 
 .input-prefix {
-  padding-left: 16px;
+  padding-left: 1rem;
   display: flex;
   align-items: center;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .input-suffix {
-  padding-right: 16px;
+  padding-right: 1rem;
   display: flex;
   align-items: center;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 </style>

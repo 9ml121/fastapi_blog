@@ -1,42 +1,46 @@
-/**
- * Auth Store
- * 管理用户登录状态
- */
-
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { loginApi, type LoginParams } from './api'
-import { getToken, setToken, removeToken } from './token'
+import {
+  loginApi,
+  registerApi,
+  type LoginParams,
+  type RegisterParams,
+  type User,
+} from '@/api/auth.api'
+import { getToken, setToken, removeToken } from '@/utils/token'
 
 export const useAuthStore = defineStore('auth', () => {
   // ========== State ==========
   const token = ref<string | null>(getToken())
-  const user = ref<{ username: string } | null>(null)
-  const isLoading = ref(false)
+  const user = ref<User | null>(null)
+
 
   // ========== Getters ==========
+  // !! 双重否定，将 token 转为布尔值
   const isLoggedIn = computed(() => !!token.value)
 
+
   // ========== Actions ==========
-  /**
-   * 用户登录
-   */
-  async function login(params: LoginParams) {
-    isLoading.value = true
-    try {
-      const response = await loginApi(params)
-      token.value = response.access_token
-      setToken(response.access_token)
-      // 可选：从 token 解析用户信息，或调用 /me 接口
-      user.value = { username: params.username }
-    } finally {
-      isLoading.value = false
-    }
+  async function register(params: RegisterParams) {
+    const response = await registerApi(params)
+    // 保存 token 到 pinia state（响应式）+ localStorage(持久化)
+    token.value = response.access_token
+    setToken(response.access_token)
+
+    // 保存用户信息
+    user.value = response.user
   }
 
-  /**
-   * 用户登出
-   */
+  async function login(params: LoginParams) {
+    const response = await loginApi(params)
+    // 保存 token 到 pinia state（响应式）+ localStorage(持久化)
+    token.value = response.access_token
+    setToken(response.access_token)
+
+    // 保存用户信息
+    user.value = response.user
+  }
+
   function logout() {
     token.value = null
     user.value = null
@@ -58,12 +62,12 @@ export const useAuthStore = defineStore('auth', () => {
     // State
     token,
     user,
-    isLoading,
     // Getters
     isLoggedIn,
     // Actions
     checkAuth,
     login,
     logout,
+    register,
   }
 })

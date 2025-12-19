@@ -11,11 +11,13 @@
 **描述：** 初始数据库结构的完整 SQL DDL 语句（由 Alembic 自动生成）
 
 **生成命令：**
+
 ```bash
 PYTHONPATH=. uv run alembic upgrade head --sql > docs/database/initial_schema.sql
 ```
 
 **包含内容：**
+
 - 所有表的 CREATE TABLE 语句（7 个表）
 - 所有索引的 CREATE INDEX 语句
 - 所有枚举类型的 CREATE TYPE 语句（UserRole, PostStatus）
@@ -24,6 +26,7 @@ PYTHONPATH=. uv run alembic upgrade head --sql > docs/database/initial_schema.sq
 - Alembic 版本追踪表
 
 **用途：**
+
 1. **文档参考** - 查看完整的数据库结构
 2. **代码审查** - 在 Pull Request 中审查表结构变更
 3. **手动部署** - 在不能使用 Alembic 的环境中手动执行
@@ -38,6 +41,7 @@ PYTHONPATH=. uv run alembic upgrade head --sql > docs/database/initial_schema.sq
 **位置：** `alembic/versions/*.py`
 
 **优点：**
+
 - ✅ 版本控制友好（Python 代码）
 - ✅ 跨数据库兼容（PostgreSQL/MySQL/SQLite）
 - ✅ 支持复杂逻辑（条件判断、数据迁移）
@@ -45,6 +49,7 @@ PYTHONPATH=. uv run alembic upgrade head --sql > docs/database/initial_schema.sq
 - ✅ 支持回滚（downgrade）
 
 **使用场景：**
+
 - 开发环境：直接使用 `alembic upgrade head`
 - 生产环境：执行前先 `alembic upgrade head --sql` 审查
 
@@ -55,11 +60,13 @@ PYTHONPATH=. uv run alembic upgrade head --sql > docs/database/initial_schema.sq
 **位置：** `docs/database/*.sql`
 
 **优点：**
+
 - ✅ 可读性强（标准 SQL）
 - ✅ 可以用 SQL 工具直接执行
 - ✅ 便于非 Python 环境使用
 
 **使用场景：**
+
 - 文档和审查
 - 手动部署或回滚
 - 数据库结构对比
@@ -129,11 +136,13 @@ PYTHONPATH=. uv run alembic current
 ### **3. 何时保存 SQL 文件**
 
 **需要保存：**
+
 - ✅ 重大版本发布前（作为文档）
 - ✅ 生产环境部署前（审查和备份）
 - ✅ 数据库结构初始化时
 
 **不需要保存：**
+
 - ❌ 每次开发调试的迁移
 - ❌ 临时的实验性变更
 

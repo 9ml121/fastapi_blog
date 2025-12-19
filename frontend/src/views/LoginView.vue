@@ -1,10 +1,15 @@
 <script lang="ts" setup>
 import BrandLogo from '@/components/BrandLogo.vue'
-import LoginCard from '@/components/BaseCard.vue'
 import FormInput from '@/components/FormInput.vue'
+import { useAuthStore } from '@/stores/auth.store'
 
+import { ArrowRight, Eye, EyeOff, Loader2, LockKeyhole, Mail } from 'lucide-vue-next'
 import { ref } from 'vue'
-import { LockKeyhole, Mail, Eye, EyeOff, Loader2 } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+
+// ========== 状态初始化 ==========
+const authStore = useAuthStore()
+const router = useRouter()
 
 // 表单数据
 const username = ref('')
@@ -19,79 +24,116 @@ const isLoading = ref(false)
 // 记住我状态
 const rememberMe = ref(false)
 
+// 错误提示信息
+const errorMessage = ref('')
+
+// ========== 方法定义 ==========
 // 切换密码可见性
 const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
 
-// todo 登录处理（暂时模拟）
+// 登录处理
 const handleLogin = async () => {
+  errorMessage.value = ''
   isLoading.value = true
 
-  // 模拟网络请求延迟
-  await new Promise((resolve) => setTimeout(resolve, 2000))
-
-  console.log('登录信息:', {
-    username: username.value,
-    password: password.value,
-  })
-  isLoading.value = false
+  try {
+    await authStore.login({
+      username: username.value,
+      password: password.value,
+      remember: rememberMe.value,
+    })
+    // 登录成功，跳转到首页
+    router.push('/')
+  } catch (error) {
+    errorMessage.value = '用户名或密码错误'
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
 <template>
   <div class="auth-container">
-    <div class="top-toolbar">此处待开发暗色切换按钮和国际化？？</div>
+    <div class="top-toolbar">top-toolbar</div>
+
     <div class="auth-card">
-      <div class="auth-logo">
-        <BrandLogo size="large" :showName="true" direction="vertical" />
+      <div class="auth-header">
+        <div class="auth-logo">
+          <BrandLogo size="medium" :showName="true" direction="vertical" />
+        </div>
+        <h1 class="auth-title">登录账户</h1>
+        <p class="auth-subtitle">请输入您的凭证继续</p>
       </div>
 
-      <!-- 用户名输入框 -->
-      <FormInput v-model="username" placeholder="请输入邮箱地址">
-        <template v-slot:prefix>
-          <Mail :size="20" />
-        </template>
-        <template v-slot:suffix></template>
-      </FormInput>
+      <form class="auth-form" @submit.prevent="handleLogin">
+        <div class="form-group">
+          <label for="email"><b>邮箱</b></label>
+          <FormInput
+            v-model="username"
+            id="email"
+            type="email"
+            placeholder="请输入邮箱地址"
+            autocomplete="email"
+            required
+          >
+            <template v-slot:prefix>
+              <Mail :size="20" />
+            </template>
+          </FormInput>
+        </div>
 
-      <!-- 密码输入框 -->
-      <FormInput
-        v-model="password"
-        :type="showPassword ? 'text' : 'password'"
-        placeholder="请输入密码"
-      >
-        <template #prefix>
-          <LockKeyhole :size="20" />
-        </template>
-        <template #suffix>
-          <Eye v-if="showPassword" :size="20" @click="togglePassword" class="toggle-icon"></Eye>
-          <EyeOff v-else :size="20" @click="togglePassword" class="toggle-icon"></EyeOff>
-        </template>
-      </FormInput>
+        <div class="form-group">
+          <label for="password"><b>密码</b></label>
+          <FormInput
+            v-model="password"
+            id="password"
+            :type="showPassword ? 'text' : 'password'"
+            placeholder="请输入密码"
+            autocomplete="current-password"
+            required
+          >
+            <template #prefix>
+              <LockKeyhole :size="20" />
+            </template>
+            <template #suffix>
+              <Eye v-if="showPassword" :size="20" @click="togglePassword" class="toggle-icon"></Eye>
+              <EyeOff v-else :size="20" @click="togglePassword" class="toggle-icon"></EyeOff>
+            </template>
+          </FormInput>
+        </div>
 
-      <!-- 记住我 & 忘记密码 -->
-      <div class="form-option">
-        <label class="remember-me">
-          <input type="checkbox" v-model="rememberMe" />
-          <span>记住我</span>
-        </label>
-        <a href="#" class="forget-password">忘记密码?</a>
-      </div>
+        <!-- 记住我 & 忘记密码 -->
+        <div class="form-options">
+          <label class="remember-me">
+            <input type="checkbox" v-model="rememberMe" />
+            <span>记住我</span>
+          </label>
+          <router-link to="/forget-password" class="forget-password">忘记密码?</router-link>
+        </div>
 
-      <!-- 登录按钮 -->
-      <button class="login-btn" :disabled="isLoading" @click="handleLogin">
-        <Loader2 v-if="isLoading" :size="20" class="loading-icon"></Loader2>
-        <span>{{ isLoading ? '登录中...' : '登 录' }}</span>
-      </button>
+        <!-- 错误提示信息 -->
+        <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+        <!-- 登录按钮 -->
+        <button class="btn btn-primary btn-block" type="submit" :disabled="isLoading">
+          <Loader2 v-if="isLoading" :size="20" class="loading-icon"></Loader2>
+          <span>{{ isLoading ? '登录中...' : '登 录' }}</span>
+          <ArrowRight v-if="!isLoading" :size="20" />
+        </button>
+      </form>
 
       <!-- 注册链接 -->
-      <div class="register-link">
-        <span>没有账号？</span>
-        <router-link to="/register">立即注册</router-link>
+      <div class="auth-footer">
+        <div class="auth-divider">
+          <span>还没有账户？</span>
+        </div>
+
+        <router-link to="/register" class="btn btn-secondary btn-block">创建账户</router-link>
       </div>
     </div>
   </div>
+
   <div class="toast-container"></div>
 </template>
 
@@ -101,36 +143,50 @@ const handleLogin = async () => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* 水平居中 */
-  align-items: center; /* 垂直居中 */
-  padding: 2rem 1rem;
-
-
-  background-color: #f5f7fa; /* 只能设置纯色背景 */
+  justify-content: center;
+  align-items: center;
 }
 
 /* 主内容区 - Flexbox 垂直水平居中 */
 .auth-card {
   width: 100%;
   max-width: 420px;
-  background: #ffffff; /* 简写属性，可设置颜色、图片、渐变等多种属性 */
-  border-radius: 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px); /*让元素背后的内容变模糊（毛玻璃效果）*/
+  background: var(--color-bg-card);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px var(--color-shadow);
+  padding: 2.5rem;
   border: 1px solid rgba(53, 92, 194, 0.1);
-  gap: 20px; /* 子元素间距 20px */
+}
 
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
 /* 登录卡片容器 - 白色圆角卡片 */
 .auth-logo {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
 
+.auth-title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
 
+.auth-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
 
+.auth-form {
+  margin-bottom: 1.5rem;
+}
 
-  display: flex;
-
-
+.form-group {
+  margin-bottom: 1.5rem;
 }
 
 .toggle-icon {
@@ -142,11 +198,12 @@ const handleLogin = async () => {
 }
 
 /* 记住我 & 忘记密码 容器 */
-.form-option {
+.form-options {
   display: flex;
-  justify-content: space-between; /* 两端对齐 */
+  justify-content: space-between;
   align-items: center;
-  font-size: 14px;
+  margin-bottom: 1.5rem;
+  font-size: var(--font-size-sm);
 }
 
 .remember-me {
@@ -172,37 +229,6 @@ const handleLogin = async () => {
   text-decoration: underline;
 }
 
-/* 登录按钮 */
-.login-btn {
-  width: 100%;
-  height: 48px;
-  margin-top: 24px;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* 子元素间距 8px（图标和文字之间） */
-  gap: 8px;
-  /* 效果：悬停时背景色变化会平滑过渡，而不是突然切换。 */
-  transition: all 0.2s ease;
-}
-/* 悬停效果: 鼠标悬停时变深蓝色，但如果按钮是禁用状态，则不变色*/
-.login-btn:hover:not(:disabled) {
-  background-color: rgba(53, 92, 194, 0.85);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(53, 92, 194, 0.3);
-}
-/* 禁用状态 */
-.login-btn:disabled {
-  background-color: #93c5fd;
-  cursor: not-allowed;
-}
 /* 加载图标旋转动画 */
 .loading-icon {
   animation: spin 1s linear infinite;
@@ -216,20 +242,40 @@ const handleLogin = async () => {
   }
 }
 
+.error-message {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background-color: var(--color-bg-error);
+  border-radius: 8px;
+}
+
 /* 注册链接 */
-.register-link {
+.auth-footer {
   text-align: center;
   font-size: 14px;
   color: #6b7280;
 }
 
-.register-link a {
-  color: #3b82f6;
-  text-decoration: none;
-  margin-left: 4px;
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
 }
 
-.register-link a:hover {
-  text-decoration: underline;
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+.auth-divider span {
+  padding: 0 1rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
 }
 </style>

@@ -27,8 +27,8 @@ const logoSizeMap = {
 
 // 3. 文字大小映射（与图标比例匹配）
 const fontSizeMap = {
-  small: 16,
-  medium: 24,
+  small: 8,
+  medium: 16,
   large: 32,
 }
 </script>
@@ -58,7 +58,7 @@ const fontSizeMap = {
 .brand-logo {
   display: flex;
   align-items: center;
-  gap: 6px; /* 图标和文字间距 */
+  gap: 1px; /* 图标和文字间距 */
 }
 
 /* 垂直排列（默认） */

@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -14,3 +14,11 @@ services:
       - ./data/postgresql:/var/lib/postgresql/data
     restart: unless-stopped
 
+  redis:
+    image: redis:7
+    container_name: redis7
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+    restart: unless-stopped

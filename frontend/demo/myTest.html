@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>测试文件</title>
+    <link rel="stylesheet" href="../src/styles/main.css">
+    <style>
+      /* 基础按钮样式 */
+      .btn {
+        display: inline-flex; /* 行内弹性盒子 */
+        align-items: center; /* 垂直居中 */
+        justify-content: center; /* 水平居中 */
+        gap: 8px; /* 图标与文字间距 */
+        padding: 12px 24px; /* 内边距 */
+        font-size: 1rem; /* 字号 */
+        font-weight: 500; /* 字重 */
+        border: none; /* 去除默认边框 */
+        border-radius: 8px; /* 圆角 */
+        cursor: pointer; /* 鼠标指针 */
+        text-decoration: none; /* 去除链接下划线 */
+        transition: all 0.3s ease; /* 过渡动画 */
+      }
+      /* 主要按钮（蓝色填充） */
+      .btn-primary {
+        background: var(--color-primary);
+        color: white;
+      }
+      .btn-primary:hover:not(:disabled) {
+        opacity: 0.9;
+        transform: translateY(-1px); /* 轻微上移 */
+      }
+      /* 次要按钮（边框样式） */
+      .btn-secondary {
+        background: transparent;
+        color: var(--color-text-primary);
+        border: 1px solid var(--color-border);
+      }
+      .btn-secondary:hover:not(:disabled) {
+        background: #f5f5f5;
+      }
+      /* 占满宽度 */
+      .btn-block {
+        display: flex; /* 改为 flex（块级） */
+        width: 100%;
+      }
+      /* 禁用状态 */
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <button class="btn">btn</button>
+      <button class="btn btn-primary">btn</button>
+      <button class="btn btn-primary btn-block">btn-primary</button>
+      <button class="btn btn-secondary">btn-secondary</button>
+    </div>
+  </body>
+</html>

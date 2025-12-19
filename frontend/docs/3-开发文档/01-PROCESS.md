@@ -1,214 +1,62 @@
-> **文档用途**：当前 Phase 阶段目标和实现步骤（正在做什么）
->
-> **更新时机**：
->
-> 1. phase阶段开始前, 覆盖更新「当前Sprint」和「待实现功能」
-> 2. 开始子任务前，更新「下一步实施计划」
-> 3. 完成子任务后，更新「已完成功能」和「遗留事项」，删除「待实现功能」中已完成功能
->
-> **归档时机**：phase阶段全部完成后，将已完成功能归档到`03-OVERVIEW.md`,并清空文件
+# 注册功能重构进度说明 (Registration Process)
+
+本篇文档记录了“极简注册 (Email Only) + 自动登录”功能的开发进度与实施步骤。
+
+## 1. 总体目标
+- [x] **后端**: 支持纯邮箱+验证码注册，自动生成用户名和头像，注册即返回 Token。
+- [x] **前端**: 实现验证码发送、注册提交、自动保存登录态并跳转。
 
 ---
 
-# 当前 Sprint：Phase 3 - 登录功能开发
+## 2. 后端进度 (Completed ✅)
 
-> **需求文档**：[登录功能PRD](../1-需求文档/01-登录功能PRD.md)  
-> **设计文档**：[登录功能概设](../2-设计文档/登录功能/登录功能概设.md)  
-> **UI设计**：[登录页面UI设计](../2-设计文档/登录功能/登录页面UI设计.md)
+### 2.1 数据模型与逻辑
+- [x] **Schema 重构**: 取消 `UserBase` 继承，显式定义 `UserCreate` 和 `UserResponse`。
+- [x] **自动生成用户名**: 实现 `_generate_unique_username`，基于邮箱前缀+随机 4 位字符，确保数据库唯一。
+- [x] **自动生成头像**: 集成 **DiceBear API**，根据用户名种子生成 `adventurer` 风格卡通头像 URL。
+- [x] **安全性增强**: 实现 Redis 验证码校验 `verify_code` 逻辑，验证即销毁。
 
----
-
-## 一、待实现功能
-
-### 登录页面 UI 开发（教学步骤）
-
-| 步骤 | 任务名称 | 技术要点 | 状态 |
-|------|----------|----------|------|
-| 1 | 登录页面基础布局 | Vue 路由配置、页面居中布局 | ⏸️ 待开始 |
-| 2 | 品牌 Logo 组件 | Vue 组件封装、图片资源引入 | ⏸️ 待开始 |
-| 3 | 登录卡片容器 | CSS Flexbox/Grid 布局、CSS变量 | ⏸️ 待开始 |
-| 4 | 输入框组件 | v-model 双向绑定、Lucide 图标 | ⏸️ 待开始 |
-| 5 | 密码可见性切换 | 条件渲染、事件处理 | ⏸️ 待开始 |
-| 6 | 登录按钮与状态 | 按钮禁用态、加载态动画 | ⏸️ 待开始 |
-| 7 | 表单验证逻辑 | 响应式数据、computed 属性 | ⏸️ 待开始 |
-| 8 | 错误提示显示 | 条件渲染、CSS 动画 | ⏸️ 待开始 |
-| 9 | 登录 API 对接 | async/await、try/catch、Pinia | ⏸️ 待开始 |
-| 10 | 登录成功跳转 | Vue Router 编程式导航 | ⏸️ 待开始 |
-| 11 | 路由守卫保护 | 全局前置守卫、meta 元信息 | ⏸️ 待开始 |
+### 2.2 接口规格 (API Specs)
+- [x] `POST /auth/send-code`: 发送 6 位数字验证码到邮箱（当前模拟打印控制台）。
+- [x] `POST /auth/register`: 接收 `{email, password, verification_code}`，返回 `UserAuthResponse`（含 Token）。
+- [x] `POST /auth/login`: 适配 `UserAuthResponse` 结构，返回 Token 和完整用户信息。
 
 ---
 
-## 二、下一步实施计划
+## 3. 前端实施计划 (Completed ✅)
 
-### Step 1：登录页面基础布局
+### 第一阶段：API 基础设施升级 (Infrastructure)
+- [x] **`api` 目录重构**: 
+    - 建立 `src/api/index.ts` (Axios 基础实例，含拦截器和环境变量配置)。
+    - 建立 `src/api/auth.api.ts` (业务接口)。
+    - 完整定义 `User`, `AuthResponse` 等 TypeScript 接口，与后端 Schema 对齐。
 
-**目标**：创建登录页面骨架，配置路由，实现页面居中布局
+### 第二阶段：状态管理适配 (Store)
+- [x] **`auth.store.ts` 升级**:
+    - 更新 `login` action，直接存储后端返回的 `user` 对象。
+    - 新增 `register` action，实现“注册即登录”逻辑 (复用 setToken)。
 
-**涉及文件**：
-- `src/views/LoginView.vue` [新建]
-- `src/router/index.ts` [修改]
-
-**技术要点**：
-1. **Vue Router 路由配置** - 如何添加新页面路由
-2. **CSS Flexbox 布局** - 实现垂直水平居中
-3. **CSS 变量** - 定义可复用的设计 Token
-
-**预期效果**：
-```
-访问 /login 路径 → 显示一个垂直水平居中的占位区域
-```
-
-**验证方式**：
-1. 运行 `pnpm dev` 启动开发服务器
-2. 浏览器访问 `http://localhost:5173/login`
-3. 确认页面居中显示占位内容
+### 第三阶段：界面逻辑实装 (UI/UX)
+- [x] **`RegisterView.vue` 对接**:
+    - 实装 `sendCodeApi`，配合倒计时逻辑。
+    - 实装 `authStore.register`，成功后自动跳转首页。
+    - 完善错误处理（如邮箱占用提示）。
 
 ---
 
-### Step 2：品牌 Logo 组件
+## 4. 下一步计划 (Next Steps 🚀)
 
-**目标**：创建可复用的品牌 Logo 组件
+**当前状态**：用户已成功注册并登录，拥有自动生成的 Username 和 Avatar。
 
-**涉及文件**：
-- `src/modules/auth/components/BrandLogo.vue` [新建]
+### 优先任务：用户个人中心 (User Profile)
+- [ ] **后端**: 
+    - 确认 `PATCH /users/me` 接口逻辑，确保允许修改 `nickname`, `bio` 等字段。
+    - (可选) 确认头像上传或修改机制。
+- [ ] **前端**:
+    - 创建/完善 `UserProfileView.vue` (个人资料页)。
+    - 对接修改资料 API。
+    - 展示用户的卡通头像和基本信息。
 
-**技术要点**：
-1. **Vue 组件基础** - script setup 语法
-2. **资源引入** - 如何引入图片资源
-3. **Props 定义** - 支持不同尺寸
-
----
-
-### Step 3：登录卡片容器
-
-**目标**：创建带阴影、圆角的登录卡片容器
-
-**涉及文件**：
-- `src/modules/auth/components/LoginCard.vue` [新建]
-
-**技术要点**：
-1. **slot 插槽** - 内容分发机制
-2. **CSS 盒模型** - padding、border、margin
-3. **box-shadow** - 卡片阴影效果
-
----
-
-### Step 4：输入框组件
-
-**目标**：创建带图标的输入框组件
-
-**涉及文件**：
-- `src/modules/auth/components/FormInput.vue` [新建]
-
-**技术要点**：
-1. **v-model 双向绑定** - 原理与使用
-2. **emit 事件** - 父子组件通信
-3. **Lucide 图标库** - 图标组件使用
-
----
-
-### Step 5：密码可见性切换
-
-**目标**：实现密码显示/隐藏功能
-
-**技术要点**：
-1. **响应式变量 ref** - 状态管理
-2. **条件渲染** - v-if / v-else
-3. **type 属性动态绑定** - :type="xxx"
-
----
-
-### Step 6：登录按钮与状态
-
-**目标**：创建带加载状态的登录按钮
-
-**涉及文件**：
-- `src/modules/auth/components/SubmitButton.vue` [新建]
-
-**技术要点**：
-1. **按钮禁用态** - :disabled 绑定
-2. **CSS 过渡动画** - transition
-3. **加载图标旋转** - CSS animation
-
----
-
-### Step 7：表单验证逻辑
-
-**目标**：实现表单字段验证
-
-**涉及文件**：
-- `src/modules/auth/composables/useLoginForm.ts` [新建]
-
-**技术要点**：
-1. **Composable 组合函数** - 逻辑复用
-2. **computed 计算属性** - 派生状态
-3. **watch 侦听器** - 响应式副作用
-
----
-
-### Step 8：错误提示显示
-
-**目标**：显示验证错误和登录失败提示
-
-**技术要点**：
-1. **条件渲染** - 错误信息显示
-2. **CSS 动画** - 错误摇动效果
-3. **过渡组件** - `<Transition>`
-
----
-
-### Step 9：登录 API 对接
-
-**目标**：连接后端登录接口，处理响应
-
-**涉及文件**：
-- `src/modules/auth/LoginForm.vue` [修改]
-
-**技术要点**：
-1. **async/await** - 异步请求处理
-2. **try/catch** - 错误捕获
-3. **Pinia Store** - 状态管理调用
-
----
-
-### Step 10：登录成功跳转
-
-**目标**：登录成功后跳转到首页
-
-**技术要点**：
-1. **useRouter** - 路由实例获取
-2. **router.push** - 编程式导航
-3. **query 参数** - 重定向处理
-
----
-
-### Step 11：路由守卫保护
-
-**目标**：保护需要登录的页面
-
-**涉及文件**：
-- `src/router/index.ts` [修改]
-
-**技术要点**：
-1. **beforeEach 守卫** - 全局前置守卫
-2. **meta 元信息** - 路由权限标记
-3. **重定向逻辑** - 未登录跳转
-
----
-
-## 三、已完成功能
-
-| 模块 | 文件 | 完成日期 | 说明 |
-|------|------|----------|------|
-| Token 管理 | `modules/auth/token.ts` | 2024-12-09 | 基础读写功能 |
-| API 封装 | `modules/auth/api.ts` | 2024-12-09 | Axios 实例 + 拦截器 |
-| 状态管理 | `modules/auth/auth.store.ts` | 2024-12-09 | Pinia Store 基础 |
-| 品牌资源 | `assets/images/logo.png` | 2024-12-10 | InkFlow Logo |
-
----
-
-## 四、遗留事项
-
-- [ ] 注册功能页面（后续开发）
-- [ ] 忘记密码功能（后续开发）
-- [ ] 主题切换功能（低优先级）
+### 后续任务
+- [ ] 文章发布功能 (Post CRUD)。
+- [ ] 单元测试补充 (Vitest)。

@@ -29,7 +29,7 @@ from app.core.exceptions import (
     UnauthorizedError,
     UsernameAlreadyExistsError,
 )
-from app.crud import user as crud_user
+from app.crud import user as user_crud
 from app.schemas.user import UserCreate
 
 # ============ 1. CORS 中间件测试 ============
@@ -207,7 +207,7 @@ def test_app_error_handler(client: TestClient, session: Session):
         email="existing@example.com",
         password="SecurePass123!",
     )
-    crud_user.create_user(session, user_in=user_data)
+    user_crud.create_user(session, user_in=user_data)
 
     # 尝试用相同邮箱注册，触发 EmailAlreadyExistsError
     response = client.post(
