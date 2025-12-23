@@ -1,0 +1,111 @@
+/* ============================================
+   认证页面公共样式
+   适用于：登录、注册、忘记密码等页面
+   ============================================ */
+
+/* 页面容器 - 占满整个视口，垂直水平居中 */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 卡片容器 - 白色圆角卡片 */
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-bg-card);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px var(--color-shadow);
+  padding: 2.5rem;
+  border: 1px solid rgba(53, 92, 194, 0.1);
+}
+
+/* ========== 头部区域 ========== */
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-logo {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.auth-title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+/* ========== 表单区域 ========== */
+.auth-form {
+  margin-bottom: 1.5rem;
+}
+.form-group {
+  margin-bottom: 1.5rem;
+}
+.form-label {
+  margin-bottom: 0.5rem;
+}
+.required {
+  color: var(--color-error);
+  margin-left: 4px;
+  font-size: var(--font-size-base);
+  vertical-align: middle; /* 图标与文字垂直居中对齐 */
+}
+
+/* 密码切换图标 */
+.toggle-icon {
+  cursor: pointer;
+}
+.toggle-icon:hover {
+  color: #3b82f6;
+}
+
+/* 错误信息 */
+.error-message {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  margin-top: 0.5rem;
+}
+
+/* ========== 加载图标旋转动画 ========== */
+.loading-icon {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== 底部区域 ========== */
+.auth-footer {
+  text-align: center;
+  font-size: 14px;
+  color: #6b7280;
+}
+.auth-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}
+.auth-divider span {
+  padding: 0 1rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}

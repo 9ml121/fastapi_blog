@@ -1,32 +1,30 @@
 <script lang="ts" setup>
+import { forgotPasswordApi, resetPasswordApi } from '@/api/auth.api'
 import BrandLogo from '@/components/BrandLogo.vue'
 import FormInput from '@/components/FormInput.vue'
-import { useAuthStore } from '@/stores/auth.store'
 import {
-  validateEmail,
   validateCode,
-  validatePassword,
   validateConfirmPassword,
+  validateEmail,
+  validatePassword,
 } from '@/utils/validators'
-import { sendCodeApi } from '@/api'
 
+import { useCountdown } from '@/composables/useCountdown'
+import { useToastStore } from '@/stores/toast.store'
 import {
   ArrowRight,
   Eye,
   EyeOff,
+  KeyRound,
   Loader2,
   LockKeyhole,
   Mail,
-  KeyRound,
   Send,
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useToastStore } from '@/stores/toast.store'
-import { useCountdown } from '@/composables/useCountdown'
 
 // ========== 状态初始化 ==========
-const authStore = useAuthStore()
 const router = useRouter()
 const toastStore = useToastStore()
 const { countdown, start: startCountdown } = useCountdown(60)
@@ -94,40 +92,39 @@ const handleSendCode = async () => {
 
   try {
     // 2. 发送验证码
-    await sendCodeApi(email.value)
+    await forgotPasswordApi(email.value)
     toastStore.success('验证码已发送，请查收邮件')
 
     // 3. 启动倒计时
     startCountdown()
   } catch (error: any) {
-    // 处理特定错误（邮箱已存在），其他错误已在拦截器中用 Toast 显示了
-    if (error.backendError?.code === 'EMAIL_ALREADY_EXISTS') {
-      errors.value.email = error.backendError.message
+    // 忘记密码场景：邮箱必须已注册
+    if (error.backendError?.code === 'RESOURCE_NOT_FOUND') {
+      errors.value.email = '该邮箱未注册'
     }
   }
 }
 
-// 注册提交
-const handleRegister = async () => {
+// 重置密码提交
+const handleReset = async () => {
   if (!validateForm()) return
   isLoading.value = true
 
   try {
-    await authStore.register({
+    await resetPasswordApi({
       email: email.value,
-      password: password.value,
+      new_password: password.value,
       verification_code: code.value,
     })
 
-    toastStore.success('注册成功！即将跳转...')
+    toastStore.success('重置密码成功！')
 
     setTimeout(() => {
-      router.push('/')
+      router.push('/login')
     }, 1000)
   } catch (error: any) {
-    // 处理特定错误（邮箱已存在），其他错误已在拦截器中用 Toast 显示了
-    if (error.backendError?.code === 'EMAIL_ALREADY_EXISTS') {
-      errors.value.email = error.backendError.message
+    if (error.backendError?.code === 'RESOURCE_NOT_FOUND') {
+      errors.value.email = '该邮箱未注册'
     } else if (error.backendError?.code === 'INVALID_VERIFICATION_CODE') {
       errors.value.code = error.backendError.message
     }
@@ -144,10 +141,10 @@ const handleRegister = async () => {
         <div class="auth-logo">
           <BrandLogo size="medium" :showName="true" direction="vertical" />
         </div>
-        <h1 class="auth-title">注册</h1>
+        <h1 class="auth-title">重置密码</h1>
       </div>
 
-      <form class="auth-form" @submit.prevent="handleRegister">
+      <form class="auth-form" @submit.prevent="handleReset">
         <div class="form-group">
           <label for="email" class="form-label">邮箱</label>
           <span class="required">*</span>
@@ -168,14 +165,14 @@ const handleRegister = async () => {
         </div>
 
         <div class="form-group">
-          <label for="password" class="form-label">密码</label>
+          <label for="password" class="form-label">新密码</label>
           <span class="required">*</span>
           <FormInput
             v-model="password"
             @blur="onPasswordBlur"
             id="password"
             :type="showPassword ? 'text' : 'password'"
-            placeholder="请输入密码"
+            placeholder="请输入新密码"
             autocomplete="new-password"
             required
           >
@@ -266,21 +263,20 @@ const handleRegister = async () => {
           <div v-if="errors.code" class="error-message">{{ errors.code }}</div>
         </div>
 
-        <!-- 注册按钮 -->
+        <!-- 重置密码按钮 -->
         <button class="btn btn-primary btn-block" type="submit" :disabled="isLoading">
           <Loader2 v-if="isLoading" :size="20" class="loading-icon"></Loader2>
-          <span>{{ isLoading ? '注册中...' : '提交注册' }}</span>
+          <span>{{ isLoading ? '重置中...' : '重置密码' }}</span>
           <ArrowRight v-if="!isLoading" :size="20" />
         </button>
       </form>
 
-      <!-- 登录链接 -->
+      <!-- 返回登录 -->
       <div class="auth-footer">
         <div class="auth-divider">
-          <span>已有账户？</span>
+          <span>想起密码？</span>
         </div>
-
-        <router-link to="/login" class="btn btn-secondary btn-block">登 录</router-link>
+        <router-link to="/login" class="btn btn-secondary btn-block">返回登录</router-link>
       </div>
     </div>
   </div>

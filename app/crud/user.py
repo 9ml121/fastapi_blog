@@ -19,7 +19,6 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import (
     EmailAlreadyExistsError,
-    InvalidPasswordError,
     InvalidVerificationCodeError,
     ResourceNotFoundError,
     UsernameAlreadyExistsError,
@@ -209,7 +208,7 @@ def update_user(db: Session, *, user_id: UUID, user_in: UserUpdate) -> User | No
     Args:
         db: 数据库会话对象
         user_id: 要更新的用户 ID
-        user_in: Pydantic UserUpdate schema，包含要更新的字段
+        user_in: UserUpdate schema更新的字段
 
     Returns:
         更新后的 User 模型对象或 None（用户不存在）
@@ -295,36 +294,21 @@ def update_profile(
     return user
 
 
-def update_password(
-    db: Session, *, user: User, old_password: str, new_password: str
-) -> User:
-    """更新用户密码
+def update_password(db: Session, user: User, new_password: str) -> User:
+    """更新用户密码(用于修改和重置密码 2 个场景)
 
-    安全要点：
-    1. 必须验证旧密码正确性（防止会话劫持）
-    2. 使用 bcrypt 哈希存储新密码
-    3. 不返回任何敏感信息
+    更新：此函数只负责修改密码，不做权限验证。权限验证（验证码/旧密码）由 API 层负责。
 
     Args:
         db: 数据库会话对象
         user: 当前用户对象（已通过认证）
-        old_password: 当前密码（明文，用于验证）
-        new_password: 新密码（明文，将被哈希）
+        new_password: 新密码
 
     Returns:
         更新后的用户对象
-
-    Raises:
-        ValueError: 旧密码错误
     """
-    # 1. 验证旧密码是否正确
-    if not verify_password(old_password, user.password_hash):
-        raise InvalidPasswordError()
-
-    # 2. 哈希新密码
     user.password_hash = hash_password(new_password)
 
-    # 3. 提交更新（updated_at 由数据库自动更新）
     db.add(user)
     db.commit()
     db.refresh(user)

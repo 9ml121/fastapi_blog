@@ -3,16 +3,17 @@ Redis 连接管理模块
 用于存储邮箱验证码等临时数据
 """
 
+import secrets
+import string
+
 import redis
 
 from app.core.config import get_settings
 
 
+# todo: 生产环境可考虑使用连接池优化性能
 def get_redis_client() -> redis.Redis:
-    """获取 Redis 客户端实例
-
-    每次调用都创建新连接（简单方案）
-    todo: 生产环境可考虑使用连接池优化性能
+    """获取 Redis 客户端实例, 每次调用都创建新连接（简单方案）
 
     Returns:
         Redis 客户端对象
@@ -31,15 +32,24 @@ VERIFY_CODE_EXPIRE = 300  # 5分钟 = 300秒
 VERIFY_CODE_PREFIX = "verify_code"
 
 
+def generate_verification_code(length: int = 6) -> str:
+    """生成随机验证码(默认 6 位)
+
+    - random 模块是伪随机数生成器，可被预测，不适合安全敏感场景
+    - 这里使用 secrets 模块（专为安全设计）
+    """
+    return "".join(secrets.choice(string.digits) for _ in range(length))
+
+
 def save_verification_code(email: str, code: str) -> None:
     """存储验证码到 Redis
 
     Args:
-        email: 用户邮箱（作为 key 的一部分）
-        code: 6位验证码
+        email -- 用户邮箱（作为 key 的一部分）
+        code -- 6位验证码
 
-    Key 格式: verify_code:user@example.com
-    TTL: 300秒后自动删除
+    - Key 格式: verify_code:user@example.com
+    - TTL: 300秒后自动删除
     """
     client = get_redis_client()
     # setex = SET + EXPIRE 的组合命令

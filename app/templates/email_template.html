@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>邮箱验证码</title>
+  </head>
+
+  <body style="margin: 0; padding: 0; background-color: #f5f5f5">
+    <!-- 外层容器：让整个邮件内容居中 -->
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td align="center" style="padding: 40px 20px">
+          <!-- 内层容器：600px 宽的白色卡片 -->
+          <table
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            style="background-color: #ffffff"
+          >
+            <!-- ===== Header 区域 ===== -->
+            <tr>
+              <td style="background-color: #3b5998; padding: 20px 30px">
+                <span style="color: #ffffff; font-size: 20px; font-weight: bold"
+                  >{{app_name}}</span
+                >
+              </td>
+            </tr>
+
+            <!-- ===== Body 区域 ===== -->
+            <tr>
+              <td style="padding: 30px">
+                <!-- 标题 -->
+                <h1 style="margin: 0 0 20px 0; font-size: 24px; color: #333333">
+                  邮箱验证码
+                </h1>
+
+                <!-- 正文：验证码 -->
+                <p
+                  style="
+                    margin: 0 0 10px 0;
+                    font-size: 16px;
+                    color: #333333;
+                    line-height: 1.6;
+                  "
+                >
+                  您的验证码是：
+                  <span
+                    style="
+                      font-size: 28px;
+                      font-weight: bold;
+                      color: #3b5998;
+                      letter-spacing: 4px;
+                    "
+                  >
+                    {{ code }}
+                  </span>
+                  ，请在
+                  <span style="color: #e53e3e; font-weight: bold"
+                    >{{ expire_minutes }} 分钟</span
+                  >内进行验证。
+                </p>
+
+                <!-- 安全提示 -->
+                <p style="margin: 20px 0 0 0; font-size: 14px; color: #999999">
+                  如果该验证码不是您本人申请，请无视。
+                </p>
+              </td>
+            </tr>
+
+            <!-- ===== 分隔线 ===== -->
+            <tr>
+              <td style="padding: 0 30px">
+                <hr
+                  style="border: none; border-top: 1px solid #e0e0e0; margin: 0"
+                />
+              </td>
+            </tr>
+
+            <!-- ===== Footer 底部区域 ===== -->
+            <tr>
+              <td style="padding: 20px 30px">
+                <a
+                  href="{{ app_url }}"
+                  style="color: #3b5998; font-size: 14px"
+                >
+                  返回 {{ app_name }}
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

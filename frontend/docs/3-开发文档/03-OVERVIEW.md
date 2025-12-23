@@ -1,7 +1,7 @@
 > **文档用途**：记录项目已完成功能概览
 > **更新频率**：Phase 完成
 
-# ✅ 已完成功能 overview
+# 已完成功能 overview
 
 ## Phase 1: 搭建前端基础架构和设计系统
 
@@ -182,4 +182,74 @@ fastapi_blog/
 
 ---
 
-# 📍 Next: 待定（注册功能 / 文章管理 / 其他）
+## Phase 4: 注册功能开发
+
+**目标**：实现完整的用户注册流程，包括邮箱验证码、前端 UI 和后端 API
+
+### 1. 后端 API (`app/api/v1/endpoints/auth.py`)
+
+- ✅ 发送验证码 API（`POST /auth/send-code`）
+- ✅ 用户注册 API（`POST /auth/register`）
+- ✅ 注册成功自动签发 JWT Token（免二次登录）
+
+### 2. 邮件验证码系统
+
+- ✅ Redis 验证码存储（`app/db/redis_client.py`）
+  - `save_verification_code()` - 存储验证码（5分钟过期）
+  - `verify_code()` - 校验验证码（验证成功后自动删除）
+- ✅ 邮件发送服务（`app/core/email_utils.py`）
+  - 使用 `fastapi-mail` + Jinja2 模板
+  - 异步后台发送（`BackgroundTasks`）
+- ✅ 邮件 HTML 模板（`app/templates/email_template.html`）
+  - 品牌 Header + 验证码突出显示 + 有效期红色警示
+  - 底部注册链接
+
+### 3. 前端注册页面 (`RegisterView.vue`)
+
+- ✅ 表单布局（邮箱、密码、确认密码、验证码）
+- ✅ 发送验证码按钮 + 60秒倒计时
+- ✅ 实时表单校验（`@/utils/validators`）
+- ✅ 密码可见性切换
+- ✅ 加载状态动画
+- ✅ 错误信息显示
+
+### 4. 认证状态管理 (`auth.store.ts`)
+
+- ✅ `register()` action - 调用注册 API
+- ✅ 注册成功后自动保存 token + user 信息
+- ✅ 注册成功跳转首页
+
+### 5. Toast 通知组件
+
+- ✅ `toast.store.ts` - Pinia 状态管理
+- ✅ `ToastContainer.vue` - 全局通知容器
+  - 四种类型：success/error/warning/info
+  - `TransitionGroup` 列表动画
+  - 3秒自动消失
+
+### 6. API 封装 (`auth.api.ts`)
+
+- ✅ `registerApi()` - 注册接口
+- ✅ `sendCodeApi()` - 发送验证码接口
+- ✅ 统一 `AuthResponse` 类型定义
+
+### 相关文件清单
+
+| 层级 | 文件路径 |
+|-----|---------|
+| 后端 API | `app/api/v1/endpoints/auth.py` |
+| 后端 Schema | `app/schemas/user.py` |
+| 后端 CRUD | `app/crud/user.py` |
+| Redis 工具 | `app/db/redis_client.py` |
+| 邮件服务 | `app/core/email_utils.py` |
+| 邮件模板 | `app/templates/email_template.html` |
+| 前端页面 | `frontend/src/views/RegisterView.vue` |
+| 前端 Store | `frontend/src/stores/auth.store.ts` |
+| 前端 Store | `frontend/src/stores/toast.store.ts` |
+| 前端组件 | `frontend/src/components/ToastContainer.vue` |
+| 前端 API | `frontend/src/api/auth.api.ts` |
+| 表单验证 | `frontend/src/utils/validators.ts` |
+
+---
+
+# 📍 Next: 待定（文章管理 / 个人主页 / 其他）

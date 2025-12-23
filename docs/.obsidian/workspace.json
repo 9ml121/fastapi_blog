@@ -22,6 +22,20 @@
               "icon": "lucide-file",
               "title": "process"
             }
+          },
+          {
+            "id": "8a31e7b4a53b1ade",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "design/phase3_认证系统/04-认证流程与技术细节补充.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "04-认证流程与技术细节补充"
+            }
           }
         ]
       }
@@ -187,8 +201,12 @@
   },
   "active": "2af72e3c1f07cbd7",
   "lastOpenFiles": [
-    "README.md",
+    "design/phase3_认证系统/04-认证流程与技术细节补充.md",
+    "design/phase3_认证系统/03-Pydantic数据验证与Schema设计.md",
+    "design/phase3_认证系统/02-JWT认证机制详解.md",
+    "design/phase3_认证系统/01-密码安全与哈希机制.md",
     "project/process.md",
+    "README.md",
     "project/plan.md",
     "learning/testing/pytest/README.md",
     "learning/testing/pytest/04-pytest最佳实践.md",
@@ -212,13 +230,9 @@
     "learning/testing",
     "learning/sqlalchemy 教程",
     "learning/python-generics-and-inheritance.md",
-    "learning/phase1_项目基础搭建概设.md",
     "learning/fastAPI 教程",
     "learning/dev-workflow",
     "learning",
-    "reference/testing/pytest/README.md",
-    "reference/testing/pytest/04-pytest最佳实践.md",
-    "reference/testing/pytest/02-pytest-fixtures详解.md",
     "reference/testing/pytest",
     "reference/testing",
     "reference/sqlalchemy 教程",

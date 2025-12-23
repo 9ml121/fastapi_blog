@@ -11,7 +11,7 @@ export const VALIDATION_RULES = {
  */
 export function validateEmail(email: string): string | null {
   if (!email) return '请输入邮箱地址'
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return '请输入正确的邮箱格式'
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return '请输入有效的邮箱地址'
   return null  // null 表示无错误
 }
 

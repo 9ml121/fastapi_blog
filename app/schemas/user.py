@@ -54,7 +54,7 @@ def validate_password_complexity(password: str) -> str:
     return password
 
 
-# ============ 创建 User Schema  ============
+# ============ 创建 User 请求参数 Schema  ============
 class UserCreate(BaseModel):
     """用户注册输入
 
@@ -69,13 +69,13 @@ class UserCreate(BaseModel):
         examples=["john@example.com"],
     )
     password: str = Field(
-        ...,  # 必填字段
+        ...,
         min_length=MIN_PASSWORD_LENGTH,
         description=PASSWORD_DESCRIPTION,
         examples=["SecurePass123"],
     )
     verification_code: str = Field(
-        ...,  # 必填字段
+        ...,
         min_length=6,
         max_length=6,
         pattern=r"^\d{6}$",
@@ -103,7 +103,7 @@ class UserCreate(BaseModel):
     )
 
 
-# ============ 更新 User Schema ============
+# ============ 更新 User 请求参数 Schema ============
 class UserProfileUpdate(BaseModel):
     """用户自主更新个人资料
 
@@ -189,15 +189,7 @@ class UserUpdate(BaseModel):
 
 
 class PasswordChange(BaseModel):
-    """密码修改请求模型
-
-    特点：
-    - 必须提供旧密码（安全验证）
-    - 新密码有基本长度要求
-    - 可扩展密码强度验证
-
-    用途：PUT /api/v1/users/me/password
-    """
+    """密码修改请求模型"""
 
     old_password: str = Field(
         ...,  # 必填字段
@@ -206,9 +198,8 @@ class PasswordChange(BaseModel):
         examples=["OldPassword123!"],
     )
     new_password: str = Field(
-        ...,  # 必填字段
+        ...,
         min_length=MIN_PASSWORD_LENGTH,
-        max_length=100,
         description=PASSWORD_DESCRIPTION,
         examples=["NewPassword456!"],
     )
@@ -229,6 +220,45 @@ class PasswordChange(BaseModel):
                 }
             ]
         },
+    )
+
+
+class PasswordReset(BaseModel):
+    """重置密码请求"""
+
+    email: EmailStr = Field(
+        ...,
+        description="注册邮箱地址",
+        examples=["john@example.com"],
+    )
+    new_password: str = Field(
+        ...,
+        min_length=MIN_PASSWORD_LENGTH,
+        description=PASSWORD_DESCRIPTION,
+        examples=["NewPassword456!"],
+    )
+    verification_code: str = Field(
+        ...,
+        min_length=6,
+        max_length=6,
+        pattern=r"^\d{6}$",
+        description="6位邮箱验证码",
+    )
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        """验证新密码强度（基础验证）"""
+        return validate_password_complexity(v)
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "user@example.com",
+                "verification_code": "123456",
+                "new_password": "newpassword123",
+            }
+        }
     )
 
 

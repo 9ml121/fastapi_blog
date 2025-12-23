@@ -16,6 +16,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_user, get_current_superuser, get_db
+from app.core.exceptions import InvalidCredentialsError
+from app.core.security import verify_password
 from app.crud import post_favorite as post_favorite_crud
 from app.crud import post_like as post_like_crud
 from app.crud import user as user_crud
@@ -145,10 +147,12 @@ def change_password(
             "new_password": "新密码"
         }
     """
+    if not verify_password(password_change.old_password, current_user.password_hash):
+        raise InvalidCredentialsError()
+
     user_crud.update_password(
         db=db,
         user=current_user,
-        old_password=password_change.old_password,
         new_password=password_change.new_password,
     )
 

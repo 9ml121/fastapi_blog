@@ -1,15 +1,15 @@
 @baseUrl = http://localhost:8000/api/v1
 @contentType = application/json
 
-###
+### 获取邮件验证码
 POST http://localhost:8000/api/v1/auth/send-code
 Content-Type: application/json
     
 {
-"email": "test_auto@example.com"
+"email": "limq0755@163.com"
 }
 
-###
+### 注册新用户
 POST http://localhost:8000/api/v1/auth/register
 Content-Type: application/json
     
@@ -19,15 +19,32 @@ Content-Type: application/json
     "verification_code": "317511"
 }
 
-### 
+### 登录
 # @name login
 POST {{baseUrl}}/auth/login
 Content-Type: application/x-www-form-urlencoded
 
 username=test_auto@example.com&password=test123456
 
-###
+### 获取个人信息
 @authToken = {{login.response.body.access_token}}
 ### 
 GET {{baseUrl}}/users/me
 Authorization: Bearer {{authToken}}
+
+### 忘记密码
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+    "email": "limq0755@163.com"
+}
+
+### 重置密码
+POST {{baseUrl}}/auth/reset-password
+
+{
+    "email": "limq0755@163.com",
+    "new_password": "qq19880305",
+    "verification_code": "636880"
+}

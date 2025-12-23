@@ -15,6 +15,7 @@
   "error": {
     "code": "EMAIL_ALREADY_EXISTS",
     "message": "邮箱已被注册",
+    status_code=409,
     "details": {"field": "email", "value": "test@example.com"}
   }
 }
@@ -54,8 +55,8 @@ class InvalidVerificationCodeError(AppError):
     使用场景：用户注册或修改敏感信息时，填写的验证码错误或已过期
 
     Example:
-        >>> if not verify_code(email, code):
-        >>>     raise InvaidVerificationCodeError()
+    >>> if not verify_code(email, code):
+    >>>     raise InvaidVerificationCodeError()
     """
 
     def __init__(self, message: str = "验证码无效或已过期"):
@@ -72,8 +73,8 @@ class EmailAlreadyExistsError(AppError):
     使用场景：用户注册或更新邮箱时，邮箱已被其他用户占用
 
     Example:
-        >>> if existing_user:
-        >>>     raise EmailAlreadyExistsError(email="test@example.com")
+    >>> if existing_user:
+    >>>     raise EmailAlreadyExistsError(email="test@example.com")
     """
 
     def __init__(self, email: str):
@@ -91,8 +92,8 @@ class UsernameAlreadyExistsError(AppError):
     使用场景：用户注册时，用户名已被占用
 
     Example:
-        >>> if existing_user:
-        >>>     raise UsernameAlreadyExistsError(username="johndoe")
+    >>> if existing_user:
+    >>>     raise UsernameAlreadyExistsError(username="johndoe")
     """
 
     def __init__(self, username: str):
@@ -114,8 +115,8 @@ class InvalidCredentialsError(AppError):
     - 防止用户名枚举攻击
 
     Example:
-        >>> if not user or not verify_password(password, user.password_hash):
-        >>>     raise InvalidCredentialsError()
+    >>> if not user or not verify_password(password, user.password_hash):
+    >>>     raise InvalidCredentialsError()
     """
 
     def __init__(self):
@@ -132,8 +133,8 @@ class InvalidPasswordError(AppError):
     使用场景：修改密码时，旧密码不正确
 
     Example:
-        >>> if not verify_password(old_password, user.password_hash):
-        >>>     raise InvalidPasswordError()
+    >>> if not verify_password(old_password, user.password_hash):
+    >>>     raise InvalidPasswordError()
     """
 
     def __init__(self, message: str = "旧密码错误"):
@@ -153,8 +154,8 @@ class InvalidParametersError(AppError):
     - 分页参数越界
 
     Example:
-        >>> if invalid_sort_field:
-        >>>     raise InvalidParametersError(message="排序字段 'invalid_field' 不存在")
+    >>> if invalid_sort_field:
+    >>>     raise InvalidParametersError(message="排序字段 'invalid_field' 不存在")
     """
 
     def __init__(self, message: str = "参数验证失败"):
@@ -174,8 +175,8 @@ class UnauthorizedError(AppError):
     使用场景：用户未登录或 Token 无效
 
     Example:
-        >>> if not current_user:
-        >>>     raise UnauthorizedError()
+    >>> if not current_user:
+    >>>     raise UnauthorizedError()
     """
 
     def __init__(self, message: str = "请先登录"):
@@ -192,8 +193,8 @@ class PermissionDeniedError(AppError):
     使用场景：用户已登录，但没有权限执行操作（如删除他人文章）
 
     Example:
-        >>> if post.author_id != current_user.id and not current_user.is_superuser:
-        >>>     raise PermissionDeniedError("只能删除自己的文章")
+    >>> if post.author_id != current_user.id and not current_user.is_superuser:
+    >>>     raise PermissionDeniedError("只能删除自己的文章")
     """
 
     def __init__(self, message: str = "权限不足"):
@@ -213,8 +214,9 @@ class ResourceNotFoundError(AppError):
     使用场景：查询的资源（用户、文章、评论）不存在
 
     Example:
-        >>> if not post:
-        >>>     raise ResourceNotFoundError(resource="文章")
+    >>> post = post_crud.get_post_by_id(db=db, post_id=post_id)
+    >>> if not post:
+    >>>     raise ResourceNotFoundError(resource="文章")
     """
 
     def __init__(self, resource: str = "资源"):
@@ -231,8 +233,8 @@ class ResourceConflictError(AppError):
     使用场景：操作导致资源状态冲突（如重复点赞、重复收藏）
 
     Example:
-        >>> if existing_like:
-        >>>     raise ResourceConflictError("您已经点赞过这篇文章")
+    >>> if existing_like:
+    >>>     raise ResourceConflictError("您已经点赞过这篇文章")
     """
 
     def __init__(self, message: str = "资源状态冲突"):

@@ -1,11 +1,12 @@
 from functools import lru_cache
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     """应用配置类，使用 Pydantic Settings
-    优先级：环境变量 > .env 文件 > 代码默认值
+    优先级：系统环境变量 > .env 文件 > 代码默认值
     """
 
     # 数据库配置
@@ -16,16 +17,17 @@ class Settings(BaseSettings):
     DATABASE_PASSWORD: str = "change-this-password"  # 占位符
     DATABASE_NAME: str = "dbname"
 
-    # Redis 配置，开发没有设置密码
+    # Redis 配置，开发环境没有设置密码
     REDIS_HOST: str = (
         "localhost"  # 开发环境用 localhost，生产环境可能是 redis 或内网 IP
     )
     REDIS_PORT: int = 6379  # Redis 默认端口
 
     # 应用配置
-    APP_NAME: str = "FastAPI 博客系统"
+    APP_NAME: str = "InkFlow"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
+    FRONTEND_URL: str = "http://localhost:5173"
 
     # 安全配置
     SECRET_KEY: str = "dev-secret-key-change-in-production"
@@ -34,6 +36,18 @@ class Settings(BaseSettings):
     # Token 过期时间配置
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 默认1天
     ACCESS_TOKEN_EXPIRE_MINUTES_REMEMBER: int = 60 * 24 * 30  # 记住我 30天
+
+    # 邮件配置 (SMTP)
+    MAIL_USERNAME: str = ""  # 邮箱账号
+    MAIL_PASSWORD: SecretStr = SecretStr("")  # 邮箱授权码 (不是登录密码)
+    MAIL_FROM: str = ""  # 发件人邮箱 (通常同 username)
+    MAIL_PORT: int = 465  # 端口 (163 SSL 一般用 465)
+    MAIL_SERVER: str = "smtp.163.com"
+    MAIL_FROM_NAME: str = APP_NAME
+    MAIL_STARTTLS: bool = False  # SSL 连接通常关闭 StartTLS
+    MAIL_SSL_TLS: bool = True  # 开启 SSL
+    USE_CREDENTIALS: bool = True  # 使用账号密码登录
+    VALIDATE_CERTS: bool = True  # 验证证书
 
     model_config = {
         "env_file": ".env",

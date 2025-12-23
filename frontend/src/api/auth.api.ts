@@ -25,7 +25,7 @@ export interface AuthResponse {
   user: User
 }
 
-// ========== 2.Auth API ==========
+// ========== 2.登录 API ==========
 // --- 登录 ---
 export interface LoginParams {
   username: string
@@ -46,6 +46,13 @@ export async function loginApi(params: LoginParams): Promise<AuthResponse> {
   return response.data
 }
 
+// ========== 2.注册 API ==========
+// --- 发送验证码 ---
+export async function sendCodeApi(email: string): Promise<{ message: string }> {
+  const response = await api.post('/auth/send-code', { email })
+  return response.data
+}
+
 // --- 注册 --
 export interface RegisterParams {
   email: string
@@ -58,8 +65,27 @@ export async function registerApi(params: RegisterParams): Promise<AuthResponse>
   return response.data
 }
 
-// --- 发送验证码 ---
-export async function sendCodeApi(email: string): Promise<{ message: string }> {
-  const response = await api.post('/auth/send-code', { email })
+// ========== 3.获取用户信息 API ==========
+export async function getUserMeApi(): Promise<User> {
+  const response = await api.get<User>('/users/me')
+  return response.data
+}
+
+// ========== 4.忘记密码 API ==========
+// 发送重置密码验证码
+export async function forgotPasswordApi(email: string): Promise<{ message: string }> {
+  const response = await api.post('/auth/forgot-password', { email })
+  return response.data
+}
+
+// 重置密码
+export interface ResetPasswordParams {
+  email: string
+  new_password: string
+  verification_code: string
+}
+
+export async function resetPasswordApi(params: ResetPasswordParams): Promise<{ message: string }> {
+  const response = await api.post<{ message: string }>('/auth/reset-password', params)
   return response.data
 }

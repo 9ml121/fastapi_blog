@@ -77,7 +77,7 @@ app = FastAPI(
       "error": {
         "code": "EMAIL_ALREADY_EXISTS",
         "message": "邮箱已被注册",
-        "details": {...}
+        "details": {"field": "email", "value": "test@example.com"}
       }
     }
     ```
@@ -98,25 +98,26 @@ app = FastAPI(
         "name": "MIT License",
         "url": "https://opensource.org/licenses/MIT",
     },
-    openapi_tags=[
-        {
-            "name": "🔐 认证",
-            "description": "用户注册、登录、JWT Token 管理",
-        },
-        {
-            "name": "👤 用户管理",
-            "description": "个人资料查看、更新、密码修改",
-        },
-        {
-            "name": "📄 文章管理",
-            "description": "文章的增删改查、分页、标签（即将推出）",
-        },
-        {
-            "name": "💬 评论管理",
-            "description": "评论的发表、回复、删除（即将推出）",
-        },
-    ],
     lifespan=lifespan,
+    # 定义统一错误响应 schema
+    responses={
+        422: {
+            "description": "请求数据格式错误",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "VALIDATION_ERROR",
+                            "message": "请求数据格式错误",
+                            "details": [
+                                {"loc": ["body", "email"], "msg": "邮箱格式错误"}
+                            ],
+                        }
+                    }
+                }
+            },
+        }
+    },
 )
 
 # ============ CORS 中间件配置 ============

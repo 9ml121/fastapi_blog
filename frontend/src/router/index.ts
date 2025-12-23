@@ -18,6 +18,11 @@ const routes = [
     name: 'Register',
     component: () => import('@/views/RegisterView.vue'),
   },
+  {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('@/views/ForgotPasswordView.vue'),
+  },
 
   // 2. 需要导航栏的路由，放在 MainLayout 的 children 下
   {
@@ -30,7 +35,7 @@ const routes = [
         path: '/markdown', // 子路由路径，不需要加 /，最终路径为 /markdown
         name: 'MarkdownEditor',
         component: MarkdownEditor,
-        meta: { title: 'md编辑器测试', requiresAuth: true }, // 路由元信息（如权限标记）
+        meta: { title: 'md编辑器', requiresAuth: true }, // 路由元信息（如权限标记）
       },
     ],
   },
