@@ -1,9 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1E40AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <!-- 恢复原来的钢笔样式，并旋转-90度（270度）使笔尖朝左下方 -->
-  <g transform="rotate(-90 12 12)">
-    <path d="M12 19l7-7 3 3-7 7-3-3z"/>
-    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-    <path d="M2 2l7.586 7.586"/>
-    <circle cx="11" cy="11" r="2"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none">
+  <defs>
+    <!-- 径向渐变：从内到外 -->
+    <radialGradient id="ring-gradient" cx="50%" cy="50%" r="50%">
+      <stop offset="40%" stop-color="#65A30D"/>
+      <stop offset="70%" stop-color="#84CC16"/>
+      <stop offset="100%" stop-color="#A3E635"/>
+    </radialGradient>
+  </defs>
+  <!-- 外圈实心渐变 -->
+  <circle cx="12" cy="12" r="10" fill="url(#ring-gradient)"/>
+  <!-- 白色衬环（增加层次感，Chrome 风格）-->
+  <circle cx="12" cy="12" r="5" fill="white"/>
+  <!-- 浅灰内核 -->
+  <circle cx="12" cy="12" r="4" fill="#D1D5DB"/>
 </svg>

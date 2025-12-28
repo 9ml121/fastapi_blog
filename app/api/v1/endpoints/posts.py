@@ -24,16 +24,16 @@ from sqlalchemy.orm import Session
 
 import app.crud.post as post_crud
 from app.api.deps import get_current_active_user, get_db
-from app.core.exceptions import (
-    ResourceNotFoundError,
-)
-from app.core.pagination import PaginatedResponse
+from app.core.exceptions import ResourceNotFoundError
+from app.models.post import Post
 from app.models.user import User
+from app.schemas.common import PaginatedResponse
 from app.schemas.post import (
     PostCreate,
-    PostFilters,
+    PostDetailResponse,
+    PostListResponse,
     PostPaginationParams,
-    PostResponse,
+    PostQueryParams,
     PostUpdate,
 )
 
@@ -42,12 +42,14 @@ router = APIRouter()
 
 
 # ============================= 创建文章 ===========================
-@router.post(path="/", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    path="/", response_model=PostDetailResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_post(
     post_in: PostCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> PostResponse:
+) -> Post:
     """创建新文章，默认创建为草稿状态
 
     **权限**: 需要登录且账户活跃
@@ -69,73 +71,83 @@ async def create_post(
         }
     """
     new_post = post_crud.create_post(db=db, post_in=post_in, author_id=current_user.id)
-    return new_post  # type: ignore
+    return new_post
 
 
 # ============================= 查询已发布文章列表 ===========================
-@router.get("/", response_model=PaginatedResponse[PostResponse])
+@router.get("/", response_model=PaginatedResponse[PostListResponse])
 async def get_published_posts(
     pagination_params: PostPaginationParams = Depends(),
-    filters_params: PostFilters = Depends(),
+    filters_params: PostQueryParams = Depends(),
     db: Session = Depends(get_db),
-) -> PaginatedResponse[PostResponse]:
+) -> PaginatedResponse[PostListResponse]:
     """获取已发布文章列表（支持分页、排序、过滤）
 
     **权限**: 公开访问，无需登录
 
-    **查询参数**:
-    【分页参数】
-        - page: 页码（从1开始，默认1）
-        - size: 每页数量（1-100，默认20）
-        - sort: 排序字段（⚠️默认优先显示置顶文章，然后是published_at）
-        - order: 排序方向（asc/desc，默认desc）
-        - prioritize_featured: 是否优先显示置顶文章（默认True）
-    【过滤参数】
-        - author_id: 按作者ID过滤（可选）
-        - tag_name: 按标签名称过滤（可选）
-        - title_contains: 按标题关键词过滤（可选）
-        - published_at_from: 按发布时间范围过滤（起始时间，可选）
-        - published_at_to: 按发布时间范围过滤（结束时间，可选）
+    **分页参数**:
+    - page: 页码（从1开始，默认1）
+    - size: 每页数量（1-100，默认20）
+    - sort: 排序字段（⚠️默认优先显示置顶文章，然后是published_at）
+    - order: 排序方向（asc/desc，默认desc）
+    - prioritize_featured: 是否优先显示置顶文章（默认True）
+
+    **过滤参数**:
+    - author_id: 按作者ID过滤（可选）
+    - tag_name: 按标签名称过滤（可选）
+    - title_contains: 按标题关键词过滤（可选）
+    - published_at_from: 按发布时间范围过滤（起始时间，可选）
+    - published_at_to: 按发布时间范围过滤（结束时间，可选）
 
     **返回**:
-        - 200: 分页的文章列表
-        - 422: 参数验证失败
+    - 200: 分页的文章列表
+    - 422: 参数验证失败
 
     **示例**:
-        - GET /api/v1/posts/?page=1&size=10&sort=created_at&order=desc
-        - GET /api/v1/posts/?author_id=123
-        - GET /api/v1/posts/?tag_name=Python&title_contains=FastAPI
-        - GET /api/v1/posts/?published_at_from=2024-06-01T00:00:00Z
-                &published_at_to=2024-06-30T23:59:59Z
-        - GET /api/v1/posts/?published_at_from=2024-06-01T00:00:00Z
+    - GET /api/v1/posts/?page=1&size=10&sort=created_at&order=desc
+    - GET /api/v1/posts/?author_id=123
+    - GET /api/v1/posts/?tag_name=Python&title_contains=FastAPI
+    - GET /api/v1/posts/?published_at_from=2024-06-01T00:00:00Z
+            &published_at_to=2024-06-30T23:59:59Z
+    - GET /api/v1/posts/?published_at_from=2024-06-01T00:00:00Z
     """
     # 构建查询对象
-    response = post_crud.get_published_posts_paginated(
+    items, total = post_crud.get_published_posts(
         db, filters_params=filters_params, pagination_params=pagination_params
     )
-    return response  # type: ignore
+    return PaginatedResponse.create(
+        schema_class=PostListResponse,
+        items=items,
+        total=total,
+        params=pagination_params,
+    )
 
 
 # ============================= 查询置顶文章列表 ===========================
-@router.get("/featured", response_model=PaginatedResponse[PostResponse])
+@router.get("/featured", response_model=PaginatedResponse[PostListResponse])
 async def get_featured_posts(
     pagination_params: PostPaginationParams = Depends(),
     db: Session = Depends(get_db),
-) -> PaginatedResponse[PostResponse]:
+) -> PaginatedResponse[PostListResponse]:
     """获取置顶文章列表"""
-    featured_posts = post_crud.get_featured_posts(
+    items, total = post_crud.get_featured_posts(
         db=db, pagination_params=pagination_params
     )
 
-    return featured_posts  # type: ignore
+    return PaginatedResponse.create(
+        schema_class=PostListResponse,
+        items=items,
+        total=total,
+        params=pagination_params,
+    )
 
 
 # ============================= 查询用户草稿列表 ===========================
-@router.get("/drafts", response_model=list[PostResponse])
+@router.get("/drafts", response_model=list[PostListResponse])
 async def get_user_drafts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> list[PostResponse]:
+) -> list[Post]:
     """查看用户草稿列表
 
     **权限**: 需要登录且是文章作者
@@ -148,15 +160,15 @@ async def get_user_drafts(
         GET /api/v1/posts/user/drafts
     """
     drafts = post_crud.get_user_drafts(db, user_id=current_user.id)
-    return drafts  # type: ignore
+    return drafts
 
 
 # ============================= 查询单篇文章详情 ===========================
-@router.get("/{post_id}", response_model=PostResponse)
+@router.get("/{post_id}", response_model=PostDetailResponse)
 async def get_post_detail(
     post_id: UUID,
     db: Session = Depends(get_db),
-) -> PostResponse:
+) -> Post:
     """获取文章详情
 
     **权限**: 公开访问，无需登录
@@ -174,17 +186,17 @@ async def get_post_detail(
     post = post_crud.get_post_by_id(db, post_id=post_id)
     if not post:
         raise ResourceNotFoundError(resource="文章")
-    return post  # type: ignore
+    return post
 
 
 # ============================= 更新文章 ===========================
-@router.patch("/{post_id}", response_model=PostResponse)
+@router.patch("/{post_id}", response_model=PostDetailResponse)
 async def update_post(
     post_id: UUID,
     post_in: PostUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> PostResponse:
+) -> Post:
     """更新文章（部分更新）
 
     **权限**: 需要登录且是文章作者
@@ -212,16 +224,16 @@ async def update_post(
         db=db, post_id=post_id, user_id=current_user.id, post_in=post_in
     )
 
-    return updated_post  # type: ignore
+    return updated_post
 
 
 # ============================= 发布文章 ===========================
-@router.patch("/{post_id}/publish", response_model=PostResponse)
+@router.patch("/{post_id}/publish", response_model=PostDetailResponse)
 async def publish_post(
     post_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> PostResponse:
+) -> Post:
     """发布文章
 
     **权限**: 需要登录且是文章作者或admin
@@ -246,16 +258,16 @@ async def publish_post(
     published_post = post_crud.publish_post(
         db=db, post_id=post_id, user_id=current_user.id
     )
-    return published_post  # type: ignore
+    return published_post
 
 
 # ============================= 归档文章 ===========================
-@router.patch("/{post_id}/archive", response_model=PostResponse)
+@router.patch("/{post_id}/archive", response_model=PostDetailResponse)
 async def archive_post(
     post_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> PostResponse:
+) -> Post:
     """归档文章
 
     **权限**: 需要登录且是文章作者或admin
@@ -276,16 +288,16 @@ async def archive_post(
         db=db, post_id=post_id, user_id=current_user.id
     )
 
-    return archived_post  # type: ignore
+    return archived_post
 
 
 # ============================= 回退文章为草稿状态 ===========================
-@router.patch("/{post_id}/revert-to-draft", response_model=PostResponse)
+@router.patch("/{post_id}/revert-to-draft", response_model=PostDetailResponse)
 async def revert_to_draft(
     post_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> PostResponse:
+) -> Post:
     """回退文章为草稿状态
 
     **权限**: 需要登录且是文章作者或 admin
@@ -307,16 +319,16 @@ async def revert_to_draft(
     reverted_post = post_crud.revert_post_to_draft(
         db=db, post_id=post_id, user_id=current_user.id
     )
-    return reverted_post  # type: ignore
+    return reverted_post
 
 
 # ============================= 切换文章置顶状态 ===========================
-@router.patch("/{post_id}/toggle-featured", response_model=PostResponse)
+@router.patch("/{post_id}/toggle-featured", response_model=PostDetailResponse)
 async def toggle_post_featured(
     post_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> PostResponse:
+) -> Post:
     """切换文章置顶状态（仅管理员）
 
     **权限**: 需要管理员权限
@@ -337,7 +349,7 @@ async def toggle_post_featured(
     featured_post = post_crud.toggle_post_featured(
         db=db, post_id=post_id, user_id=current_user.id
     )
-    return featured_post  # type: ignore
+    return featured_post
 
 
 # ============================= 删除文章 ===========================

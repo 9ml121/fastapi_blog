@@ -6,13 +6,11 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_user
-from app.core.pagination import PaginatedResponse, PaginationParams
 from app.crud import notification as notification_crud
 from app.db.database import get_db
 from app.models.user import User
-from app.schemas.notification import (
-    NotificationResponse,
-)
+from app.schemas.common import PaginatedResponse, PaginationParams
+from app.schemas.notification import NotificationResponse
 
 router = APIRouter()
 
@@ -49,14 +47,17 @@ def get_current_user_notifications(
     )
 
     response = PaginatedResponse.create(
-        items=items, total=total, params=pagination_params
+        items=items,
+        total=total,
+        params=pagination_params,
+        schema_class=NotificationResponse,
     )
 
     return response  # type: ignore
 
 
 # ============================= 获取未读通知数量 ===========================
-@router.get("/me/notifications/unread-count", response_model=int)
+@router.get("/me/notifications/unread-count")
 def get_unread_count(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),

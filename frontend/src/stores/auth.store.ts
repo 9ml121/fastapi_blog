@@ -1,14 +1,8 @@
+import { getUserMeApi, loginApi, registerApi } from '@/api/auth.api'
+import type { LoginParams, RegisterParams, User } from '@/types/user.types'
+import { getToken, removeToken, setToken } from '@/utils/token'
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import {
-  getUserMeApi,
-  loginApi,
-  registerApi,
-  type LoginParams,
-  type RegisterParams,
-  type User,
-} from '@/api/auth.api'
-import { getToken, setToken, removeToken } from '@/utils/token'
+import { computed, ref } from 'vue'
 
 export const useAuthStore = defineStore('auth', () => {
   // ========== State ==========

@@ -1,9 +1,3 @@
-"""
-app/crud/post.py
-
-文章相关的 CRUD 操作
-"""
-
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -14,21 +8,20 @@ from app.core.exceptions import (
     ResourceConflictError,
     ResourceNotFoundError,
 )
-from app.core.pagination import PaginatedResponse, paginate_query
 from app.crud import tag as tag_crud
+from app.crud.pagination import paginate_query
 from app.crud.user import get_user_by_id
 from app.models.post import Post, PostStatus
 from app.schemas.post import (
     PostCreate,
-    PostFilters,
     PostPaginationParams,
-    PostResponse,
+    PostQueryParams,
     PostUpdate,
 )
 
 
 # ================================= 文章基础查询函数 =================================
-def get_post_by_id(db: Session, *, post_id: UUID) -> Post | None:
+def get_post_by_id(db: Session, post_id: UUID) -> Post | None:
     """通过文章 ID 查询文章
 
     Args:
@@ -41,7 +34,7 @@ def get_post_by_id(db: Session, *, post_id: UUID) -> Post | None:
     return db.get(Post, post_id)
 
 
-def get_post_by_slug(db: Session, *, slug: str) -> Post | None:
+def get_post_by_slug(db: Session, slug: str) -> Post | None:
     """通过文章 slug 查询文章
 
     Args:
@@ -55,17 +48,17 @@ def get_post_by_slug(db: Session, *, slug: str) -> Post | None:
 
 
 # =============================== 文章列表查询函数 ===========================
-def get_published_posts_paginated(
+def get_published_posts(
     db: Session,
     *,
-    filters_params: PostFilters | None = None,
+    filters_params: PostQueryParams | None = None,
     pagination_params: PostPaginationParams,
-) -> PaginatedResponse[PostResponse]:
-    """已发布文章列表分页查询（支持置顶优先）
+) -> tuple[list[Post], int]:
+    """分页查询已发布文章列表（支持置顶优先）
 
     Args:
         db: 数据库会话
-        filters_params: 过滤条件,PostFilters模型
+        filters_params: 过滤条件,可选, PostQueryParams模型
         pagination_params: 分页参数, PostPaginationParams模型,
         默认值为 PostPaginationParams(
             page=1, size=20, sort="published_at", order="desc",
@@ -73,7 +66,7 @@ def get_published_posts_paginated(
         )
 
     Returns:
-        PaginatedResponse[PostResponse]: 已发布文章分页查询结果
+        tuple[list[Post], int]: 已发布文章分页查询列表和数据总数
     """
     query = select(Post).where(Post.status == PostStatus.PUBLISHED)
 
@@ -110,12 +103,10 @@ def get_published_posts_paginated(
         query = query.order_by(Post.published_at.desc())
 
     # 分页查询，返回数据列表和总记录数
-    items, total = paginate_query(db, query, pagination_params, model=Post)
-
-    return PaginatedResponse.create(items, total, pagination_params)
+    return paginate_query(db, query, pagination_params, model=Post)
 
 
-def get_user_drafts(db: Session, *, user_id: UUID) -> list[Post]:
+def get_user_drafts(db: Session, user_id: UUID) -> list[Post]:
     """用户草稿列表查询
 
     Args:
@@ -135,16 +126,15 @@ def get_user_drafts(db: Session, *, user_id: UUID) -> list[Post]:
 
 def get_featured_posts(
     db: Session, pagination_params: PostPaginationParams
-) -> PaginatedResponse[PostResponse]:
-    """获取置顶文章列表"""
+) -> tuple[list[Post], int]:
+    """分页获取置顶文章列表"""
     query = (
         select(Post)
         .where(Post.status == PostStatus.PUBLISHED, Post.is_featured.is_(True))
         .order_by(Post.published_at.desc())
     )
 
-    items, total = paginate_query(db, query, pagination_params, model=Post)
-    return PaginatedResponse.create(items, total, pagination_params)
+    return paginate_query(db, query, pagination_params, model=Post)
 
 
 # ============================= 文章创建函数 ===========================
@@ -162,6 +152,7 @@ def create_post(db: Session, *, post_in: PostCreate, author_id: UUID) -> Post:
     # 1. 从输入 schema 中提取数据
     post_in_data = post_in.model_dump(exclude={"tags"})
     tag_names = post_in.tags or []
+    post_in_data["status"] = PostStatus.DRAFT
 
     # 2. 处理 slug: 如果 slug 为空，就根据 title 自动生成一个
     if not post_in_data.get("slug"):

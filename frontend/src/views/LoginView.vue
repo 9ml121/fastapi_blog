@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import BrandLogo from '@/components/BrandLogo.vue'
-import FormInput from '@/components/FormInput.vue'
+import BrandLogo from '@/components/common/BrandLogo.vue'
+import FormInput from '@/components/common/FormInput.vue'
 import { useAuthStore } from '@/stores/auth.store'
 
 import { useToastStore } from '@/stores/toast.store'
@@ -55,13 +55,12 @@ const handleLogin = async () => {
 <template>
   <div class="auth-container">
     <div class="auth-card">
+      <!-- Logo & 标题 -->
       <div class="auth-header">
-        <div class="auth-logo">
-          <BrandLogo size="medium" :showName="true" direction="vertical" />
-        </div>
         <h1 class="auth-title">登录</h1>
       </div>
 
+      <!-- 登录表单 -->
       <form class="auth-form" @submit.prevent="handleLogin">
         <div class="form-group">
           <label for="email" class="form-label">邮箱</label>
@@ -121,7 +120,6 @@ const handleLogin = async () => {
         <div class="auth-divider">
           <span>还没有账户？</span>
         </div>
-
         <router-link to="/register" class="btn btn-secondary btn-block">注册</router-link>
       </div>
     </div>
@@ -142,7 +140,7 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
@@ -153,7 +151,7 @@ const handleLogin = async () => {
 }
 
 .forgot-password {
-  color: #3b82f6;
+  color: var(--color-link);
   text-decoration: none;
 }
 

@@ -21,8 +21,10 @@ from app.core.security import verify_password
 from app.crud import post_favorite as post_favorite_crud
 from app.crud import post_like as post_like_crud
 from app.crud import user as user_crud
+from app.models.post import Post
 from app.models.user import User
-from app.schemas.post import PostResponse
+from app.schemas.common import MessageResponse
+from app.schemas.post import PostListResponse
 from app.schemas.user import PasswordChange, UserProfileUpdate, UserResponse, UserUpdate
 
 # 创建路由器 - 前缀 /users 已在 main.py 中配置
@@ -33,7 +35,7 @@ router = APIRouter()
 @router.get("/me", response_model=UserResponse)
 def get_current_user_profile(
     current_user: User = Depends(get_current_active_user),
-) -> UserResponse:
+) -> User:
     """获取当前用户资料
 
     **权限**: 需要登录且账户活跃
@@ -44,17 +46,17 @@ def get_current_user_profile(
     **示例**:
         GET /api/v1/users/me
     """
-    return current_user  # type: ignore
+    return current_user
 
 
 # ============================= 查询用户点赞文章列表 ===========================
-@router.get("/me/liked-posts", response_model=list[PostResponse])
+@router.get("/me/liked-posts", response_model=list[PostListResponse])
 async def get_user_liked_posts(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> list[PostResponse]:
+) -> list[Post]:
     """查询用户点赞文章列表
 
     **权限**: 需要登录
@@ -69,22 +71,22 @@ async def get_user_liked_posts(
     posts = post_like_crud.get_user_liked_posts(
         db=db, user_id=current_user.id, skip=skip, limit=limit
     )
-    return posts  # type: ignore
+    return posts
 
 
 # ============================= 查询用户收藏文章列表 ===========================
-@router.get("/me/favorited-posts", response_model=list[PostResponse])
+@router.get("/me/favorited-posts", response_model=list[PostListResponse])
 async def get_user_favorited_posts(
     skip: int = 0,
     limit: int = 20,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> list[PostResponse]:
+) -> list[Post]:
     """查询用户收藏文章列表"""
     posts = post_favorite_crud.get_user_favorited_posts(
         db=db, user_id=current_user.id, skip=skip, limit=limit
     )
-    return posts  # type: ignore
+    return posts
 
 
 # ============================= 更新当前用户资料 ===========================
@@ -121,7 +123,7 @@ def update_current_user_profile(
 
 
 # ============================= 修改当前用户密码 ===========================
-@router.put("/me/password", response_model=dict[str, str])
+@router.put("/me/password", response_model=MessageResponse)
 def change_password(
     *,
     db: Session = Depends(get_db),

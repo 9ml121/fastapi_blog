@@ -10,17 +10,17 @@
 4. 级联删除：删除评论会自动删除所有子评论（数据库层面）
 """
 
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_user, get_db
-from app.core.pagination import PaginatedResponse, PaginationParams
 from app.crud import comment as comment_crud
+from app.models.comment import Comment
 from app.models.user import User
 from app.schemas.comment import CommentCreate, CommentResponse
+from app.schemas.common import PaginatedResponse, PaginationParams
 
 # 创建路由器
 router = APIRouter()
@@ -37,7 +37,7 @@ async def create_comment(
     comment_in: CommentCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Any:
+) -> Comment:
     """
     创建评论（需要登录）
 
@@ -61,14 +61,12 @@ async def create_comment(
     - 404: 文章不存在
     - 404: 父评论不存在或不属于该文章
     """
-    comment = comment_crud.create_comment(
+    return comment_crud.create_comment(
         db=db,
         obj_in=comment_in,
         author_id=current_user.id,
         post_id=post_id,
     )
-
-    return comment
 
 
 # ================ 查询 API 端点 ================
@@ -101,8 +99,12 @@ async def get_comments(
     - GET /api/v1/posts/123/comments/?sort=created_at&order=desc
 
     """
-    response = comment_crud.get_comment_by_post_id(db, post_id=post_id, params=params)
-    return response  # type: ignore
+    items, total = comment_crud.get_comment_by_post_id(
+        db, post_id=post_id, params=params
+    )
+    return PaginatedResponse.create(
+        items=items, total=total, params=params, schema_class=CommentResponse
+    )
 
 
 # ================ 删除 API 端点 ================

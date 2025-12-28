@@ -1,63 +1,34 @@
-"""
-app/schemas/post.py
-
-Post Pydantic Schemas - 文章数据验证与序列化
-
-设计思路：
-1. PostBase: 提取文章的核心业务字段，供其他 Schema 继承。
-2. PostCreate: 创建文章时的输入数据，允许客户端提供标签名称列表。
-3. PostUpdate: 更新文章时的输入数据，所有字段可选，支持部分更新。
-4. PostResponse: 返回给客户端的数据，包含作者和标签的完整信息，并排除敏感数据。
-5. PostFilters: 文章过滤条件，支持多种过滤条件组合。
-6. PostPaginationParams：继承 PaginationParams，修改排序默认字段为 published_at。
-"""
-
 from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.core.pagination import PaginationParams
 from app.models.post import PostStatus
+from app.schemas.common import PaginationParams
 
 from .tag import TagResponse
 from .user import UserSimpleResponse
 
 
-# ============ 基础模型 (共享字段) ============
-class PostBase(BaseModel):
-    """文章基础字段
+# ============ 创建模型 ============
+class PostCreate(BaseModel):
+    """创建文章请求体
 
-    提取所有文章相关 Schema 都需要的核心业务字段。
-    """
+    特点：
+    - tags: 允许客户端直接传递一个字符串列表，后端将处理"获取或创建"逻辑。
+    - status: 创建文章status后端强制设置为draft。发布是一个单独的动作（可能触发通知、审核等）。
+    - author_id： post创建模型不能包含 author_id 隐私字段
 
-    title: str = Field(min_length=1, max_length=200, description="文章标题")
-    content: str = Field(min_length=1, description="文章正文内容，支持 Markdown")
-    summary: str | None = Field(
-        default=None, max_length=500, description="文章摘要，用于列表页展示"
-    )
+    用途：POST /api/v1/posts/
+    """  # noqa: E501
+
+    title: str = Field(min_length=1, max_length=200)
+    content: str = Field(min_length=1)
+    summary: str | None = Field(default=None, max_length=500)
     slug: str | None = Field(
         default=None,
         max_length=200,
-        description="URL 友好标识，如果不提供则会根据标题自动生成",
-    )
-
-
-# ============ 创建模型 ============
-class PostCreate(PostBase):
-    """创建文章时的输入数据
-
-    特点：
-    - 继承 PostBase 的所有字段。
-    - tags 字段允许客户端直接传递一个字符串列表，后端将处理"获取或创建"逻辑。
-    - status 字段允许指定初始状态，默认为 draft（草稿）
-    - ⚠️ post创建模型不能包含 author_id 隐私字段
-
-    用途：POST /api/v1/posts/
-    """
-
-    status: PostStatus = Field(
-        default=PostStatus.DRAFT, description="文章初始状态（draft/published/archived）"
+        description="URL标识默认按照标题自动生成",
     )
     tags: list[str] | None = Field(default=None, description="与文章关联的标签名称列表")
 
@@ -70,9 +41,6 @@ class PostCreate(PostBase):
                     "FastAPI 是一个基于 Starlette 和 Pydantic 的现代、"
                     "高性能 Web 框架..."
                 ),
-                "summary": "本文将带你入门 FastAPI。",
-                "slug": "how-to-build-api-with-fastapi",
-                "status": "draft",
                 "tags": ["python", "fastapi", "webdev"],
             }
         },
@@ -81,12 +49,11 @@ class PostCreate(PostBase):
 
 # ============ 更新模型 ============
 class PostUpdate(BaseModel):
-    """
-    更新文章时使用的输入数据
+    """更新文章请求体
 
     特点：
     - 所有字段都是可选的，支持部分更新（PATCH）。
-    - 包含 `status` 字段，允许更改文章状态（发布、撤回、归档）
+    - 不包含 `status` 字段，状态变更只能通过独立端点
     - 包含 `tags` 字段，允许全量更新文章的标签关联。
 
     用途：PATCH /api/v1/posts/{post_id}
@@ -96,9 +63,7 @@ class PostUpdate(BaseModel):
     content: str | None = Field(default=None, min_length=1)
     summary: str | None = Field(default=None, max_length=500)
     slug: str | None = Field(default=None, max_length=200)
-    status: PostStatus | None = Field(
-        default=None, description="文章状态（draft/published/archived）"
-    )
+
     tags: list[str] | None = Field(
         default=None, description="文章的全新标签列表，将覆盖旧的标签"
     )
@@ -109,7 +74,6 @@ class PostUpdate(BaseModel):
             "example": {
                 "title": "如何用 FastAPI 构建现代 API (已更新)",
                 "content": "在原文基础上，增加关于依赖注入的章节。",
-                "status": "published",
                 "tags": ["python", "fastapi", "di"],
             }
         },
@@ -117,32 +81,41 @@ class PostUpdate(BaseModel):
 
 
 # ============ 响应模型 ============
-class PostResponse(PostBase):
-    """返回给客户端的文章数据
+class PostListResponse(BaseModel):
+    """文章列表响应模型，不含正文内容
 
-    特点：
-    - 继承 PostBase 的核心字段。
-    - 包含 `author` 和 `tags` 的完整嵌套信息，使用对应的 Response Schema。
-    - 包含所有系统生成的和用于展示的状态字段。
-
-    用途：返回单个文章详细信息的 API 端点。
+    用途：首页文章列表、搜索结果、标签下文章列表
     """
 
-    id: UUID = Field(description="文章唯一标识符")
-    author: UserSimpleResponse = Field(description="文章作者的详细信息")
-    tags: list[TagResponse] = Field(default=[], description="与文章关联的标签列表")
-    status: PostStatus = Field(description="文章状态（draft/published/archived）")
-    created_at: datetime = Field(description="文章创建时间")
-    updated_at: datetime = Field(description="文章最后更新时间")
-    published_at: datetime | None = Field(
-        default=None, description="文章发布时间，如果未发布则为 null"
-    )
-    is_featured: bool = Field(default=False, description="是否为精选文章")
+    id: UUID
+    title: str
+    slug: str
+    summary: str | None = None
+    status: PostStatus
+    is_featured: bool = False
+    published_at: datetime | None = None
 
-    # 社交互动数据
+    # 关联信息
+    author: UserSimpleResponse
+    tags: list[TagResponse] = []
+
+    # 社交数据
     view_count: int = Field(default=0, description="文章浏览次数")
     like_count: int = Field(default=0, description="文章点赞数")
     favorite_count: int = Field(default=0, description="文章收藏数")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PostDetailResponse(PostListResponse):
+    """文章详情（含正文）
+
+    用途：文章详情页、编辑页
+    """
+
+    content: str  # 唯一增加的字段
+    created_at: datetime
+    updated_at: datetime
 
     model_config = ConfigDict(
         from_attributes=True,  # 允许从 ORM 对象创建
@@ -180,24 +153,6 @@ class PostResponse(PostBase):
     )
 
 
-class PostSimpleResponse(BaseModel):
-    """文章简要信息，继承BaseModel
-
-    适用场景：通知列表（文章链接）、文章列表页、搜索结果、收藏／点赞列表等。
-    """
-
-    id: UUID = Field(description="文章唯一标识符")
-    title: str = Field(description="文章标题")
-    slug: str = Field(description="URL 友好标识")
-    author: UserSimpleResponse = Field(description="文章作者的详细信息")
-    status: PostStatus = Field(description="文章状态（draft/published/archived）")
-    published_at: datetime | None = Field(
-        default=None, description="文章发布时间，如果未发布则为 null"
-    )
-
-    model_config = ConfigDict(from_attributes=True)
-
-
 class PostLikeStatusResponse(BaseModel):
     """文章点赞状态响应"""
 
@@ -218,9 +173,9 @@ class PostFavoriteStatusResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ============ post过滤模型 ============
-class PostFilters(BaseModel):
-    """文章过滤条件
+# ============ 查询模型 ============
+class PostQueryParams(BaseModel):
+    """文章过滤请求参数
 
     用于文章列表查询时的过滤参数，支持多种过滤条件组合。
 
@@ -273,15 +228,11 @@ class PostFilters(BaseModel):
     )
 
 
-# ============ 分页参数模型 ============
 class PostPaginationParams(PaginationParams):
     """分页参数模型，修改排序默认字段为 published_at,支持置顶优先选项"""
 
-    sort: str = Field(
-        default="published_at", description="排序字段（默认published_at）"
-    )
-
-    prioritize_featured: bool = Field(default=True, description="是否优先显示置顶文章")
+    sort: str = Field(default="published_at", description="默认排序字段为published_at")
+    prioritize_featured: bool = Field(default=True, description="默认优先显示置顶文章")
 
     model_config = ConfigDict(
         extra="forbid",  # 禁止额外字段，确保类型安全

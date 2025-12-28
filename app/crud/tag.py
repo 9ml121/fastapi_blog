@@ -10,8 +10,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ResourceNotFoundError
-from app.core.pagination import PaginationParams, paginate_query
+from app.crud.pagination import paginate_query
 from app.models.tag import Tag
+from app.schemas.common import PaginationParams
 
 # ================  Tag 查询方法 ================
 

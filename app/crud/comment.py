@@ -15,11 +15,12 @@ from app.core.exceptions import (
     ResourceConflictError,
     ResourceNotFoundError,
 )
-from app.core.pagination import PaginatedResponse, PaginationParams, paginate_query
 from app.crud.notification import NotificationEvent, emit_notification_event
+from app.crud.pagination import paginate_query
 from app.crud.user import get_user_by_id
 from app.models.comment import Comment
-from app.schemas.comment import CommentCreate, CommentResponse
+from app.schemas.comment import CommentCreate
+from app.schemas.common import PaginationParams
 
 
 # ================ 查询方法 ================
@@ -38,7 +39,7 @@ def get_comment_by_id(db: Session, comment_id: UUID) -> Comment | None:
 
 def get_comment_by_post_id(
     db: Session, post_id: UUID, params: PaginationParams
-) -> PaginatedResponse[CommentResponse]:
+) -> tuple[list[Comment], int]:
     """获取文章的所有顶级评论（树形结构）
 
     Args:
@@ -47,7 +48,7 @@ def get_comment_by_post_id(
         params: 分页参数。默认page=1, size=20, sort=created_at, order=desc
 
     Returns:
-        PaginatedResponse[Comment]: 分页响应
+        tuple[list[Comment], int]: 评论列表和总数
     """
     # 业务规则：文章必须存在才能查询评论
     post = post_crud.get_post_by_id(db, post_id=post_id)
@@ -62,8 +63,8 @@ def get_comment_by_post_id(
     # 执行分页
     items, total = paginate_query(db, query, params, model=Comment)
 
-    # 返回分页响应 (FastAPI 会自动序列化 SQLAlchemy 模型)
-    return PaginatedResponse.create(items, total, params)
+    # 返回分页响应
+    return items, total
 
 
 # ================ 创建方法 ================

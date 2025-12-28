@@ -54,7 +54,7 @@ def validate_password_complexity(password: str) -> str:
     return password
 
 
-# ============ 创建 User 请求参数 Schema  ============
+# ============ User 创建请求参数 Schema  ============
 class UserCreate(BaseModel):
     """用户注册输入
 
@@ -103,7 +103,7 @@ class UserCreate(BaseModel):
     )
 
 
-# ============ 更新 User 请求参数 Schema ============
+# ============ User 更新请求参数 Schema ============
 class UserProfileUpdate(BaseModel):
     """用户自主更新个人资料
 
@@ -262,7 +262,7 @@ class PasswordReset(BaseModel):
     )
 
 
-# ============ 响应 User Schema ============
+# ============ User 响应 Schema ============
 class UserSimpleResponse(BaseModel):
     """公开的用户简要信息 (给别人看) - ⚠️ 绝不包含 Email
     用途：通知列表、关注／粉丝列表、文章作者信息、公开留言板等。

@@ -14,8 +14,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.core.pagination import PaginatedResponse, PaginationParams
 from app.crud import tag as tag_crud
+from app.schemas.common import PaginatedResponse, PaginationParams
 from app.schemas.tag import TagResponse, TagWithPosts
 
 # 创建路由器
@@ -47,9 +47,9 @@ async def get_tags(
     """
     tags, total = tag_crud.get_tags(db, pagination_params=pagination_params)
 
-    items = PaginatedResponse.create(items=tags, total=total, params=pagination_params)
-
-    return items  # type: ignore
+    return PaginatedResponse.create(
+        items=tags, total=total, params=pagination_params, schema_class=TagResponse
+    )
 
 
 @router.get("/{tag_slug}", response_model=TagWithPosts)

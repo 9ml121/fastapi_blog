@@ -82,8 +82,8 @@ class Post(Base):
             URL 友好的 slug 字符串
 
         Examples:
-            >>> Post._generate_slug_from_title("如何学习FastAPI框架")
-            "如何学习FastAPI框架"
+            >>> Post._generate_slug_from_title("如何学习 FastAPI 框架")
+            "如何学习-FastAPI-框架"
 
             >>> Post._generate_slug_from_title("Python Web开发实战")
             "Python-Web开发实战"
@@ -104,10 +104,9 @@ class Post(Base):
             return f"文章-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
 
         # 基本清理：移除不友好的特殊字符
-        cleaned = re.sub(r"[^\w\u4e00-\u9fff\s\-]", "", title)
+        cleaned = re.sub(r"[^\w\u4e00-\u9fff\s-]", "", title)
         cleaned = re.sub(r"\s+", "-", cleaned.strip())
-        cleaned = re.sub(r"-+", "-", cleaned)
-        cleaned = cleaned.strip("-")
+        cleaned = re.sub(r"-+", "-", cleaned).strip("-")
 
         # 长度控制
         if len(cleaned) > 20:

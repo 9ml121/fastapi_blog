@@ -19,12 +19,15 @@ Content-Type: application/json
     "verification_code": "317511"
 }
 
+### 删除用户
+
+
 ### 登录
 # @name login
 POST {{baseUrl}}/auth/login
 Content-Type: application/x-www-form-urlencoded
 
-username=test_auto@example.com&password=test123456
+username=limq0755@163.com&password=qq123456
 
 ### 获取个人信息
 @authToken = {{login.response.body.access_token}}
@@ -48,3 +51,26 @@ POST {{baseUrl}}/auth/reset-password
     "new_password": "qq19880305",
     "verification_code": "636880"
 }
+
+### 创建文章
+# @name create_post
+POST {{baseUrl}}/posts/
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "title": "FastAPI 入门教程",
+    "content": "FastAPI 是一个现代、快速的 Web 框架...",
+    "tags": ["Python", "FastAPI", "Web开发"]
+}
+
+
+### 发布文章
+@post_id = {{create_post.response.body.id}}
+PATCH {{baseUrl}}/posts/{{post_id}}/publish
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+
+### 获取已发布文章列表
+GET {{baseUrl}}/posts/?page=1&size=20

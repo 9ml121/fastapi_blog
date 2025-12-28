@@ -1,9 +1,3 @@
-"""
-Tag 模型定义
-
-标签用于文章分类，支持多对多关系。
-"""
-
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING

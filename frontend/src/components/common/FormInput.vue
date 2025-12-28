@@ -61,11 +61,11 @@ const modelValue = defineModel<string>({ required: true })
   transition: all 0.3s ease;
 }
 
-/*子元素获得焦点时 ：边框变蓝 + 浅蓝光晕 */
+/*子元素获得焦点时 */
 .input-wrapper:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-  background-color: transparent;
+  border-color: var(--color-input-border-focus);
+  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  background-color: var(--color-bg-card);
 }
 
 .input-inner {

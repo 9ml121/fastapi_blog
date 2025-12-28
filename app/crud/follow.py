@@ -14,11 +14,12 @@ from app.core.exceptions import (
     ResourceConflictError,
     ResourceNotFoundError,
 )
-from app.core.pagination import PaginationParams, paginate_query
 from app.crud import user as user_crud
 from app.crud.notification import NotificationEvent, emit_notification_event
+from app.crud.pagination import paginate_query
 from app.models.follow import Follow
 from app.models.user import User
+from app.schemas.common import PaginationParams
 from app.schemas.follow import FollowUserSummary
 
 

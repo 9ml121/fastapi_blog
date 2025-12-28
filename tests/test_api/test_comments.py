@@ -543,15 +543,18 @@ class TestDeleteComment:
         sample_comments: list[Comment],
     ):
         """✅ 异常数据：测试删除他人评论 - 应返回 403"""
-        from app.crud.user import create_user
-        from app.schemas.user import UserCreate
+        from app.core.security import hash_password
 
-        user_in = UserCreate(
-            username="other_user",
-            email="other@example.com",
-            password="Password123!",
+        other_user = User(
+            username="other_user_comment",
+            email="other_comment@example.com",
+            password_hash=hash_password("Password123!"),
+            nickname="Other User",
         )
-        other_user = create_user(db=session, user_in=user_in)
+        session.add(other_user)
+        session.commit()
+        session.refresh(other_user)
+
         token = create_access_token(data={"sub": str(other_user.id)})
         auth_headers = {"Authorization": f"Bearer {token}"}
 

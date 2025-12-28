@@ -22,13 +22,9 @@ from pydantic import ValidationError
 from sqlalchemy import func, select
 
 from app.core.exceptions import InvalidParametersError
-from app.core.pagination import (
-    PaginatedResponse,
-    PaginationParams,
-    _get_sortable_columns,
-    paginate_query,
-)
+from app.crud.pagination import _get_sortable_columns, paginate_query
 from app.models.post import Post
+from app.schemas.common import PaginatedResponse, PaginationParams
 
 
 class TestPaginationParams:

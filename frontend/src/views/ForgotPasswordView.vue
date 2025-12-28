@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { forgotPasswordApi, resetPasswordApi } from '@/api/auth.api'
-import BrandLogo from '@/components/BrandLogo.vue'
-import FormInput from '@/components/FormInput.vue'
+import BrandLogo from '@/components/common/BrandLogo.vue'
+import FormInput from '@/components/common/FormInput.vue'
 import {
   validateCode,
   validateConfirmPassword,
@@ -138,9 +138,6 @@ const handleReset = async () => {
   <div class="auth-container">
     <div class="auth-card">
       <div class="auth-header">
-        <div class="auth-logo">
-          <BrandLogo size="medium" :showName="true" direction="vertical" />
-        </div>
         <h1 class="auth-title">重置密码</h1>
       </div>
 

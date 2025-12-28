@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.notification import NotificationType
-from app.schemas.post import PostSimpleResponse
+from app.schemas.post import PostListResponse
 from app.schemas.user import UserSimpleResponse
 
 
@@ -15,7 +15,7 @@ class NotificationResponse(BaseModel):
     notification_type: NotificationType = Field(description="通知类型")
     aggregated_count: int = Field(description="聚合操作数")
 
-    post: PostSimpleResponse | None = Field(description="关联的文章（如有）")
+    post: PostListResponse | None = Field(description="关联的文章（如有）")
     is_read: bool = Field(description="是否已读")
     created_at: datetime = Field(description="创建时间")
     read_at: datetime | None = Field(description="标记已读的时间")

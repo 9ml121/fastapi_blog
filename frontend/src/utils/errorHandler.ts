@@ -9,17 +9,7 @@
  */
 
 import type { AxiosError } from 'axios'
-
-// 后端错误响应类型
-export interface BackendError {
-  code: string
-  message: string
-  details?: Record<string, any>
-}
-
-export interface BackendErrorResponse {
-  error: BackendError
-}
+import type { BackendErrorResponse, BackendError } from '@/types/common.types'
 
 // 类型守卫：判断是否为 AxiosError
 export function isAxiosError(error: unknown): error is AxiosError {

@@ -12,14 +12,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import (
-    get_current_active_user,
-    get_current_user_optional,
-    get_db,
-)
-from app.core.pagination import PaginatedResponse, PaginationParams
+from app.api.deps import get_current_active_user, get_current_user_optional, get_db
 from app.crud import follow as follow_crud
 from app.models.user import User
+from app.schemas.common import PaginatedResponse, PaginationParams
 from app.schemas.follow import FollowResponse, FollowUserSummary
 
 router = APIRouter()
@@ -112,7 +108,12 @@ async def get_followers(
         viewer_id=viewer.id if viewer else None,
     )
 
-    return PaginatedResponse.create(items=items, total=total, params=pagination_params)
+    return PaginatedResponse.create(
+        schema_class=FollowUserSummary,
+        items=items,
+        total=total,
+        params=pagination_params,
+    )
 
 
 # ============================= 获取关注列表 ===========================
@@ -146,7 +147,12 @@ async def get_following(
         viewer_id=viewer.id if viewer else None,
     )
 
-    return PaginatedResponse.create(items=items, total=total, params=pagination_params)
+    return PaginatedResponse.create(
+        items=items,
+        total=total,
+        params=pagination_params,
+        schema_class=FollowUserSummary,
+    )
 
 
 # ============================= 获取粉丝数 ===========================

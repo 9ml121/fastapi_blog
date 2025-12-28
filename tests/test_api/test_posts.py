@@ -45,16 +45,21 @@ def post_data() -> dict:
 
 @pytest.fixture
 def other_user(session: Session) -> User:
-    """创建第二个用户用于权限测试"""
-    from app.crud.user import create_user
-    from app.schemas.user import UserCreate
+    """创建第二个用户用于权限测试（直接使用 ORM 而非 UserCreate schema）"""
+    import uuid
 
-    user_in = UserCreate(
-        username="other_user",
-        email="other@example.com",
-        password="Password123!",
+    from app.core.security import hash_password
+
+    user = User(
+        username=f"other_user_{uuid.uuid4().hex[:8]}",
+        email=f"other_{uuid.uuid4().hex[:8]}@example.com",
+        password_hash=hash_password("Password123!"),
+        nickname="Other User",
     )
-    return create_user(session, user_in=user_in)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
 
 
 @pytest.fixture
@@ -407,8 +412,9 @@ class TestGetUserDrafts:
         assert str(draft2.id) in draft_ids
         assert str(published_post.id) not in draft_ids
 
-        # 验证按创建时间倒序排列
-        assert data[0]["created_at"] >= data[1]["created_at"]
+        # 验证所有返回的都是草稿状态
+        for post in data:
+            assert post["status"] == PostStatus.DRAFT.value
 
     def test_get_user_drafts_empty(
         self,

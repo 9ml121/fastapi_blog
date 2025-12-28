@@ -9,7 +9,7 @@ from uuid import UUID
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.post import PostCreate, PostResponse, PostUpdate
+from app.schemas.post import PostCreate, PostDetailResponse, PostUpdate
 from app.schemas.user import UserSimpleResponse
 
 
@@ -121,7 +121,7 @@ class TestPostResponseSchema:
         )()
 
         # 3. 使用 from_attributes=True 的特性来创建 PostResponse 实例
-        post_response = PostResponse.model_validate(mock_post_orm)
+        post_response = PostDetailResponse.model_validate(mock_post_orm)
 
         # 4. 断言
         assert post_response.id == UUID("f47ac10b-58cc-4372-a567-0e02b2c3d479")

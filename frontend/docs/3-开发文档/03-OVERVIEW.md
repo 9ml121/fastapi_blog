@@ -252,4 +252,93 @@ fastapi_blog/
 
 ---
 
+## Phase 5: 忘记密码功能开发
+
+**目标**：实现完整的密码重置流程，包括邮箱验证码、前端 UI 和后端 API
+
+### 1. 后端 API (`app/api/v1/endpoints/auth.py`)
+
+- ✅ 忘记密码 API（`POST /auth/forgot-password`）
+  - 校验邮箱必须已注册（区别于注册场景）
+  - 生成 6 位随机验证码
+  - 存储到 Redis（5分钟过期）
+  - 异步发送验证码邮件
+- ✅ 重置密码 API（`POST /auth/reset-password`）
+  - 校验验证码有效性
+  - 更新用户密码（复用 `update_password` CRUD）
+  - 验证成功后自动删除验证码
+
+### 2. 后端 Schema (`app/schemas/user.py`)
+
+- ✅ `PasswordReset` Schema
+  - `email`: 邮箱地址（EmailStr 校验）
+  - `new_password`: 新密码（强密码校验）
+  - `verification_code`: 6位数字验证码（正则校验）
+
+### 3. 后端 CRUD (`app/crud/user.py`)
+
+- ✅ `update_password()` 函数
+  - 职责单一：只负责更新密码哈希值
+  - 权限校验交由 API 层处理
+  - 同时支持"修改密码"和"重置密码"两种场景
+
+### 4. 前端重置密码页面 (`ForgotPasswordView.vue`)
+
+- ✅ 表单布局（邮箱、新密码、确认密码、验证码）
+- ✅ 发送验证码按钮 + 60秒倒计时（复用 `useCountdown`）
+- ✅ 实时表单校验
+  - 邮箱格式校验
+  - 密码强度校验（8位+大小写+数字）
+  - 确认密码一致性校验
+  - 验证码 6 位数字校验
+- ✅ 密码可见性切换（Eye/EyeOff 图标）
+- ✅ 加载状态动画（Loader2 旋转）
+- ✅ 错误提示处理
+  - 邮箱未注册提示
+  - 验证码错误提示
+- ✅ 重置成功后跳转登录页
+
+### 5. 前端 API 封装 (`auth.api.ts`)
+
+- ✅ `forgotPasswordApi()` - 发送验证码接口
+- ✅ `resetPasswordApi()` - 重置密码接口
+- ✅ `ResetPasswordParams` 类型定义
+
+### 6. 前端路由配置 (`router/index.ts`)
+
+- ✅ 添加 `/forgot-password` 路由
+- ✅ 无需登录即可访问（公开路由）
+
+### 7. Composable 工具函数
+
+- ✅ `useCountdown` Composable（`composables/useCountdown.ts`）
+  - 倒计时逻辑复用（注册页、重置密码页共用）
+  - 防止重复启动
+  - 自动清理定时器（onUnmounted）
+
+### 8. 业务逻辑亮点
+
+| 功能点 | 实现细节 |
+|--------|---------|
+| **邮箱校验差异** | 注册时拒绝已存在的邮箱；忘记密码时要求邮箱必须已注册 |
+| **错误提示优化** | 根据后端错误码（`RESOURCE_NOT_FOUND`/`INVALID_VERIFICATION_CODE`）精准提示 |
+| **验证码安全** | 验证成功后自动删除（防止重复使用） |
+| **UI 一致性** | 复用 `FormInput`/`BrandLogo` 等组件，保持设计统一 |
+| **用户体验** | 重置成功后 Toast 提示 + 1秒延迟跳转登录页 |
+
+### 相关文件清单
+
+| 层级 | 文件路径 |
+|-----|---------|
+| 后端 API | `app/api/v1/endpoints/auth.py` |
+| 后端 Schema | `app/schemas/user.py` (`PasswordReset`) |
+| 后端 CRUD | `app/crud/user.py` (`update_password`) |
+| 前端页面 | `frontend/src/views/ForgotPasswordView.vue` |
+| 前端 API | `frontend/src/api/auth.api.ts` |
+| 前端路由 | `frontend/src/router/index.ts` |
+| 前端工具 | `frontend/src/composables/useCountdown.ts` |
+| 表单验证 | `frontend/src/utils/validators.ts` |
+
+---
+
 # 📍 Next: 待定（文章管理 / 个人主页 / 其他）

@@ -22,6 +22,7 @@
     "dompurify": "^3.3.0",
     "lucide-vue-next": "^0.553.0",
     "marked": "^17.0.0",
+    "md-editor-v3": "^6.2.1",
     "pinia": "^3.0.3",
     "tailwindcss": "^4.1.17",
     "vditor": "^3.11.2",

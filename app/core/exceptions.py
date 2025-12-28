@@ -2,7 +2,7 @@
 应用自定义异常
 
 设计思路：
-1. AppException 作为基类，统一异常格式（code + message + status_code + details）
+1. AppException 作为基类，统一异常格式（code + message  + details）
 2. 具体业务异常继承基类，预设错误码和状态码
 3. 所有异常都会被全局异常处理器捕获，返回统一格式
 

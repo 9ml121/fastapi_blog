@@ -12,10 +12,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.exceptions import ResourceNotFoundError
-from app.core.pagination import PaginationParams, paginate_query
 from app.core.time_utils import ensure_utc, utc_now
+from app.crud.pagination import paginate_query
 from app.models.notification import Notification, NotificationType
 from app.models.post import Post
+from app.schemas.common import PaginationParams
 
 
 class NotificationEvent(str, Enum):

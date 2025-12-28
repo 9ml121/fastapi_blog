@@ -1,6 +1,7 @@
-import axios, { AxiosError } from 'axios'
-import { getToken, removeToken } from '@/utils/token'
 import { useToastStore } from '@/stores/toast.store'
+import type { BackendError } from '@/types/common.types'
+import { getToken, removeToken } from '@/utils/token'
+import axios, { AxiosError } from 'axios'
 
 // Axios 实例
 const api = axios.create({
@@ -91,11 +92,7 @@ api.interceptors.response.use(
 // 声明类型扩展（TypeScript），将后端错误信息添加到 AxiosError 类型中
 declare module 'axios' {
   export interface AxiosError {
-    backendError?: {
-      code: string
-      message: string
-      details?: any
-    }
+    backendError?: BackendError
   }
 }
 

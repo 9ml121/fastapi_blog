@@ -1,29 +1,29 @@
 <script lang="ts" setup>
-import BrandLogo from '@/components/BrandLogo.vue'
-import FormInput from '@/components/FormInput.vue'
+import { sendCodeApi } from '@/api'
+import BrandLogo from '@/components/common/BrandLogo.vue'
+import FormInput from '@/components/common/FormInput.vue'
 import { useAuthStore } from '@/stores/auth.store'
 import {
-  validateEmail,
   validateCode,
-  validatePassword,
   validateConfirmPassword,
+  validateEmail,
+  validatePassword,
 } from '@/utils/validators'
-import { sendCodeApi } from '@/api'
 
+import { useCountdown } from '@/composables/useCountdown'
+import { useToastStore } from '@/stores/toast.store'
 import {
   ArrowRight,
   Eye,
   EyeOff,
+  KeyRound,
   Loader2,
   LockKeyhole,
   Mail,
-  KeyRound,
   Send,
 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useToastStore } from '@/stores/toast.store'
-import { useCountdown } from '@/composables/useCountdown'
 
 // ========== 状态初始化 ==========
 const authStore = useAuthStore()
@@ -141,9 +141,6 @@ const handleRegister = async () => {
   <div class="auth-container">
     <div class="auth-card">
       <div class="auth-header">
-        <div class="auth-logo">
-          <BrandLogo size="medium" :showName="true" direction="vertical" />
-        </div>
         <h1 class="auth-title">注册</h1>
       </div>
 
@@ -324,7 +321,7 @@ const handleRegister = async () => {
   /* 颜色 */
   background-color: var(--color-primary);
   border: none;
-  color: #fff;
+  color: var(--color-text-invert);
 
   /* 过渡动画 */
   cursor: pointer;

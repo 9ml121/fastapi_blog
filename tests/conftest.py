@@ -425,32 +425,28 @@ def sample_users(session: Session, sample_user: User) -> list[User]:
     - 作为文章和评论的作者
     - 创建sample_follows测试数据
     """
-    from app.crud.user import create_user
-    from app.schemas.user import UserCreate
+    from app.core.security import hash_password
 
     users = [sample_user]
     user_templates = [
-        {
-            "username": "zhangsan",
-            "email": "zhangsan@example.com",
-            "password": "testpassword123",
-        },
-        {
-            "username": "lisi",
-            "email": "lisi@example.com",
-            "password": "testpassword123",
-        },
-        {
-            "username": "wangwu",
-            "email": "wangwu@example.com",
-            "password": "testpassword123",
-        },
+        {"username": "zhangsan", "email": "zhangsan@example.com", "nickname": "张三"},
+        {"username": "lisi", "email": "lisi@example.com", "nickname": "李四"},
+        {"username": "wangwu", "email": "wangwu@example.com", "nickname": "王五"},
     ]
 
     for template in user_templates:
-        user_data = UserCreate(**template)
-        user = create_user(session, user_in=user_data)
+        user = User(
+            username=template["username"],
+            email=template["email"],
+            password_hash=hash_password("testpassword123"),
+            nickname=template["nickname"],
+        )
+        session.add(user)
         users.append(user)
+
+    session.commit()
+    for user in users[1:]:  # 刷新新创建的用户
+        session.refresh(user)
 
     return users
 
